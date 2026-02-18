@@ -1,17 +1,23 @@
 // Main entry point
 const settings = require('./config/settings');
 const { connectToWhatsApp } = require('./lib/waClient');
+const WhatsAppHandler = require('./handlers/waHandler');
 
 console.log(`Starting ${settings.app.name} v${settings.app.version} in ${settings.app.env} mode`);
 
 // Variabel untuk menyimpan instance WhatsApp
 let waSocket = null;
+let waHandler = null;
 
 // Fungsi untuk memulai WhatsApp bot
 async function startWhatsAppBot() {
     try {
         console.log('Menghubungkan ke WhatsApp...');
         waSocket = await connectToWhatsApp();
+        
+        // Inisialisasi WhatsApp handler
+        waHandler = new WhatsAppHandler(waSocket);
+        console.log('WhatsApp handler berhasil diinisialisasi');
         
         console.log('Bot berhasil terhubung!');
         
@@ -26,6 +32,7 @@ function stopWhatsAppBot() {
     if (waSocket) {
         console.log('Menghentikan WhatsApp bot...');
         waSocket = null;
+        waHandler = null;
     }
 }
 
