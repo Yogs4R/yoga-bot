@@ -22,12 +22,12 @@ async function startWhatsAppBot() {
         console.log('Bot berhasil terhubung dan siap menerima pesan!');
         
     } catch (error) {
-        console.error('Gagal memulai WhatsApp bot:', error);
-        // Coba ulang setelah 5 detik
-        console.log('Mencoba menghubungkan kembali dalam 5 detik...');
+        console.error('Gagal memulai WhatsApp bot:', error.message);
+        // Coba ulang setelah 10 detik
+        console.log('Mencoba menghubungkan kembali dalam 10 detik...');
         setTimeout(() => {
             startWhatsAppBot();
-        }, 5000);
+        }, 10000);
     }
 }
 
