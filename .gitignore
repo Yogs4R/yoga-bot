@@ -97,3 +97,4 @@ temp/
 # Credentials (do not commit)
 credentials/
 auth/
+.aider*
