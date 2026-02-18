@@ -15,15 +15,19 @@ async function startWhatsAppBot() {
         console.log('Menghubungkan ke WhatsApp...');
         waSocket = await connectToWhatsApp();
         
-        // Inisialisasi WhatsApp handler
+        // Inisialisasi WhatsApp handler hanya setelah koneksi benar-benar terbuka
         waHandler = new WhatsAppHandler(waSocket);
         console.log('WhatsApp handler berhasil diinisialisasi');
         
-        console.log('Bot berhasil terhubung!');
+        console.log('Bot berhasil terhubung dan siap menerima pesan!');
         
     } catch (error) {
         console.error('Gagal memulai WhatsApp bot:', error);
-        process.exit(1);
+        // Coba ulang setelah 5 detik
+        console.log('Mencoba menghubungkan kembali dalam 5 detik...');
+        setTimeout(() => {
+            startWhatsAppBot();
+        }, 5000);
     }
 }
 
