@@ -5,6 +5,7 @@ const { Browsers } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const path = require('path');
 const fs = require('fs');
+const qrcode = require('qrcode-terminal');
 
 async function connectToWhatsApp() {
     // Membuat folder auth/whatsapp jika belum ada
@@ -19,7 +20,6 @@ async function connectToWhatsApp() {
     // Membuat socket connection
     const sock = makeWASocket({
         logger: pino({ level: 'silent' }),
-        printQRInTerminal: true,
         auth: state,
         browser: Browsers.macOS('Desktop')
     });
@@ -29,7 +29,13 @@ async function connectToWhatsApp() {
 
     // Menangani event connection.update
     sock.ev.on('connection.update', (update) => {
-        const { connection, lastDisconnect } = update;
+        const { connection, lastDisconnect, qr } = update;
+        
+        // Tampilkan QR code jika tersedia
+        if (qr) {
+            console.log('Scan QR code berikut untuk menghubungkan:');
+            qrcode.generate(qr, { small: true });
+        }
         
         if (connection === 'close') {
             const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
