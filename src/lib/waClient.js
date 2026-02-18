@@ -21,14 +21,15 @@ async function connectToWhatsApp() {
     const sock = makeWASocket({
         logger: pino({ level: 'info' }),
         auth: state,
-        printQRInTerminal: true,
         // Opsi untuk meningkatkan koneksi
         connectTimeoutMs: 60000,
         keepAliveIntervalMs: 25000,
         emitOwnEvents: true,
         defaultQueryTimeoutMs: 60000,
-        // Browser info
-        browser: ["Ubuntu", "Chrome", "20.0.04"]
+        // Browser info yang lebih umum
+        browser: ["Windows", "Chrome", "10.0"],
+        // Tambahkan versi Baileys
+        version: [2, 2413, 1]
     });
 
     // Menyimpan kredensial ketika diperbarui
@@ -43,29 +44,37 @@ async function connectToWhatsApp() {
         rejectPromise = reject;
     });
 
+    // Flag untuk menandai apakah QR sudah ditampilkan
+    let qrDisplayed = false;
+
     // Menangani event connection.update
     sock.ev.on('connection.update', (update) => {
         console.log('Log Update:', JSON.stringify(update, null, 2));
         const { connection, lastDisconnect, qr, isNewLogin } = update;
         
         // Tampilkan QR code jika tersedia
-        if (qr) {
-            console.log('Scan QR code berikut untuk menghubungkan:');
+        if (qr && !qrDisplayed) {
+            console.log('\n=== QR CODE UNTUK WHATSAPP ===');
             qrcode.generate(qr, { small: true });
+            console.log('=== SCAN QR CODE DI ATAS ===\n');
+            qrDisplayed = true;
         }
         
         if (connection === 'connecting') {
-            console.log('Sedang menghubungkan...');
-            if (isNewLogin) {
-                console.log('Login baru diperlukan. Silakan scan QR code.');
+            console.log('Sedang menghubungkan ke WhatsApp...');
+            if (isNewLogin && !qrDisplayed) {
+                console.log('Login baru diperlukan. Silakan tunggu QR code...');
             }
         } else if (connection === 'close') {
-            console.error('Alasan Error:', lastDisconnect?.error);
+            console.error('Koneksi ditutup.');
+            if (lastDisconnect?.error) {
+                console.error('Alasan Error:', lastDisconnect.error.message || lastDisconnect.error);
+            }
             const statusCode = lastDisconnect?.error?.output?.statusCode;
             const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
             
             if (shouldReconnect) {
-                console.log('Koneksi terputus. Mencoba menghubungkan kembali dalam 5 detik...');
+                console.log('Koneksi terputus. Akan mencoba kembali...');
                 // Reject promise untuk memicu reconnect di index.js
                 rejectPromise(new Error('Connection closed, need to reconnect'));
             } else {
@@ -74,6 +83,7 @@ async function connectToWhatsApp() {
             }
         } else if (connection === 'open') {
             console.log('Berhasil terhubung ke WhatsApp!');
+            qrDisplayed = false;
             // Resolve promise hanya ketika koneksi terbuka
             resolvePromise(sock);
         }
@@ -81,10 +91,11 @@ async function connectToWhatsApp() {
 
     // Set timeout untuk connection
     setTimeout(() => {
-        if (!sock.user) {
+        if (!sock.user && !qrDisplayed) {
+            console.log('Waktu koneksi habis. Coba ulang...');
             rejectPromise(new Error('Connection timeout'));
         }
-    }, 60000);
+    }, 120000); // 2 menit timeout
 
     return connectionPromise;
 }

@@ -21,13 +21,24 @@ async function startWhatsAppBot() {
         
         console.log('Bot berhasil terhubung dan siap menerima pesan!');
         
+        // Tambahkan event listener untuk menangani error koneksi
+        waSocket.ev.on('connection.update', (update) => {
+            if (update.connection === 'close') {
+                console.log('Koneksi terputus dari dalam handler. Mencoba ulang...');
+                // Restart bot
+                setTimeout(() => {
+                    startWhatsAppBot();
+                }, 5000);
+            }
+        });
+        
     } catch (error) {
         console.error('Gagal memulai WhatsApp bot:', error.message);
-        // Coba ulang setelah 10 detik
-        console.log('Mencoba menghubungkan kembali dalam 10 detik...');
+        // Coba ulang setelah 15 detik
+        console.log('Mencoba menghubungkan kembali dalam 15 detik...');
         setTimeout(() => {
             startWhatsAppBot();
-        }, 10000);
+        }, 15000);
     }
 }
 
