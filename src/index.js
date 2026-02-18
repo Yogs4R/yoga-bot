@@ -1,13 +1,11 @@
 // Main entry point
 const settings = require('./config/settings');
 const { connectToWhatsApp } = require('./lib/waClient');
-const WhatsAppHandler = require('./handlers/waHandler');
 
 console.log(`Starting ${settings.app.name} v${settings.app.version} in ${settings.app.env} mode`);
 
 // Variabel untuk menyimpan instance WhatsApp
 let waSocket = null;
-let waHandler = null;
 
 // Fungsi untuk memulai WhatsApp bot
 async function startWhatsAppBot() {
@@ -15,13 +13,7 @@ async function startWhatsAppBot() {
         console.log('Menghubungkan ke WhatsApp...');
         waSocket = await connectToWhatsApp();
         
-        // Inisialisasi WhatsApp handler dengan client
-        waHandler = new WhatsAppHandler(waSocket);
-        console.log('WhatsApp bot siap!');
-        
-        // Di sini kita bisa menambahkan event listener untuk pesan
-        // Misalnya: waSocket.ev.on('messages.upsert', ...)
-        // Atau biarkan handler mengaturnya
+        console.log('Bot berhasil terhubung!');
         
     } catch (error) {
         console.error('Gagal memulai WhatsApp bot:', error);
@@ -33,10 +25,7 @@ async function startWhatsAppBot() {
 function stopWhatsAppBot() {
     if (waSocket) {
         console.log('Menghentikan WhatsApp bot...');
-        // Baileys tidak memiliki metode close() eksplisit, 
-        // tapi kita bisa menghapus referensi
         waSocket = null;
-        waHandler = null;
     }
 }
 
