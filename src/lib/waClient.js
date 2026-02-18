@@ -20,7 +20,7 @@ async function connectToWhatsApp() {
 
     // Membuat socket connection dengan opsi tambahan
     const sock = makeWASocket({
-        logger: pino({ level: 'info' }),
+        logger: pino({ level: 'silent' }),
         auth: state,
         // Opsi untuk meningkatkan koneksi
         connectTimeoutMs: 30000,
