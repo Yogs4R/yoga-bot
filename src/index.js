@@ -28,17 +28,18 @@ async function startWhatsAppBot() {
                 // Restart bot
                 setTimeout(() => {
                     startWhatsAppBot();
-                }, 5000);
+                }, 10000);
             }
         });
         
     } catch (error) {
         console.error('Gagal memulai WhatsApp bot:', error.message);
-        // Coba ulang setelah 15 detik
-        console.log('Mencoba menghubungkan kembali dalam 15 detik...');
+        // Coba ulang setelah waktu yang bervariasi
+        const retryDelay = Math.floor(Math.random() * 10000) + 10000; // 10-20 detik
+        console.log(`Mencoba menghubungkan kembali dalam ${retryDelay/1000} detik...`);
         setTimeout(() => {
             startWhatsAppBot();
-        }, 15000);
+        }, retryDelay);
     }
 }
 
