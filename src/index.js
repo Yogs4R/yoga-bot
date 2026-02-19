@@ -3,9 +3,13 @@ require('dotenv').config(); // Load environment variables from .env file
 
 // Log untuk memastikan environment variable terbaca (opsional)
 if (!process.env.GEMINI_API_KEY) {
-    console.warn('Peringatan: GEMINI_API_KEY tidak ditemukan di environment variables.');
+    console.warn('⚠️  Peringatan: GEMINI_API_KEY tidak ditemukan di environment variables.');
+    console.warn('   Buat file .env di root dengan: GEMINI_API_KEY=your_key_here');
+    console.warn('   Dapatkan API key dari: https://aistudio.google.com/apikey');
 } else {
-    console.log('GEMINI_API_KEY ditemukan.');
+    console.log('✅ GEMINI_API_KEY ditemukan.');
+    // Jangan tampilkan key sebenarnya untuk keamanan
+    console.log('   Panjang key:', process.env.GEMINI_API_KEY.length, 'karakter');
 }
 
 const settings = require('./config/settings');

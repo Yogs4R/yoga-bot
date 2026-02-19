@@ -46,7 +46,19 @@ class WhatsAppHandler {
           replyText = await askGemini(text);
         } catch (error) {
           console.error('Error dari Gemini AI:', error);
-          replyText = 'Maaf, otak AI sedang gangguan.';
+          
+          // Berikan pesan error yang lebih spesifik
+          if (error.message.includes('Kuota Gemini AI telah habis')) {
+            replyText = 'Maaf, kuota AI saya sudah habis untuk hari ini. Silakan coba lagi besok atau hubungi admin untuk menambah kuota.';
+          } else if (error.message.includes('Akses ditolak')) {
+            replyText = 'Maaf, akses AI sedang bermasalah (autentikasi gagal). Admin telah diberitahu.';
+          } else if (error.message.includes('model tidak ditemukan')) {
+            replyText = 'Maaf, konfigurasi AI sedang diperbarui. Coba lagi nanti.';
+          } else if (error.message.includes('API key')) {
+            replyText = 'Maaf, konfigurasi AI belum lengkap. Admin telah diberitahu.';
+          } else {
+            replyText = 'Maaf, otak AI sedang gangguan. Coba lagi nanti atau gunakan perintah sistem (/ping, /saldo).';
+          }
         }
       }
       
