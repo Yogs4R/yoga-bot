@@ -21,7 +21,7 @@ class WhatsAppHandler {
       // e. Jika teks di-lowercase (.toLowerCase()) sama persis dengan "ping", balas pesan
       if (text.toLowerCase() === 'ping') {
         await this.sock.sendMessage(msg.key.remoteJid, { 
-          text: 'Pong!  Yoga Bot Online dan siap melayani.' 
+          text: 'Pong! Yoga Bot Online dan siap melayani Anda.' 
         });
       }
     });
