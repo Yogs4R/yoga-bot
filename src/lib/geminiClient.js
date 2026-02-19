@@ -11,13 +11,14 @@ if (!apiKey) {
 const genAI = new GoogleGenerativeAI(apiKey);
 
 // Konfigurasi model - menggunakan model yang tersedia di tier gratis
-// Coba gemini-1.5-flash atau gemini-1.5-flash-8b
-const modelName = "gemini-1.5-flash-8b"; // Model yang lebih ringan untuk tier gratis
-// Alternatif: "gemini-1.5-flash"
+const modelName = "gemini-2.5-flash-lite"; 
 
 const model = genAI.getGenerativeModel({ 
   model: modelName,
-  systemInstruction: "Kamu adalah Yoga Bot, asisten virtual pribadi milik Ridwan Yoga Suryantara (seorang developer Fuenzer Studio & mahasiswa Sistem Informasi). Kamu ramah, pintar coding, dan asyik diajak ngobrol. Jawab dengan bahasa Indonesia yang luwes.",
+  systemInstruction: `Kamu adalah Yoga Bot, asisten virtual pribadi milik Ridwan Yoga Suryantara (seorang developer Fuenzer Studio & mahasiswa Sistem Informasi). Kamu ramah, pintar coding, dan asyik diajak ngobrol. Jawab dengan bahasa Indonesia yang luwes dan gunakan emoji secukupnya.
+  ATURAN PENTING:
+  1. Jika pengguna mengirim pesan yang tidak jelas, ketikan acak (seperti 'ajsdas', 'sjadna'), atau hanya huruf tunggal ('P', 'y'), JANGAN memberikan jawaban panjang. Cukup balas singkat: "Maaf, aku kurang paham maksud ketikanmu. 😅 Ketik /info untuk melihat daftar kemampuanku ya!"
+  2. Jika pengguna baru menyapa (seperti "Halo", "Hai") atau bertanya tentang apa yang bisa kamu lakukan, selalu akhiri jawabanmu dengan menawarkan mereka untuk mengetik command "/info".`,
   generationConfig: {
     temperature: 0.7,
     topP: 0.8,
@@ -25,6 +26,28 @@ const model = genAI.getGenerativeModel({
     maxOutputTokens: 1024,
   },
 });
+
+/**
+ * Fungsi untuk membersihkan dan memformat Markdown Gemini agar sesuai dengan standar WhatsApp
+ * @param {string} text - Teks mentah dari Gemini
+ * @returns {string} - Teks yang sudah diformat untuk WA
+ */
+function formatForWhatsApp(text) {
+  if (!text) return text;
+  
+  let formattedText = text;
+  
+  // Ubah Bold: **teks** menjadi *teks*
+  formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '*$1*');
+  
+  // Ubah Header Markdown: ### Judul menjadi *Judul*
+  formattedText = formattedText.replace(/^#+\s*(.*)$/gm, '*$1*');
+  
+  // Ubah Bullet Points: dari * menjadi - agar tidak salah terbaca sebagai bold di WA
+  formattedText = formattedText.replace(/^\s*\*\s+/gm, '- ');
+
+  return formattedText;
+}
 
 /**
  * Fungsi untuk berinteraksi dengan Gemini AI
@@ -49,11 +72,16 @@ async function askGemini(message) {
       throw new Error('Tidak ada teks dalam respons dari Gemini AI');
     }
     
-    return response.text();
+    // Ambil teks mentah lalu format untuk WhatsApp
+    const rawText = response.text();
+    const finalMessageWA = formatForWhatsApp(rawText);
+    
+    return finalMessageWA;
+
   } catch (error) {
     console.error('Error saat memanggil Gemini AI:', error.message);
     
-    // Berikan pesan error yang lebih informatif
+    // Pesan Error
     if (error.message.includes('429') || error.message.includes('quota')) {
       throw new Error('Kuota Gemini AI telah habis. Silakan periksa billing di Google Cloud Console atau tunggu hingga reset.');
     } else if (error.message.includes('403') || error.message.includes('PERMISSION_DENIED')) {
