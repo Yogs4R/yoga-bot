@@ -1,4 +1,13 @@
 // Main entry point
+require('dotenv').config(); // Load environment variables from .env file
+
+// Log untuk memastikan environment variable terbaca (opsional)
+if (!process.env.GEMINI_API_KEY) {
+    console.warn('Peringatan: GEMINI_API_KEY tidak ditemukan di environment variables.');
+} else {
+    console.log('GEMINI_API_KEY ditemukan.');
+}
+
 const settings = require('./config/settings');
 const { connectToWhatsApp } = require('./lib/waClient');
 const WhatsAppHandler = require('./handlers/waHandler');
