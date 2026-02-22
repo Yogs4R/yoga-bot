@@ -1,4 +1,5 @@
 const { checkSaldo, addTransaction } = require('../../services/financeService');
+const { generateBoxTemplate } = require('../../utils/formatter');
 
 async function handleFinanceCommand(command, args, userId, platform) {
   // Clean command to ensure it's in lowercase
@@ -12,7 +13,12 @@ async function handleFinanceCommand(command, args, userId, platform) {
     case '/pemasukan':
       // Ensure there are enough arguments
       if (args.length < 2) {
-        return `> *ERROR FORMAT* 📝\n\nFormat: ${cleanCommand} <jumlah> <deskripsi>\nContoh: ${cleanCommand} 50000 Makan siang`;
+        const header = '> *ERROR FORMAT* 📝';
+        const body = generateBoxTemplate([
+          `Format: ${cleanCommand} <jumlah> <deskripsi>`,
+          `Contoh: ${cleanCommand} 50000 Makan siang`
+        ]);
+        return `${header}\n\n${body}`;
       }
       
       // Clean the amount: remove non-numeric characters except digits
@@ -21,7 +27,13 @@ async function handleFinanceCommand(command, args, userId, platform) {
       const amount = parseInt(cleanedAmount);
       
       if (isNaN(amount) || amount <= 0) {
-        return `> *ERROR INPUT* ❌\n\nJumlah harus angka positif.\nDiterima: ${rawAmount}\nContoh yang benar: ${cleanCommand} 50000 Makan siang`;
+        const header = '> *ERROR INPUT* ❌';
+        const body = generateBoxTemplate([
+          `Jumlah harus angka positif.`,
+          `Diterima: ${rawAmount}`,
+          `Contoh yang benar: ${cleanCommand} 50000 Makan siang`
+        ]);
+        return `${header}\n\n${body}`;
       }
       
       // The rest of the arguments form the description
@@ -33,7 +45,12 @@ async function handleFinanceCommand(command, args, userId, platform) {
       return await addTransaction(userId, amount, type, description, platform);
       
     default:
-      return `> *COMMAND TIDAK DIKENAL* 🤔\n\nPerintah keuangan "${command}" tidak tersedia.\nGunakan /saldo, /catat, atau /pemasukan.`;
+      const header = '> *COMMAND TIDAK DIKENAL* 🤔';
+      const body = generateBoxTemplate([
+        `Perintah keuangan "${command}" tidak tersedia.`,
+        `Gunakan /saldo, /catat, atau /pemasukan.`
+      ]);
+      return `${header}\n\n${body}`;
   }
 }
 

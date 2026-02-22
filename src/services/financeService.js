@@ -1,14 +1,6 @@
 // Finance services (currency, stocks, etc.)
 const supabase = require('../lib/supabaseClient');
-
-// Helper function to format currency in Rupiah
-function formatRupiah(angka) {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-  }).format(angka);
-}
+const { formatRupiah, generateBoxTemplate } = require('../utils/formatter');
 
 // Check balance for a user
 async function checkSaldo(userId) {
@@ -21,7 +13,10 @@ async function checkSaldo(userId) {
 
     if (error) {
       console.error('Error querying finance data:', error);
-      return `> *ERROR QUERY SALDO* 😢\n\nGagal mengambil data saldo: ${error.message}`;
+      // Header + Body + Footer
+      const header = '> *ERROR QUERY SALDO* 😢';
+      const body = generateBoxTemplate([`Gagal mengambil data saldo: ${error.message}`]);
+      return `${header}\n\n${body}`;
     }
 
     // Calculate total balance
@@ -34,13 +29,20 @@ async function checkSaldo(userId) {
       }
     });
 
-    // Format response according to updated UI guidelines
-    const response = `> *INFO SALDO DOMPET* 💰\n\n\`\`\`\nSaldo : ${formatRupiah(total)}\nStatus: ${total >= 0 ? 'Aman Bro!' : 'Hati-hati minus!'}\n\`\`\`\n\nGunakan \`/catat <jumlah> <deskripsi>\` untuk mencatat pengeluaran atau \`/pemasukan <jumlah> <deskripsi>\` untuk mencatat pemasukan.`;
+    // Format response according to Hybrid UI v3
+    const header = '> *INFO SALDO DOMPET* 💰';
+    const body = generateBoxTemplate([
+      `Saldo  : ${formatRupiah(total)}`,
+      `Status : ${total >= 0 ? 'Aman Bro!' : 'Hati-hati minus!'}`
+    ]);
+    const footer = `\nGunakan \`/catat <jumlah> <deskripsi>\` untuk mencatat pengeluaran atau \`/pemasukan <jumlah> <deskripsi>\` untuk mencatat pemasukan.`;
     
-    return response;
+    return `${header}\n\n${body}${footer}`;
   } catch (error) {
     console.error('Unexpected error in checkSaldo:', error);
-    return `> *ERROR SISTEM* 🚨\n\nTerjadi kesalahan tak terduga: ${error.message}`;
+    const header = '> *ERROR SISTEM* 🚨';
+    const body = generateBoxTemplate([`Terjadi kesalahan tak terduga: ${error.message}`]);
+    return `${header}\n\n${body}`;
   }
 }
 
@@ -49,7 +51,9 @@ async function addTransaction(userId, amount, type, description, platform) {
   try {
     // Validate amount
     if (isNaN(amount) || amount <= 0) {
-      return `> *ERROR INPUT* ❌\n\nJumlah harus angka positif.`;
+      const header = '> *ERROR INPUT* ❌';
+      const body = generateBoxTemplate(['Jumlah harus angka positif.']);
+      return `${header}\n\n${body}`;
     }
 
     // Insert transaction
@@ -66,23 +70,33 @@ async function addTransaction(userId, amount, type, description, platform) {
 
     if (error) {
       console.error('Error inserting transaction:', error);
-      return `> *ERROR TRANSAKSI* 😓\n\nGagal mencatat transaksi: ${error.message}`;
+      const header = '> *ERROR TRANSAKSI* 😓';
+      const body = generateBoxTemplate([`Gagal mencatat transaksi: ${error.message}`]);
+      return `${header}\n\n${body}`;
     }
 
-    // Format success response according to updated UI guidelines
+    // Format success response according to Hybrid UI v3
     const typeText = type === 'IN' ? 'PEMASUKAN' : 'PENGELUARAN';
     const emoji = type === 'IN' ? '💸' : '📝';
-    const response = `> *TRANSAKSI BERHASIL* ${emoji}\n\n\`\`\`\nTipe   : ${typeText}\nJumlah : ${formatRupiah(amount)}\nDesk   : ${description}\nPlatform: ${platform}\n\`\`\`\n\nTransaksi telah tercatat dengan baik. Gunakan \`/saldo\` untuk melihat saldo terkini.`;
+    const header = `> *TRANSAKSI BERHASIL* ${emoji}`;
+    const body = generateBoxTemplate([
+      `Tipe    : ${typeText}`,
+      `Jumlah  : ${formatRupiah(amount)}`,
+      `Desk    : ${description}`,
+      `Platform: ${platform}`
+    ]);
+    const footer = `\nTransaksi telah tercatat dengan baik. Gunakan \`/saldo\` untuk melihat saldo terkini.`;
     
-    return response;
+    return `${header}\n\n${body}${footer}`;
   } catch (error) {
     console.error('Unexpected error in addTransaction:', error);
-    return `> *ERROR SISTEM* 🚨\n\nTerjadi kesalahan tak terduga: ${error.message}`;
+    const header = '> *ERROR SISTEM* 🚨';
+    const body = generateBoxTemplate([`Terjadi kesalahan tak terduga: ${error.message}`]);
+    return `${header}\n\n${body}`;
   }
 }
 
 module.exports = {
   checkSaldo,
-  addTransaction,
-  formatRupiah
+  addTransaction
 };

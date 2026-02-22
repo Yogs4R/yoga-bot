@@ -43,15 +43,21 @@ class WhatsAppHandler {
             replyText = await handleFinanceCommand(command, args, msg.key.remoteJid, 'whatsapp');
             break;
           case '/info':
-            replyText = `> *INFORMASI YOGA BOT* 🤖\n\nSaya adalah asisten virtual pribadi milik Ridwan Yoga Suryantara.\n\n📋 DAFTAR PERINTAH SISTEM:\n- \`/ping\`   : Cek status bot\n- \`/saldo\`  : Cek saldo keuangan\n- \`/catat\`  : Catat pengeluaran\n- \`/pemasukan\`: Catat pemasukan\n- \`/info\`   : Menampilkan pesan ini\n\n💡 FITUR AI:\nKirimkan pesan biasa (tanpa awalan '/') untuk ngobrol,\nbertanya seputar coding, teknologi, atau sekadar bertukar pikiran!\n`;
+            const header = '> *INFORMASI YOGA BOT* 🤖';
+            const body = `Saya adalah asisten virtual pribadi milik Ridwan Yoga Suryantara.\n\n📋 DAFTAR PERINTAH SISTEM:\n- \`/ping\`   : Cek status bot\n- \`/saldo\`  : Cek saldo keuangan\n- \`/catat\`  : Catat pengeluaran\n- \`/pemasukan\`: Catat pemasukan\n- \`/info\`   : Menampilkan pesan ini\n\n💡 FITUR AI:\nKirimkan pesan biasa (tanpa awalan '/') untuk ngobrol,\nbertanya seputar coding, teknologi, atau sekadar bertukar pikiran!`;
+            replyText = `${header}\n\n${body}`;
             break;
           default:
-            replyText = `> *COMMAND TIDAK DIKENAL* 🤔\n\nPerintah "${command}" tidak tersedia.\nCoba \`/ping\`, \`/saldo\`, \`/catat\`, \`/pemasukan\`, atau \`/info\`.\n`;
+            const defaultHeader = '> *COMMAND TIDAK DIKENAL* 🤔';
+            const defaultBody = `Perintah "${command}" tidak tersedia.\nCoba \`/ping\`, \`/saldo\`, \`/catat\`, \`/pemasukan\`, atau \`/info\`.`;
+            replyText = `${defaultHeader}\n\n${defaultBody}`;
         }
       } else {
         // Filter pesan terlalu pendek untuk menghemat kuota AI (misal cuma huruf 'P', 'y', 'ok')
         if (cleanText.length <= 2) {
-            replyText = '> *PESAN TERLALU PENDEK* 📏\n\nMaaf, pesan terlalu pendek atau kurang jelas.\nKetik `/info` untuk melihat daftar kemampuanku ya!';
+            const shortHeader = '> *PESAN TERLALU PENDEK* 📏';
+            const shortBody = `Maaf, pesan terlalu pendek atau kurang jelas.\nKetik \`/info\` untuk melihat daftar kemampuanku ya!`;
+            replyText = `${shortHeader}\n\n${shortBody}`;
         } else {
             // Jika bukan command dan pesan cukup panjang, kirim ke Gemini AI
             try {
@@ -60,17 +66,24 @@ class WhatsAppHandler {
               console.error('Error dari Gemini AI:', error);
               
               // Berikan pesan error yang lebih spesifik
+              let errorHeader, errorBody;
               if (error.message.includes('Kuota Gemini AI telah habis')) {
-                replyText = '> *KUOTA AI HABIS* 💸\n\nMaaf, kuota AI saya sudah habis untuk hari ini.\nSilakan coba lagi besok atau hubungi admin untuk menambah kuota.';
+                errorHeader = '> *KUOTA AI HABIS* 💸';
+                errorBody = 'Maaf, kuota AI saya sudah habis untuk hari ini.\nSilakan coba lagi besok atau hubungi admin untuk menambah kuota.';
               } else if (error.message.includes('Akses ditolak')) {
-                replyText = '> *AKSES DITOLAK* 🔒\n\nMaaf, akses AI sedang bermasalah (autentikasi gagal).\nAdmin telah diberitahu.';
+                errorHeader = '> *AKSES DITOLAK* 🔒';
+                errorBody = 'Maaf, akses AI sedang bermasalah (autentikasi gagal).\nAdmin telah diberitahu.';
               } else if (error.message.includes('model tidak ditemukan')) {
-                replyText = '> *MODEL TIDAK DITEMUKAN* 🔍\n\nMaaf, konfigurasi AI sedang diperbarui.\nCoba lagi nanti.';
+                errorHeader = '> *MODEL TIDAK DITEMUKAN* 🔍';
+                errorBody = 'Maaf, konfigurasi AI sedang diperbarui.\nCoba lagi nanti.';
               } else if (error.message.includes('API key')) {
-                replyText = '> *API KEY TIDAK VALID* 🔑\n\nMaaf, konfigurasi AI belum lengkap.\nAdmin telah diberitahu.';
+                errorHeader = '> *API KEY TIDAK VALID* 🔑';
+                errorBody = 'Maaf, konfigurasi AI belum lengkap.\nAdmin telah diberitahu.';
               } else {
-                replyText = '> *ERROR AI* 🤯\n\nMaaf, otak AI sedang gangguan.\nCoba lagi nanti atau gunakan perintah sistem (/ping, /saldo).';
+                errorHeader = '> *ERROR AI* 🤯';
+                errorBody = 'Maaf, otak AI sedang gangguan.\nCoba lagi nanti atau gunakan perintah sistem (/ping, /saldo).';
               }
+              replyText = `${errorHeader}\n\n${errorBody}`;
             }
         }
       }
