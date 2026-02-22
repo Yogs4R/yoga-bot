@@ -12,7 +12,7 @@ async function handleFinanceCommand(command, args, userId, platform) {
     case '/pemasukan':
       // Ensure there are enough arguments
       if (args.length < 2) {
-        return `>  ERROR FORMAT\n\n\`\`\`\nFormat: ${cleanCommand} <jumlah> <deskripsi>\nContoh: ${cleanCommand} 50000 Makan siang\n\`\`\``;
+        return `> *ERROR FORMAT* 📝\n\n\`\`\`\nFormat: ${cleanCommand} <jumlah> <deskripsi>\nContoh: ${cleanCommand} 50000 Makan siang\n\`\`\``;
       }
       
       // Clean the amount: remove non-numeric characters except digits
@@ -21,7 +21,7 @@ async function handleFinanceCommand(command, args, userId, platform) {
       const amount = parseInt(cleanedAmount);
       
       if (isNaN(amount) || amount <= 0) {
-        return `>  ERROR INPUT\n\n\`\`\`\nJumlah harus angka positif.\nDiterima: ${rawAmount}\n\`\`\``;
+        return `> *ERROR INPUT* ❌\n\n\`\`\`\nJumlah harus angka positif.\nDiterima: ${rawAmount}\n\`\`\``;
       }
       
       // The rest of the arguments form the description
@@ -33,7 +33,7 @@ async function handleFinanceCommand(command, args, userId, platform) {
       return await addTransaction(userId, amount, type, description, platform);
       
     default:
-      return `>  COMMAND TIDAK DIKENAL\n\n\`\`\`\nPerintah keuangan "${command}" tidak tersedia.\nGunakan /saldo, /catat, atau /pemasukan.\n\`\`\``;
+      return `> *COMMAND TIDAK DIKENAL* 🤔\n\n\`\`\`\nPerintah keuangan "${command}" tidak tersedia.\nGunakan /saldo, /catat, atau /pemasukan.\n\`\`\``;
   }
 }
 

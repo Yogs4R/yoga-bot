@@ -21,7 +21,7 @@ async function checkSaldo(userId) {
 
     if (error) {
       console.error('Error querying finance data:', error);
-      return `>  ERROR QUERY SALDO\n\n\`\`\`\nGagal mengambil data saldo: ${error.message}\n\`\`\``;
+      return `> *ERROR QUERY SALDO* 😢\n\n\`\`\`\nGagal mengambil data saldo: ${error.message}\n\`\`\``;
     }
 
     // Calculate total balance
@@ -34,13 +34,13 @@ async function checkSaldo(userId) {
       }
     });
 
-    // Format response according to Hybrid UI v2
-    const response = `>  INFO SALDO DOMPET\n\n\`\`\`\nSaldo saat ini: ${formatRupiah(total)}\n\`\`\`\n\nGunakan \`/catat <jumlah> <deskripsi>\` untuk mencatat pengeluaran atau \`/pemasukan <jumlah> <deskripsi>\` untuk mencatat pemasukan.`;
+    // Format response according to updated UI guidelines
+    const response = `> *INFO SALDO DOMPET* 💰\n\n\`\`\`\nSaldo : ${formatRupiah(total)}\nStatus: ${total >= 0 ? 'Aman Bro!' : 'Hati-hati minus!'}\n\`\`\`\n\nGunakan \`/catat <jumlah> <deskripsi>\` untuk mencatat pengeluaran atau \`/pemasukan <jumlah> <deskripsi>\` untuk mencatat pemasukan.`;
     
     return response;
   } catch (error) {
     console.error('Unexpected error in checkSaldo:', error);
-    return `>  ERROR SISTEM\n\n\`\`\`\nTerjadi kesalahan tak terduga: ${error.message}\n\`\`\``;
+    return `> *ERROR SISTEM* 🚨\n\n\`\`\`\nTerjadi kesalahan tak terduga: ${error.message}\n\`\`\``;
   }
 }
 
@@ -49,7 +49,7 @@ async function addTransaction(userId, amount, type, description, platform) {
   try {
     // Validate amount
     if (isNaN(amount) || amount <= 0) {
-      return `>  ERROR INPUT\n\n\`\`\`\nJumlah harus angka positif.\n\`\`\``;
+      return `> *ERROR INPUT* ❌\n\n\`\`\`\nJumlah harus angka positif.\n\`\`\``;
     }
 
     // Insert transaction
@@ -66,17 +66,18 @@ async function addTransaction(userId, amount, type, description, platform) {
 
     if (error) {
       console.error('Error inserting transaction:', error);
-      return `>  ERROR TRANSAKSI\n\n\`\`\`\nGagal mencatat transaksi: ${error.message}\n\`\`\``;
+      return `> *ERROR TRANSAKSI* 😓\n\n\`\`\`\nGagal mencatat transaksi: ${error.message}\n\`\`\``;
     }
 
-    // Format success response according to Hybrid UI v2
+    // Format success response according to updated UI guidelines
     const typeText = type === 'IN' ? 'PEMASUKAN' : 'PENGELUARAN';
-    const response = `>  TRANSAKSI BERHASIL BRO!\n\n\`\`\`\nTipe: ${typeText}\nJumlah: ${formatRupiah(amount)}\nDeskripsi: ${description}\nPlatform: ${platform}\n\`\`\`\n\nTransaksi telah tercatat dengan baik. Gunakan \`/saldo\` untuk melihat saldo terkini.`;
+    const emoji = type === 'IN' ? '💸' : '📝';
+    const response = `> *TRANSAKSI BERHASIL* ${emoji}\n\n\`\`\`\nTipe   : ${typeText}\nJumlah : ${formatRupiah(amount)}\nDesk   : ${description}\nPlatform: ${platform}\n\`\`\`\n\nTransaksi telah tercatat dengan baik. Gunakan \`/saldo\` untuk melihat saldo terkini.`;
     
     return response;
   } catch (error) {
     console.error('Unexpected error in addTransaction:', error);
-    return `>  ERROR SISTEM\n\n\`\`\`\nTerjadi kesalahan tak terduga: ${error.message}\n\`\`\``;
+    return `> *ERROR SISTEM* 🚨\n\n\`\`\`\nTerjadi kesalahan tak terduga: ${error.message}\n\`\`\``;
   }
 }
 
