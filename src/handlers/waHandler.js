@@ -39,17 +39,35 @@ class WhatsAppHandler {
           case '/saldo':
           case '/catat':
           case '/pemasukan':
+          case '/laporan-chart':
             // Handle finance commands
-            replyText = await handleFinanceCommand(command, args, msg.key.remoteJid, 'whatsapp');
+            const financeReply = await handleFinanceCommand(command, args, msg.key.remoteJid, 'whatsapp');
+            if (financeReply) {
+              if (typeof financeReply === 'object' && financeReply.type === 'image') {
+                await this.sock.sendMessage(msg.key.remoteJid, 
+                  { 
+                    image: { url: financeReply.url }, 
+                    caption: financeReply.caption 
+                  }, 
+                  { quoted: msg }
+                );
+              } else {
+                await this.sock.sendMessage(msg.key.remoteJid, 
+                  { text: financeReply }, 
+                  { quoted: msg }
+                );
+              }
+              return; // Hentikan eksekusi agar tidak lanjut ke AI
+            }
             break;
           case '/info':
             const header = '> *INFORMASI YOGA BOT* 🤖';
-            const body = `Saya adalah asisten virtual pribadi milik Ridwan Yoga Suryantara.\n\n📋 DAFTAR PERINTAH SISTEM:\n- \`/ping\`   : Cek status bot\n- \`/saldo\`  : Cek saldo keuangan\n- \`/catat\`  : Catat pengeluaran\n- \`/pemasukan\`: Catat pemasukan\n- \`/info\`   : Menampilkan pesan ini\n\n💡 FITUR AI:\nKirimkan pesan biasa (tanpa awalan '/') untuk ngobrol,\nbertanya seputar coding, teknologi, atau sekadar bertukar pikiran!`;
+            const body = `Saya adalah asisten virtual pribadi milik Ridwan Yoga Suryantara.\n\n📋 DAFTAR PERINTAH SISTEM:\n- \`/ping\`          : Cek status bot\n- \`/saldo\`         : Cek saldo keuangan\n- \`/catat\`         : Catat pengeluaran\n- \`/pemasukan\`     : Catat pemasukan\n- \`/laporan-chart\` : Grafik laporan keuangan\n- \`/info\`          : Menampilkan pesan ini\n\n💡 FITUR AI:\nKirimkan pesan biasa (tanpa awalan '/') untuk ngobrol,\nbertanya seputar coding, teknologi, atau sekadar bertukar pikiran!`;
             replyText = `${header}\n\n${body}`;
             break;
           default:
             const defaultHeader = '> *COMMAND TIDAK DIKENAL* 🤔';
-            const defaultBody = `Perintah "${command}" tidak tersedia.\nCoba \`/ping\`, \`/saldo\`, \`/catat\`, \`/pemasukan\`, atau \`/info\`.`;
+            const defaultBody = `Perintah "${command}" tidak tersedia.\nCoba \`/ping\`, \`/saldo\`, \`/catat\`, \`/pemasukan\`, \`/laporan-chart\`, atau \`/info\`.`;
             replyText = `${defaultHeader}\n\n${defaultBody}`;
         }
       } else {

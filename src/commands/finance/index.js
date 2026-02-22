@@ -1,4 +1,4 @@
-const { checkSaldo, addTransaction } = require('../../services/financeService');
+const { checkSaldo, addTransaction, getFinanceChart } = require('../../services/financeService');
 const { generateBoxTemplate } = require('../../utils/formatter');
 
 async function handleFinanceCommand(command, args, userId, platform) {
@@ -44,11 +44,14 @@ async function handleFinanceCommand(command, args, userId, platform) {
       
       return await addTransaction(userId, amount, type, description, platform);
       
+    case '/laporan-chart':
+      return await getFinanceChart(userId);
+      
     default:
       const header = '> *COMMAND TIDAK DIKENAL* 🤔';
       const body = generateBoxTemplate([
         `Perintah keuangan "${command}" tidak tersedia.`,
-        `Gunakan /saldo, /catat, atau /pemasukan.`
+        `Gunakan /saldo, /catat, /pemasukan, atau /laporan-chart.`
       ]);
       return `${header}\n\n${body}`;
   }

@@ -96,7 +96,89 @@ async function addTransaction(userId, amount, type, description, platform) {
   }
 }
 
+// Generate finance chart
+async function getFinanceChart(userId) {
+  try {
+    // Query all finance data for the user
+    const { data, error } = await supabase
+      .from('finance')
+      .select('amount, type')
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error('Error querying finance data for chart:', error);
+      const header = '> *ERROR QUERY DATA* 😢';
+      const body = generateBoxTemplate([`Gagal mengambil data laporan: ${error.message}`]);
+      return `${header}\n\n${body}`;
+    }
+
+    // Calculate total IN and OUT
+    let totalIn = 0;
+    let totalOut = 0;
+    data.forEach(record => {
+      if (record.type === 'IN') {
+        totalIn += record.amount;
+      } else if (record.type === 'OUT') {
+        totalOut += record.amount;
+      }
+    });
+
+    // Prepare chart configuration
+    const chartConfig = {
+      type: 'doughnut',
+      data: {
+        labels: ['Pemasukan', 'Pengeluaran'],
+        datasets: [{
+          data: [totalIn, totalOut],
+          backgroundColor: ['#4CAF50', '#F44336'],
+          borderColor: ['#388E3C', '#D32F2F'],
+          borderWidth: 1
+        }]
+      },
+      options: {
+        plugins: {
+          legend: {
+            display: true,
+            position: 'bottom'
+          },
+          title: {
+            display: true,
+            text: 'Laporan Keuangan',
+            font: {
+              size: 16
+            }
+          }
+        }
+      }
+    };
+
+    // Generate chart URL
+    const chartUrl = 'https://quickchart.io/chart?c=' + encodeURIComponent(JSON.stringify(chartConfig));
+
+    // Prepare caption with Hybrid UI v3 format
+    const header = '> *LAPORAN GRAFIK KEUANGAN* 📊';
+    const body = generateBoxTemplate({
+      'Pemasukan': formatRupiah(totalIn),
+      'Pengeluaran': formatRupiah(totalOut)
+    });
+    const footer = '\nTetap hemat dan bijak mengatur keuangan ya!';
+    const captionText = `${header}\n\n${body}${footer}`;
+
+    return {
+      type: 'image',
+      url: chartUrl,
+      caption: captionText
+    };
+  } catch (error) {
+    console.error('Unexpected error in getFinanceChart:', error);
+    const header = '> *ERROR SISTEM* 🚨';
+    const body = generateBoxTemplate([`Terjadi kesalahan tak terduga: ${error.message}`]);
+    return `${header}\n\n${body}`;
+  }
+}
+
 module.exports = {
   checkSaldo,
-  addTransaction
+  addTransaction,
+  getFinanceChart
 };
