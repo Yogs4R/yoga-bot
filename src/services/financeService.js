@@ -21,7 +21,7 @@ async function checkSaldo(userId) {
 
     if (error) {
       console.error('Error querying finance data:', error);
-      return `> *ERROR QUERY SALDO* 😢\n\n\`\`\`\nGagal mengambil data saldo: ${error.message}\n\`\`\``;
+      return `> *ERROR QUERY SALDO* 😢\n\nGagal mengambil data saldo: ${error.message}`;
     }
 
     // Calculate total balance
@@ -40,7 +40,7 @@ async function checkSaldo(userId) {
     return response;
   } catch (error) {
     console.error('Unexpected error in checkSaldo:', error);
-    return `> *ERROR SISTEM* 🚨\n\n\`\`\`\nTerjadi kesalahan tak terduga: ${error.message}\n\`\`\``;
+    return `> *ERROR SISTEM* 🚨\n\nTerjadi kesalahan tak terduga: ${error.message}`;
   }
 }
 
@@ -49,7 +49,7 @@ async function addTransaction(userId, amount, type, description, platform) {
   try {
     // Validate amount
     if (isNaN(amount) || amount <= 0) {
-      return `> *ERROR INPUT* ❌\n\n\`\`\`\nJumlah harus angka positif.\n\`\`\``;
+      return `> *ERROR INPUT* ❌\n\nJumlah harus angka positif.`;
     }
 
     // Insert transaction
@@ -66,7 +66,7 @@ async function addTransaction(userId, amount, type, description, platform) {
 
     if (error) {
       console.error('Error inserting transaction:', error);
-      return `> *ERROR TRANSAKSI* 😓\n\n\`\`\`\nGagal mencatat transaksi: ${error.message}\n\`\`\``;
+      return `> *ERROR TRANSAKSI* 😓\n\nGagal mencatat transaksi: ${error.message}`;
     }
 
     // Format success response according to updated UI guidelines
@@ -77,7 +77,7 @@ async function addTransaction(userId, amount, type, description, platform) {
     return response;
   } catch (error) {
     console.error('Unexpected error in addTransaction:', error);
-    return `> *ERROR SISTEM* 🚨\n\n\`\`\`\nTerjadi kesalahan tak terduga: ${error.message}\n\`\`\``;
+    return `> *ERROR SISTEM* 🚨\n\nTerjadi kesalahan tak terduga: ${error.message}`;
   }
 }
 
