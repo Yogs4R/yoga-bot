@@ -155,7 +155,6 @@ async function getFinanceChart(userId) {
     // Generate chart URL
     const chartUrl = 'https://quickchart.io/chart?c=' + encodeURIComponent(JSON.stringify(chartConfig));
 
-    // Prepare caption with Hybrid UI v3 format
     const header = '> *LAPORAN GRAFIK KEUANGAN* 📊';
     const body = generateBoxTemplate({
       'Pemasukan': formatRupiah(totalIn),

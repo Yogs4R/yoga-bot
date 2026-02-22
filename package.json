@@ -18,7 +18,7 @@
   "license": "MIT",
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
-    "@supabase/supabase-js": "^2.39.7",
+    "@supabase/supabase-js": "^2.97.0",
     "@whiskeysockets/baileys": "^6.7.21",
     "axios": "^1.7.2",
     "dotenv": "^16.4.5",

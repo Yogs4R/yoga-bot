@@ -10,12 +10,31 @@ function formatRupiah(angka) {
 }
 
 // Generate box template for data (only the body part)
-function generateBoxTemplate(lines) {
-  // Ensure lines is an array of strings
-  const formattedLines = lines.map(line => line.trim());
-  // Join with newline and wrap in triple backticks
-  return `\`\`\`\n${formattedLines.join('\n')}\n\`\`\``;
-}
+const generateBoxTemplate = (dataObject) => {
+    // Open triple backticks for code block
+    let result = `\`\`\`\n`;
+    const keys = Object.keys(dataObject);
+    
+    // Find the maximum key length for padding
+    const maxLength = Math.max(...keys.map(k => k.length));
+
+    keys.forEach((key, index) => {
+        const isFirst = index === 0;
+        const isLast = index === keys.length - 1;
+        
+        // Determine the prefix based on position (first, middle, last)
+        let prefix = '├';
+        if (isFirst) prefix = '┌';
+        if (isLast) prefix = '└';
+        
+        const paddedKey = key.padEnd(maxLength, ' '); 
+        result += `${prefix} ${paddedKey} : ${dataObject[key]}\n`;
+    });
+
+    // Close triple backticks
+    result += `\`\`\``;
+    return result;
+};
 
 module.exports = {
   formatRupiah,
