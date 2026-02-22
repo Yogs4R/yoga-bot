@@ -1,4 +1,5 @@
 const { askGemini } = require('../lib/geminiClient');
+const handleFinanceCommand = require('../commands/finance/index');
 
 class WhatsAppHandler {
   constructor(sock) {
@@ -36,18 +37,21 @@ class WhatsAppHandler {
             replyText = 'Pong! 🏓';
             break;
           case '/saldo':
-            replyText = '💰 Fitur Keuangan diproses secara lokal. Saldo Anda aman dari pantauan AI.';
+          case '/catat':
+          case '/pemasukan':
+            // Handle finance commands
+            replyText = await handleFinanceCommand(command, args, msg.key.remoteJid, 'whatsapp');
             break;
           case '/info':
-            replyText = '🤖 *Informasi Yoga Bot*\n\nSaya adalah asisten virtual pribadi milik Ridwan Yoga Suryantara.\n\n*Daftar Perintah Sistem:*\n- */ping* : Cek status bot\n- */saldo* : Cek fitur keuangan lokal\n- */info* : Menampilkan pesan ini\n\n*Fitur AI:*\nKirimkan pesan biasa (tanpa awalan \'/\') untuk ngobrol, bertanya seputar coding, teknologi, atau sekadar bertukar pikiran!';
+            replyText = `>  INFORMASI YOGA BOT\n\n\`\`\`\n🤖 Saya adalah asisten virtual pribadi milik Ridwan Yoga Suryantara.\n\n📋 DAFTAR PERINTAH SISTEM:\n- \`/ping\` : Cek status bot\n- \`/saldo\` : Cek saldo keuangan\n- \`/catat <jumlah> <deskripsi>\` : Catat pengeluaran\n- \`/pemasukan <jumlah> <deskripsi>\` : Catat pemasukan\n- \`/info\` : Menampilkan pesan ini\n\n💡 FITUR AI:\nKirimkan pesan biasa (tanpa awalan '/') untuk ngobrol, bertanya seputar coding, teknologi, atau sekadar bertukar pikiran!\n\`\`\``;
             break;
           default:
-            replyText = `Perintah "${command}" tidak dikenali. Coba /ping, /saldo, atau /info`;
+            replyText = `>  COMMAND TIDAK DIKENAL\n\n\`\`\`\nPerintah "${command}" tidak tersedia.\nCoba \`/ping\`, \`/saldo\`, \`/catat\`, \`/pemasukan\`, atau \`/info\`.\n\`\`\``;
         }
       } else {
         // Filter pesan terlalu pendek untuk menghemat kuota AI (misal cuma huruf 'P', 'y', 'ok')
         if (cleanText.length <= 2) {
-            replyText = 'Maaf, pesan terlalu pendek atau kurang jelas. 😅 Ketik */info* untuk melihat daftar kemampuanku ya!';
+            replyText = '>  PESAN TERLALU PENDEK\n\n```\nMaaf, pesan terlalu pendek atau kurang jelas.\nKetik `/info` untuk melihat daftar kemampuanku ya!\n```';
         } else {
             // Jika bukan command dan pesan cukup panjang, kirim ke Gemini AI
             try {
@@ -57,15 +61,15 @@ class WhatsAppHandler {
               
               // Berikan pesan error yang lebih spesifik
               if (error.message.includes('Kuota Gemini AI telah habis')) {
-                replyText = 'Maaf, kuota AI saya sudah habis untuk hari ini. Silakan coba lagi besok atau hubungi admin untuk menambah kuota.';
+                replyText = '>  KUOTA AI HABIS\n\n```\nMaaf, kuota AI saya sudah habis untuk hari ini.\nSilakan coba lagi besok atau hubungi admin untuk menambah kuota.\n```';
               } else if (error.message.includes('Akses ditolak')) {
-                replyText = 'Maaf, akses AI sedang bermasalah (autentikasi gagal). Admin telah diberitahu.';
+                replyText = '>  AKSES DITOLAK\n\n```\nMaaf, akses AI sedang bermasalah (autentikasi gagal).\nAdmin telah diberitahu.\n```';
               } else if (error.message.includes('model tidak ditemukan')) {
-                replyText = 'Maaf, konfigurasi AI sedang diperbarui. Coba lagi nanti.';
+                replyText = '>  MODEL TIDAK DITEMUKAN\n\n```\nMaaf, konfigurasi AI sedang diperbarui.\nCoba lagi nanti.\n```';
               } else if (error.message.includes('API key')) {
-                replyText = 'Maaf, konfigurasi AI belum lengkap. Admin telah diberitahu.';
+                replyText = '>  API KEY TIDAK VALID\n\n```\nMaaf, konfigurasi AI belum lengkap.\nAdmin telah diberitahu.\n```';
               } else {
-                replyText = 'Maaf, otak AI sedang gangguan. Coba lagi nanti atau gunakan perintah sistem (/ping, /saldo).';
+                replyText = '>  ERROR AI\n\n```\nMaaf, otak AI sedang gangguan.\nCoba lagi nanti atau gunakan perintah sistem (/ping, /saldo).\n```';
               }
             }
         }

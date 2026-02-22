@@ -1,12 +1,14 @@
 // Supabase client
-// TODO: Implement Supabase client
+const { createClient } = require('@supabase/supabase-js');
 
-class SupabaseClient {
-  constructor() {
-    // TODO: Initialize Supabase client
-  }
+// Initialize Supabase client
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  // TODO: Add methods for database operations
+if (!supabaseUrl || !supabaseKey) {
+  console.error('SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is not set in environment variables');
 }
 
-module.exports = SupabaseClient;
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+module.exports = supabase;
