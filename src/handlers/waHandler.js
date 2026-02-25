@@ -40,6 +40,9 @@ class WhatsAppHandler {
           case '/catat':
           case '/pemasukan':
           case '/laporan-chart':
+          case '/riwayat':
+          case '/hapus':
+          case '/edit':
             // Handle finance commands
             const financeReply = await handleFinanceCommand(command, args, msg.key.remoteJid, 'whatsapp');
             if (financeReply) {
@@ -62,7 +65,7 @@ class WhatsAppHandler {
             break;
           case '/info':
             const header = '> *INFORMASI YOGA BOT* 🤖';
-            const body = `Saya adalah asisten virtual pribadi milik Ridwan Yoga Suryantara.\n\n📋 DAFTAR PERINTAH SISTEM:\n- \`/ping\`          : Cek status bot\n- \`/saldo\`         : Cek saldo keuangan\n- \`/catat\`         : Catat pengeluaran\n- \`/pemasukan\`     : Catat pemasukan\n- \`/laporan-chart\` : Grafik laporan keuangan\n- \`/info\`          : Menampilkan pesan ini\n\n💡 FITUR AI:\nKirimkan pesan biasa (tanpa awalan '/') untuk ngobrol,\nbertanya seputar coding, teknologi, atau sekadar bertukar pikiran!`;
+            const body = `Saya adalah asisten virtual pribadi milik Ridwan Yoga Suryantara.\n\n📋 *FITUR KEUANGAN* 💰\n- \`/saldo\`         : Cek saldo keuangan\n- \`/catat\`         : Catat pengeluaran\n- \`/pemasukan\`     : Catat pemasukan\n- \`/laporan-chart\` : Grafik laporan keuangan\n- \`/riwayat\`       : Riwayat transaksi terakhir\n- \`/hapus\`         : Hapus transaksi\n- \`/edit\`          : Edit transaksi\n\n📋 *FITUR SISTEM* ⚙️\n- \`/ping\`          : Cek status bot\n- \`/info\`          : Menampilkan pesan ini\n\n💡 *FITUR AI* 🧠\nKirimkan pesan biasa (tanpa awalan '/') untuk ngobrol,\nbertanya seputar coding, teknologi, atau sekadar bertukar pikiran!`;
             replyText = `${header}\n\n${body}`;
             break;
           default:

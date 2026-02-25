@@ -1,4 +1,11 @@
-const { checkSaldo, addTransaction, getFinanceChart } = require('../../services/financeService');
+const { 
+  checkSaldo, 
+  addTransaction, 
+  getFinanceChart,
+  getHistory,
+  deleteTransaction,
+  editTransaction 
+} = require('../../services/financeService');
 const { generateBoxTemplate } = require('../../utils/formatter');
 
 async function handleFinanceCommand(command, args, userId, platform) {
@@ -47,11 +54,59 @@ async function handleFinanceCommand(command, args, userId, platform) {
     case '/laporan-chart':
       return await getFinanceChart(userId);
       
+    case '/riwayat':
+      // Optional limit parameter
+      const limit = args.length > 0 ? parseInt(args[0]) : 5;
+      return await getHistory(userId, isNaN(limit) ? 5 : limit);
+      
+    case '/hapus':
+      if (args.length < 1) {
+        const header = '> *ERROR FORMAT* 📝';
+        const body = generateBoxTemplate([
+          'Format: /hapus <id_transaksi>',
+          'Contoh: /hapus 123e4567-e89b-12d3-a456-426614174000',
+          'Gunakan /riwayat untuk melihat ID transaksi'
+        ]);
+        return `${header}\n\n${body}`;
+      }
+      return await deleteTransaction(userId, args[0]);
+      
+    case '/edit':
+      if (args.length < 3) {
+        const header = '> *ERROR FORMAT* 📝';
+        const body = generateBoxTemplate([
+          'Format: /edit <id> <jumlah_baru> <deskripsi_baru>',
+          'Contoh: /edit 123e4567 75000 Makan malam',
+          'Gunakan /riwayat untuk melihat ID transaksi'
+        ]);
+        return `${header}\n\n${body}`;
+      }
+      
+      // Clean the new amount
+      const newRawAmount = args[1];
+      const newCleanedAmount = newRawAmount.replace(/[^\d]/g, '');
+      const newAmount = parseInt(newCleanedAmount);
+      
+      if (isNaN(newAmount) || newAmount <= 0) {
+        const header = '> *ERROR INPUT* ❌';
+        const body = generateBoxTemplate([
+          `Jumlah baru harus angka positif.`,
+          `Diterima: ${newRawAmount}`,
+          `Contoh yang benar: /edit ${args[0]} 75000 Makan malam`
+        ]);
+        return `${header}\n\n${body}`;
+      }
+      
+      // The rest of the arguments form the new description
+      const newDescription = args.slice(2).join(' ');
+      
+      return await editTransaction(userId, args[0], newAmount, newDescription);
+      
     default:
       const header = '> *COMMAND TIDAK DIKENAL* 🤔';
       const body = generateBoxTemplate([
         `Perintah keuangan "${command}" tidak tersedia.`,
-        `Gunakan /saldo, /catat, /pemasukan, atau /laporan-chart.`
+        `Gunakan /saldo, /catat, /pemasukan, /laporan-chart, /riwayat, /hapus, atau /edit.`
       ]);
       return `${header}\n\n${body}`;
   }

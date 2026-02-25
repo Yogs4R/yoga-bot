@@ -2,6 +2,158 @@
 const supabase = require('../lib/supabaseClient');
 const { formatRupiah, generateBoxTemplate } = require('../utils/formatter');
 
+// Get transaction history
+async function getHistory(userId, limit = 5) {
+  try {
+    // Query the finance table for the user, ordered by most recent
+    const { data, error } = await supabase
+      .from('finance')
+      .select('id, amount, type, description, created_at')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error('Error querying finance history:', error);
+      const header = '> *ERROR RIWAYAT* 😢';
+      const body = generateBoxTemplate([`Gagal mengambil riwayat: ${error.message}`]);
+      return `${header}\n\n${body}`;
+    }
+
+    if (!data || data.length === 0) {
+      const header = '> *RIWAYAT TRANSAKSI TERAKHIR* 📜';
+      const body = generateBoxTemplate(['Belum ada transaksi tercatat.']);
+      return `${header}\n\n${body}`;
+    }
+
+    // Format each transaction
+    const transactions = data.map((record, index) => {
+      const typeEmoji = record.type === 'IN' ? '💸' : '📝';
+      const typeText = record.type === 'IN' ? 'PEMASUKAN' : 'PENGELUARAN';
+      const date = new Date(record.created_at).toLocaleDateString('id-ID');
+      return `[${index + 1}] ${typeEmoji} ${typeText}
+  ID    : \`${record.id}\`
+  Jumlah: ${formatRupiah(record.amount)}
+  Desk  : ${record.description}
+  Tanggal: ${date}`;
+    });
+
+    const header = '> *RIWAYAT TRANSAKSI TERAKHIR* 📜';
+    const body = `\`\`\`\n${transactions.join('\n\n')}\n\`\`\``;
+    const footer = `\nMenampilkan ${data.length} transaksi terakhir. Gunakan \`/hapus <id>\` untuk menghapus atau \`/edit <id> <jumlah> <deskripsi>\` untuk mengedit.`;
+    
+    return `${header}\n\n${body}${footer}`;
+  } catch (error) {
+    console.error('Unexpected error in getHistory:', error);
+    const header = '> *ERROR SISTEM* 🚨';
+    const body = generateBoxTemplate([`Terjadi kesalahan tak terduga: ${error.message}`]);
+    return `${header}\n\n${body}`;
+  }
+}
+
+// Delete a transaction
+async function deleteTransaction(userId, transactionId) {
+  try {
+    // Validate transactionId format (basic UUID check)
+    if (!transactionId || typeof transactionId !== 'string' || transactionId.trim().length === 0) {
+      const header = '> *ERROR FORMAT* ❌';
+      const body = generateBoxTemplate(['ID transaksi tidak valid.']);
+      return `${header}\n\n${body}`;
+    }
+
+    // Delete transaction where id matches and belongs to user
+    const { error } = await supabase
+      .from('finance')
+      .delete()
+      .eq('id', transactionId.trim())
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error('Error deleting transaction:', error);
+      const header = '> *ERROR HAPUS* 😓';
+      const body = generateBoxTemplate([`Gagal menghapus transaksi: ${error.message}`]);
+      return `${header}\n\n${body}`;
+    }
+
+    const header = '> *TRANSAKSI DIHAPUS* 🗑️';
+    const body = generateBoxTemplate([
+      `ID: \`${transactionId}\``,
+      'Status: Berhasil dihapus'
+    ]);
+    const footer = `\nTransaksi telah dihapus dari catatan keuangan.`;
+    
+    return `${header}\n\n${body}${footer}`;
+  } catch (error) {
+    console.error('Unexpected error in deleteTransaction:', error);
+    const header = '> *ERROR SISTEM* 🚨';
+    const body = generateBoxTemplate([`Terjadi kesalahan tak terduga: ${error.message}`]);
+    return `${header}\n\n${body}`;
+  }
+}
+
+// Edit a transaction
+async function editTransaction(userId, transactionId, newAmount, newDescription) {
+  try {
+    // Validate transactionId
+    if (!transactionId || typeof transactionId !== 'string' || transactionId.trim().length === 0) {
+      const header = '> *ERROR FORMAT* ❌';
+      const body = generateBoxTemplate(['ID transaksi tidak valid.']);
+      return `${header}\n\n${body}`;
+    }
+
+    // Validate amount
+    if (isNaN(newAmount) || newAmount <= 0) {
+      const header = '> *ERROR INPUT* ❌';
+      const body = generateBoxTemplate(['Jumlah baru harus angka positif.']);
+      return `${header}\n\n${body}`;
+    }
+
+    // Update transaction where id matches and belongs to user
+    const { data, error } = await supabase
+      .from('finance')
+      .update({
+        amount: newAmount,
+        description: newDescription,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', transactionId.trim())
+      .eq('user_id', userId)
+      .select();
+
+    if (error) {
+      console.error('Error editing transaction:', error);
+      const header = '> *ERROR EDIT* 😓';
+      const body = generateBoxTemplate([`Gagal mengedit transaksi: ${error.message}`]);
+      return `${header}\n\n${body}`;
+    }
+
+    if (!data || data.length === 0) {
+      const header = '> *TRANSAKSI TIDAK DITEMUKAN* 🔍';
+      const body = generateBoxTemplate(['Transaksi tidak ditemukan atau tidak dapat diakses.']);
+      return `${header}\n\n${body}`;
+    }
+
+    const updated = data[0];
+    const typeText = updated.type === 'IN' ? 'PEMASUKAN' : 'PENGELUARAN';
+    const emoji = updated.type === 'IN' ? '💸' : '📝';
+    const header = `> *TRANSAKSI DIEDIT* ${emoji}`;
+    const body = generateBoxTemplate([
+      `ID      : \`${transactionId}\``,
+      `Tipe    : ${typeText}`,
+      `Jumlah  : ${formatRupiah(updated.amount)}`,
+      `Desk    : ${updated.description}`
+    ]);
+    const footer = `\nTransaksi berhasil diperbarui. Gunakan \`/riwayat\` untuk melihat perubahan.`;
+    
+    return `${header}\n\n${body}${footer}`;
+  } catch (error) {
+    console.error('Unexpected error in editTransaction:', error);
+    const header = '> *ERROR SISTEM* 🚨';
+    const body = generateBoxTemplate([`Terjadi kesalahan tak terduga: ${error.message}`]);
+    return `${header}\n\n${body}`;
+  }
+}
+
 // Check balance for a user
 async function checkSaldo(userId) {
   try {
@@ -179,5 +331,8 @@ async function getFinanceChart(userId) {
 module.exports = {
   checkSaldo,
   addTransaction,
-  getFinanceChart
+  getFinanceChart,
+  getHistory,
+  deleteTransaction,
+  editTransaction
 };
