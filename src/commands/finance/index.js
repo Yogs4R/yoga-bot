@@ -20,7 +20,7 @@ async function handleFinanceCommand(command, args, userId, platform) {
     case '/pemasukan':
       // Ensure there are enough arguments
       if (args.length < 2) {
-        const header = '> *ERROR FORMAT* 📝';
+        const header = '> *ERROR FORMAT* ❌';
         const body = generateBoxTemplate([
           `Format: ${cleanCommand} <jumlah> <deskripsi>`,
           `Contoh: ${cleanCommand} 50000 Makan siang`
@@ -61,10 +61,10 @@ async function handleFinanceCommand(command, args, userId, platform) {
       
     case '/hapus':
       if (args.length < 1) {
-        const header = '> *ERROR FORMAT* 📝';
+        const header = '> *ERROR FORMAT* ❌';
         const body = generateBoxTemplate([
           'Format: /hapus <id_transaksi>',
-          'Contoh: /hapus 123e4567-e89b-12d3-a456-426614174000',
+          'Contoh: /hapus 123e4567',
           'Gunakan /riwayat untuk melihat ID transaksi'
         ]);
         return `${header}\n\n${body}`;
@@ -73,7 +73,7 @@ async function handleFinanceCommand(command, args, userId, platform) {
       
     case '/edit':
       if (args.length < 3) {
-        const header = '> *ERROR FORMAT* 📝';
+        const header = '> *ERROR FORMAT* ❌';
         const body = generateBoxTemplate([
           'Format: /edit <id> <jumlah_baru> <deskripsi_baru>',
           'Contoh: /edit 123e4567 75000 Makan malam',
@@ -103,7 +103,7 @@ async function handleFinanceCommand(command, args, userId, platform) {
       return await editTransaction(userId, args[0], newAmount, newDescription);
       
     default:
-      const header = '> *COMMAND TIDAK DIKENAL* 🤔';
+      const header = '> *COMMAND TIDAK DIKENAL* ❌';
       const body = generateBoxTemplate([
         `Perintah keuangan "${command}" tidak tersedia.`,
         `Gunakan /saldo, /catat, /pemasukan, /laporan-chart, /riwayat, /hapus, atau /edit.`
