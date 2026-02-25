@@ -1,12 +1,8 @@
-// Telegram client
-// TODO: Implement Telegram bot client
+// Telegram client using Telegraf
+const { Telegraf } = require('telegraf');
 
-class TelegramClient {
-  constructor() {
-    // TODO: Initialize Telegram bot
-  }
+// Initialize bot with token from environment variable
+const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 
-  // TODO: Add methods for sending messages, handling updates, etc.
-}
-
-module.exports = TelegramClient;
+// Export the bot instance
+module.exports = bot;

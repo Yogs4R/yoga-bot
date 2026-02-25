@@ -15,6 +15,8 @@ if (!process.env.GEMINI_API_KEY) {
 const settings = require('./config/settings');
 const { connectToWhatsApp } = require('./lib/waClient');
 const WhatsAppHandler = require('./handlers/waHandler');
+const { setupTelegramBot } = require('./handlers/teleHandler');
+const telegramBot = require('./lib/telegramClient');
 
 console.log(`Starting ${settings.app.name} v${settings.app.version} in ${settings.app.env} mode`);
 
@@ -72,7 +74,14 @@ async function main() {
     // Start WhatsApp bot
     await startWhatsAppBot();
     
-    // TODO: Start Telegram bot
+    // Start Telegram bot
+    if (process.env.TELEGRAM_BOT_TOKEN) {
+        setupTelegramBot();
+        telegramBot.launch();
+        console.log('Telegram Bot berhasil dijalankan!');
+    } else {
+        console.warn('⚠️  TELEGRAM_BOT_TOKEN tidak ditemukan. Bot Telegram tidak akan berjalan.');
+    }
     
     // TODO: Start scheduled jobs
     
@@ -86,7 +95,10 @@ main();
 process.on('SIGINT', () => {
     console.log('\nMenerima SIGINT. Melakukan shutdown...');
     stopWhatsAppBot();
-    // TODO: Stop other services
+    // Stop Telegram bot
+    if (process.env.TELEGRAM_BOT_TOKEN) {
+        telegramBot.stop('SIGINT');
+    }
     console.log('Shutdown selesai.');
     process.exit(0);
 });
@@ -94,7 +106,10 @@ process.on('SIGINT', () => {
 process.on('SIGTERM', () => {
     console.log('\nMenerima SIGTERM. Melakukan shutdown...');
     stopWhatsAppBot();
-    // TODO: Stop other services
+    // Stop Telegram bot
+    if (process.env.TELEGRAM_BOT_TOKEN) {
+        telegramBot.stop('SIGTERM');
+    }
     console.log('Shutdown selesai.');
     process.exit(0);
 });
