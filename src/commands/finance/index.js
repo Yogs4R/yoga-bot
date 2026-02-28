@@ -51,7 +51,7 @@ async function handleFinanceCommand(command, args, userId, platform) {
       
       return await addTransaction(userId, amount, type, description, platform);
       
-    case '/laporan-chart':
+    case '/laporan_chart':
       return await getFinanceChart(userId);
       
     case '/riwayat':
@@ -106,7 +106,7 @@ async function handleFinanceCommand(command, args, userId, platform) {
       const header = '> *COMMAND TIDAK DIKENAL* ❌';
       const body = generateBoxTemplate([
         `Perintah keuangan "${command}" tidak tersedia.`,
-        `Gunakan /saldo, /catat, /pemasukan, /laporan-chart, /riwayat, /hapus, atau /edit.`
+        `Gunakan /saldo, /catat, /pemasukan, /laporan_chart, /riwayat, /hapus, atau /edit.`
       ]);
       return `${header}\n\n${body}`;
   }

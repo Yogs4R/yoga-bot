@@ -69,13 +69,7 @@ class WhatsAppHandler {
         const command = parts[0].toLowerCase();
         const args = parts.slice(1);
         
-        // Normalisasi command: ganti /laporan-chart menjadi /laporan_chart
-        let normalizedCommand = command;
-        if (normalizedCommand === '/laporan-chart') {
-          normalizedCommand = '/laporan_chart';
-        }
-        
-        switch (normalizedCommand) {
+        switch (command) {
           case '/ping':
             replyText = 'Pong! 🏓';
             break;
@@ -87,7 +81,7 @@ class WhatsAppHandler {
           case '/hapus':
           case '/edit':
             // Handle finance commands
-            const financeReply = await handleFinanceCommand(normalizedCommand, args, msg.key.remoteJid, 'whatsapp');
+            const financeReply = await handleFinanceCommand(command, args, msg.key.remoteJid, 'whatsapp');
             if (financeReply) {
               if (typeof financeReply === 'object' && financeReply.type === 'image') {
                 await this.sock.sendMessage(msg.key.remoteJid, 

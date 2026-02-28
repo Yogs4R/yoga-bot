@@ -46,52 +46,106 @@ async function resolveTransactionId(userId, transactionIdInput) {
   return { resolvedId, shortId: toShortTransactionId(resolvedId) };
 }
 
+function formatHistoryText(records, page, pageSize, totalCount) {
+  if (!records || records.length === 0) {
+    const header = '> *RIWAYAT TRANSAKSI TERAKHIR* 📜';
+    const body = generateBoxTemplate(['Belum ada transaksi tercatat.']);
+    return `${header}\n\n${body}`;
+  }
+
+  const startIndex = (page - 1) * pageSize;
+  const transactions = records.map((record, index) => {
+    const typeEmoji = record.type === 'IN' ? '💸' : '📝';
+    const typeText = record.type === 'IN' ? 'PEMASUKAN' : 'PENGELUARAN';
+    const date = new Date(record.created_at).toLocaleDateString('id-ID');
+
+    const itemHeader = `*${startIndex + index + 1}. ${typeEmoji} ${typeText}*`;
+    const itemBody = generateBoxTemplate({
+      ID: `${toShortTransactionId(record.id)}`,
+      Jumlah: formatRupiah(record.amount),
+      Desk: record.description,
+      Tanggal: date
+    });
+
+    return `${itemHeader}\n${itemBody}`;
+  });
+
+  const totalPages = Math.max(1, Math.ceil((totalCount || records.length) / pageSize));
+  const header = '> *RIWAYAT TRANSAKSI* 📜';
+  const body = `\n\n${transactions.join('\n\n')}\n\n`;
+  const footer = `\nHalaman ${page}/${totalPages} • Menampilkan ${records.length} dari ${totalCount || records.length} transaksi. Gunakan \`/hapus <id8>\` untuk menghapus atau \`/edit <id8> <jumlah> <deskripsi>\` untuk mengedit.`;
+
+  return `${header}\n\n${body}${footer}`;
+}
+
+async function getHistoryPage(userId, page = 1, pageSize = 5) {
+  try {
+    const safePageSize = Number.isInteger(pageSize) && pageSize > 0 ? pageSize : 5;
+    const safePage = Number.isInteger(page) && page > 0 ? page : 1;
+
+    const from = (safePage - 1) * safePageSize;
+    const to = from + safePageSize - 1;
+
+    const { data, error, count } = await supabase
+      .from('finance')
+      .select('id, amount, type, description, created_at', { count: 'exact' })
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .range(from, to);
+
+    if (error) {
+      console.error('Error querying paginated finance history:', error);
+      const header = '> *ERROR RIWAYAT* ❌';
+      const body = generateBoxTemplate([`Gagal mengambil riwayat: ${error.message}`]);
+      return {
+        text: `${header}\n\n${body}`,
+        page: safePage,
+        totalPages: 1,
+        totalCount: 0,
+        hasPrev: false,
+        hasNext: false
+      };
+    }
+
+    const totalCount = count || 0;
+    const totalPages = Math.max(1, Math.ceil(totalCount / safePageSize));
+    const normalizedPage = Math.min(safePage, totalPages);
+
+    if (normalizedPage !== safePage) {
+      return await getHistoryPage(userId, normalizedPage, safePageSize);
+    }
+
+    const text = formatHistoryText(data || [], normalizedPage, safePageSize, totalCount);
+
+    return {
+      text,
+      page: normalizedPage,
+      totalPages,
+      totalCount,
+      hasPrev: normalizedPage > 1,
+      hasNext: normalizedPage < totalPages
+    };
+  } catch (error) {
+    console.error('Unexpected error in getHistoryPage:', error);
+    const header = '> *ERROR SISTEM* ❌';
+    const body = generateBoxTemplate([`Terjadi kesalahan tak terduga: ${error.message}`]);
+    return {
+      text: `${header}\n\n${body}`,
+      page: 1,
+      totalPages: 1,
+      totalCount: 0,
+      hasPrev: false,
+      hasNext: false
+    };
+  }
+}
+
 // Get transaction history
 async function getHistory(userId, limit = 5) {
   try {
-    // Query the finance table for the user, ordered by most recent
-    const { data, error } = await supabase
-      .from('finance')
-      .select('id, amount, type, description, created_at')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(limit);
-
-    if (error) {
-      console.error('Error querying finance history:', error);
-      const header = '> *ERROR RIWAYAT* ❌';
-      const body = generateBoxTemplate([`Gagal mengambil riwayat: ${error.message}`]);
-      return `${header}\n\n${body}`;
-    }
-
-    if (!data || data.length === 0) {
-      const header = '> *RIWAYAT TRANSAKSI TERAKHIR* 📜';
-      const body = generateBoxTemplate(['Belum ada transaksi tercatat.']);
-      return `${header}\n\n${body}`;
-    }
-
-    // Format each transaction with box template for consistent prefix style
-    const transactions = data.map((record, index) => {
-      const typeEmoji = record.type === 'IN' ? '💸' : '📝';
-      const typeText = record.type === 'IN' ? 'PEMASUKAN' : 'PENGELUARAN';
-      const date = new Date(record.created_at).toLocaleDateString('id-ID');
-
-      const itemHeader = `*${index + 1}. ${typeEmoji} ${typeText}*`;
-      const itemBody = generateBoxTemplate({
-        ID: `${toShortTransactionId(record.id)}`,
-        Jumlah: formatRupiah(record.amount),
-        Desk: record.description,
-        Tanggal: date
-      });
-
-      return `${itemHeader}\n${itemBody}`;
-    });
-
-    const header = '> *RIWAYAT TRANSAKSI TERAKHIR* 📜';
-    const body = `\n\n${transactions.join('\n\n')}\n\n`;
-    const footer = `\nMenampilkan ${data.length} transaksi terakhir. Gunakan \`/hapus <id8>\` untuk menghapus atau \`/edit <id8> <jumlah> <deskripsi>\` untuk mengedit.`;
-    
-    return `${header}\n\n${body}${footer}`;
+    const safeLimit = Number.isInteger(limit) && limit > 0 ? limit : 5;
+    const paged = await getHistoryPage(userId, 1, safeLimit);
+    return paged.text;
   } catch (error) {
     console.error('Unexpected error in getHistory:', error);
     const header = '> *ERROR SISTEM* ❌';
@@ -394,6 +448,7 @@ module.exports = {
   addTransaction,
   getFinanceChart,
   getHistory,
+  getHistoryPage,
   deleteTransaction,
   editTransaction
 };
