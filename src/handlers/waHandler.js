@@ -18,9 +18,46 @@ class WhatsAppHandler {
       // c. Return jika tidak ada pesan (!msg.message) atau jika pesan dari bot sendiri (msg.key.fromMe)
       if (!msg.message || msg.key.fromMe) return;
       
-      // d. Ekstrak teks pesan dari msg.message.conversation ATAU msg.message.extendedTextMessage?.text
-      const text = msg.message.conversation || msg.message.extendedTextMessage?.text || '';
-      const cleanText = text.trim(); // Membersihkan spasi berlebih di awal/akhir
+      // Deteksi apakah pesan dari grup
+      const isGroup = msg.key.remoteJid.endsWith('@g.us');
+      
+      // Dapatkan bot ID
+      const botId = this.sock.user?.id?.split(':')[0] || this.sock.user?.id;
+      
+      // Periksa apakah bot di-mention atau di-reply
+      let isBotMentioned = false;
+      let text = '';
+      
+      // Ambil teks pesan
+      if (msg.message?.conversation) {
+        text = msg.message.conversation;
+      } else if (msg.message?.extendedTextMessage?.text) {
+        text = msg.message.extendedTextMessage.text;
+      }
+      
+      // Periksa mention di extendedTextMessage
+      const mentionedJids = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
+      // Periksa apakah pesan adalah reply ke bot
+      const isReplyToBot = msg.message?.extendedTextMessage?.contextInfo?.participant === botId || 
+                           msg.message?.extendedTextMessage?.contextInfo?.stanzaId?.includes(botId);
+      
+      // Cek apakah bot di-mention
+      if (botId && mentionedJids.includes(botId)) {
+        isBotMentioned = true;
+      }
+      
+      // Jika di grup dan bot tidak di-mention atau di-reply, abaikan pesan
+      if (isGroup && !isBotMentioned && !isReplyToBot) {
+        return;
+      }
+      
+      // Bersihkan teks dari mention jika bot di-mention
+      let cleanText = text.trim();
+      if (isBotMentioned && botId) {
+        // Hapus mention dari teks (format: @628123456789)
+        const mentionRegex = new RegExp(`@${botId}\\s*`, 'g');
+        cleanText = cleanText.replace(mentionRegex, '').trim();
+      }
       
       // e. Sistem Router
       let replyText = '';
@@ -32,19 +69,25 @@ class WhatsAppHandler {
         const command = parts[0].toLowerCase();
         const args = parts.slice(1);
         
-        switch (command) {
+        // Normalisasi command: ganti /laporan-chart menjadi /laporan_chart
+        let normalizedCommand = command;
+        if (normalizedCommand === '/laporan-chart') {
+          normalizedCommand = '/laporan_chart';
+        }
+        
+        switch (normalizedCommand) {
           case '/ping':
             replyText = 'Pong! 🏓';
             break;
           case '/saldo':
           case '/catat':
           case '/pemasukan':
-          case '/laporan-chart':
+          case '/laporan_chart':
           case '/riwayat':
           case '/hapus':
           case '/edit':
             // Handle finance commands
-            const financeReply = await handleFinanceCommand(command, args, msg.key.remoteJid, 'whatsapp');
+            const financeReply = await handleFinanceCommand(normalizedCommand, args, msg.key.remoteJid, 'whatsapp');
             if (financeReply) {
               if (typeof financeReply === 'object' && financeReply.type === 'image') {
                 await this.sock.sendMessage(msg.key.remoteJid, 
@@ -70,12 +113,12 @@ class WhatsAppHandler {
             break;
           case '/info':
             const header = '> *INFORMASI YOGA BOT* 🤖';
-            const body = `Saya adalah asisten virtual pribadi milik Ridwan Yoga Suryantara.\n\n📋 *FITUR KEUANGAN* 💰\n- \`/saldo\`         : Cek saldo keuangan\n- \`/catat\`         : Catat pengeluaran\n- \`/pemasukan\`     : Catat pemasukan\n- \`/laporan-chart\` : Grafik laporan keuangan\n- \`/riwayat\`       : Riwayat transaksi terakhir\n- \`/hapus\`         : Hapus transaksi\n- \`/edit\`          : Edit transaksi\n\n📋 *FITUR SISTEM* ⚙️\n- \`/ping\`          : Cek status bot\n- \`/info\`          : Menampilkan pesan ini\n- \`/start\`         : Memulai bot\n\n💡 *FITUR AI* 🧠\nKirimkan pesan biasa (tanpa awalan '/') untuk ngobrol,\nbertanya seputar coding, teknologi, atau sekadar bertukar pikiran!`;
+            const body = `Saya adalah asisten virtual pribadi milik Ridwan Yoga Suryantara.\n\n📋 *FITUR KEUANGAN* 💰\n- \`/saldo\`         : Cek saldo keuangan\n- \`/catat\`         : Catat pengeluaran\n- \`/pemasukan\`     : Catat pemasukan\n- \`/laporan_chart\` : Grafik laporan keuangan\n- \`/riwayat\`       : Riwayat transaksi terakhir\n- \`/hapus\`         : Hapus transaksi\n- \`/edit\`          : Edit transaksi\n\n📋 *FITUR SISTEM* ⚙️\n- \`/ping\`          : Cek status bot\n- \`/info\`          : Menampilkan pesan ini\n- \`/start\`         : Memulai bot\n\n💡 *FITUR AI* 🧠\nKirimkan pesan biasa (tanpa awalan '/') untuk ngobrol,\nbertanya seputar coding, teknologi, atau sekadar bertukar pikiran!`;
             replyText = `${header}\n\n${body}`;
             break;
           default:
             const defaultHeader = '> *COMMAND TIDAK DIKENAL* 🤔';
-            const defaultBody = `Perintah "${command}" tidak tersedia.\nCoba \`/ping\`, \`/saldo\`, \`/catat\`, \`/pemasukan\`, \`/laporan-chart\`, atau \`/info\`.`;
+            const defaultBody = `Perintah "${command}" tidak tersedia.\nCoba \`/ping\`, \`/saldo\`, \`/catat\`, \`/pemasukan\`, \`/laporan_chart\`, atau \`/info\`.`;
             replyText = `${defaultHeader}\n\n${defaultBody}`;
         }
       } else {

@@ -6,14 +6,25 @@ const handleFinanceCommand = require('../commands/finance/index');
 function setupTelegramBot() {
     // Event listener for text messages
     bot.on('text', async (ctx) => {
-        const text = ctx.message.text.trim();
+        let text = ctx.message.text.trim();
         const userId = ctx.from.id.toString();
+        
+        // Bersihkan teks dari username bot jika ada
+        // Format: /command@bot_username atau @bot_username pesan
+        const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'YogaBot';
+        const botMentionRegex = new RegExp(`@${botUsername}\\b`, 'g');
+        text = text.replace(botMentionRegex, '').trim();
         
         // Handle commands
         if (text.startsWith('/')) {
             const parts = text.split(' ');
-            const command = parts[0].toLowerCase();
+            let command = parts[0].toLowerCase();
             const args = parts.slice(1);
+            
+            // Normalisasi command: ganti /laporan-chart menjadi /laporan_chart
+            if (command === '/laporan-chart') {
+                command = '/laporan_chart';
+            }
             
             switch (command) {
                 case '/start':
@@ -28,14 +39,14 @@ function setupTelegramBot() {
                     
                 case '/info':
                     const header = '> *INFORMASI YOGA BOT* 🤖';
-                    const body = `Saya adalah asisten virtual pribadi milik Ridwan Yoga Suryantara.\n\n📋 *FITUR KEUANGAN* 💰\n- \`/saldo\`         : Cek saldo keuangan\n- \`/catat\`         : Catat pengeluaran\n- \`/pemasukan\`     : Catat pemasukan\n- \`/laporan-chart\` : Grafik laporan keuangan\n- \`/riwayat\`       : Riwayat transaksi terakhir\n- \`/hapus\`         : Hapus transaksi\n- \`/edit\`          : Edit transaksi\n\n📋 *FITUR SISTEM* ⚙️\n- \`/ping\`          : Cek status bot\n- \`/info\`          : Menampilkan pesan ini\n- \`/start\`         : Memulai bot\n\n💡 *FITUR AI* 🧠\nKirimkan pesan biasa (tanpa awalan '/') untuk ngobrol,\nbertanya seputar coding, teknologi, atau sekadar bertukar pikiran!`;
+                    const body = `Saya adalah asisten virtual pribadi milik Ridwan Yoga Suryantara.\n\n📋 *FITUR KEUANGAN* 💰\n- \`/saldo\`         : Cek saldo keuangan\n- \`/catat\`         : Catat pengeluaran\n- \`/pemasukan\`     : Catat pemasukan\n- \`/laporan_chart\` : Grafik laporan keuangan\n- \`/riwayat\`       : Riwayat transaksi terakhir\n- \`/hapus\`         : Hapus transaksi\n- \`/edit\`          : Edit transaksi\n\n📋 *FITUR SISTEM* ⚙️\n- \`/ping\`          : Cek status bot\n- \`/info\`          : Menampilkan pesan ini\n- \`/start\`         : Memulai bot\n\n💡 *FITUR AI* 🧠\nKirimkan pesan biasa (tanpa awalan '/') untuk ngobrol,\nbertanya seputar coding, teknologi, atau sekadar bertukar pikrian!`;
                     await ctx.reply(`${header}\n\n${body}`, { parse_mode: 'Markdown' });
                     break;
                     
                 case '/saldo':
                 case '/catat':
                 case '/pemasukan':
-                case '/laporan-chart':
+                case '/laporan_chart':
                 case '/riwayat':
                 case '/hapus':
                 case '/edit':
