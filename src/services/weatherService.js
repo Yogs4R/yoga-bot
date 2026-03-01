@@ -1,12 +1,62 @@
 // Weather service
-// TODO: Implement weather service
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 
-class WeatherService {
-  constructor() {
-    // TODO: Initialize weather API
-  }
-
-  // TODO: Add methods for getting current weather, forecast, etc.
+async function getCuaca(kota) {
+    try {
+        const apiKey = process.env.OPENWEATHER_API_KEY;
+        if (!apiKey) {
+            return '> *ERROR API* ❌\n\nAPI key OpenWeather tidak ditemukan. Silakan hubungi administrator.';
+        }
+        
+        const response = await fetch(
+            `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(kota)}&appid=${apiKey}&units=metric&lang=id`
+        );
+        
+        if (!response.ok) {
+            if (response.status === 404) {
+                return `> *KOTA TIDAK DITEMUKAN* ❌\n\nKota "${kota}" tidak ditemukan dalam database cuaca.\nPastikan penulisan nama kota benar.`;
+            }
+            return `> *ERROR CUACA* ❌\n\nGagal mengambil data cuaca. Status: ${response.status}`;
+        }
+        
+        const data = await response.json();
+        
+        const header = '> *INFO CUACA HARI INI* 🌤️';
+        const body = [
+            `Kota: ${data.name}, ${data.sys.country}`,
+            `Deskripsi: ${data.weather[0].description}`,
+            `Suhu: ${data.main.temp}°C`,
+            `Terasa: ${data.main.feels_like}°C`,
+            `Kelembaban: ${data.main.humidity}%`,
+            `Tekanan: ${data.main.pressure} hPa`,
+            `Angin: ${data.wind.speed} m/s`
+        ].join('\n');
+        
+        const box = '┌──────────────────────────────┐\n' +
+                    body.split('\n').map(line => `│ ${line}`).join('\n') + '\n' +
+                    '└──────────────────────────────┘';
+        
+        return `${header}\n\n${box}`;
+    } catch (error) {
+        console.error('Error fetching weather:', error);
+        return '> *ERROR SISTEM* ❌\n\nTerjadi kesalahan saat mengambil data cuaca. Silakan coba lagi nanti.';
+    }
 }
 
-module.exports = WeatherService;
+async function handleWeatherCommand(command, args, userId, platform) {
+    if (command !== '/cuaca') {
+        return 'Perintah tidak dikenali.';
+    }
+    
+    if (args.length === 0) {
+        return '> *FORMAT SALAH* ❌\n\nGunakan format: /cuaca <nama_kota>\nContoh: /cuaca Jakarta';
+    }
+    
+    const kota = args.join(' ');
+    return await getCuaca(kota);
+}
+
+module.exports = {
+    getCuaca,
+    handleWeatherCommand
+};

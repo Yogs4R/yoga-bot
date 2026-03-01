@@ -123,7 +123,8 @@ function buildMainMenuKeyboard() {
     return Markup.inlineKeyboard([
         [Markup.button.callback('💰 Cek Saldo', 'cmd:saldo')],
         [Markup.button.callback('📜 Riwayat', 'cmd:riwayat'), Markup.button.callback('📊 Laporan Keuangan', 'cmd:laporan')],
-        [Markup.button.callback('⚙️ Info', 'cmd:info'), Markup.button.callback('🏓 Ping', 'cmd:ping')]
+        [Markup.button.callback('⚙️ Info', 'cmd:info'), Markup.button.callback('🏓 Ping', 'cmd:ping')],
+        [Markup.button.callback('🌤️ Cuaca', 'cmd:cuaca'), Markup.button.callback('🕌 Sholat', 'cmd:sholat'), Markup.button.callback('👨‍💻 About Me', 'cmd:me')]
     ]);
 }
 
@@ -289,6 +290,25 @@ async function processMenuCommand(ctx, command, userId) {
             await sendTelegramReply(ctx, replyPayload);
             return;
         }
+        case '/cuaca':
+        case '/sholat':
+        case '/me': {
+            const parts = ctx.message?.text?.trim()?.split(' ') || [command];
+            const args = parts.slice(1);
+            let replyPayload;
+            if (command === '/cuaca') {
+                const { handleWeatherCommand } = require('../services/weatherService');
+                replyPayload = await handleWeatherCommand(command, args, userId, 'telegram');
+            } else if (command === '/sholat') {
+                const { handleReligionCommand } = require('../services/religionService');
+                replyPayload = await handleReligionCommand(command, args, userId, 'telegram');
+            } else if (command === '/me') {
+                const { handleAboutMeCommand } = require('../services/aboutService');
+                replyPayload = await handleAboutMeCommand(command, args, userId, 'telegram');
+            }
+            await sendTelegramReply(ctx, replyPayload);
+            return;
+        }
         case '/riwayat':
             await sendHistoryPageMessage(ctx, userId, 1, false);
             return;
@@ -354,6 +374,30 @@ function setupTelegramBot() {
                     }
                     break;
 
+                case '/cuaca':
+                case '/sholat':
+                case '/me': {
+                    try {
+                        let replyText;
+                        if (command === '/cuaca') {
+                            const { handleWeatherCommand } = require('../services/weatherService');
+                            replyText = await handleWeatherCommand(command, args, userId, 'telegram');
+                        } else if (command === '/sholat') {
+                            const { handleReligionCommand } = require('../services/religionService');
+                            replyText = await handleReligionCommand(command, args, userId, 'telegram');
+                        } else if (command === '/me') {
+                            const { handleAboutMeCommand } = require('../services/aboutService');
+                            replyText = await handleAboutMeCommand(command, args, userId, 'telegram');
+                        }
+                        await sendTelegramReply(ctx, replyText);
+                    } catch (error) {
+                        console.error(`Error handling ${command} command in Telegram:`, error);
+                        const errorHeader = '<b>ERROR SISTEM</b> ❌';
+                        const errorBody = `Terjadi kesalahan saat memproses perintah: ${escapeHtml(error.message)}`;
+                        await ctx.reply(`${errorHeader}\n\n${errorBody}`, { parse_mode: 'HTML' });
+                    }
+                    break;
+                }
                 case '/hapus':
                     if (args.length < 1) {
                         await ctx.reply('Format: <code>/hapus &lt;id_transaksi&gt;</code>\nContoh: <code>/hapus 123e4567</code>\nGunakan /riwayat untuk melihat ID transaksi.', { parse_mode: 'HTML' });
@@ -430,7 +474,10 @@ function setupTelegramBot() {
                     ping: '/ping',
                     saldo: '/saldo',
                     riwayat: '/riwayat',
-                    laporan: '/laporan_chart'
+                    laporan: '/laporan_chart',
+                    cuaca: '/cuaca',
+                    sholat: '/sholat',
+                    me: '/me'
                 };
 
                 const mapped = commandMap[key];
@@ -444,6 +491,26 @@ function setupTelegramBot() {
 
                     if (mapped === '/laporan_chart') {
                         const result = await handleFinanceCommand('/laporan_chart', [], userId, 'telegram');
+                        await sendTelegramReply(ctx, result);
+                        return;
+                    }
+                    
+                    if (mapped === '/cuaca') {
+                        await ctx.answerCbQuery();
+                        await ctx.reply('Untuk melihat cuaca, ketik command beserta nama kota.\nContoh: <code>/cuaca semarang</code>', { parse_mode: 'HTML' });
+                        return;
+                    }
+                    
+                    if (mapped === '/sholat') {
+                        await ctx.answerCbQuery();
+                        await ctx.reply('Untuk melihat jadwal sholat, ketik command beserta nama kota.\nContoh: <code>/sholat jakarta</code>', { parse_mode: 'HTML' });
+                        return;
+                    }
+                    
+                    if (mapped === '/me') {
+                        await ctx.answerCbQuery();
+                        const { handleAboutMeCommand } = require('../services/aboutService');
+                        const result = await handleAboutMeCommand('/me', [], userId, 'telegram');
                         await sendTelegramReply(ctx, result);
                         return;
                     }

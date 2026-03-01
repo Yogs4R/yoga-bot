@@ -195,6 +195,27 @@ class WhatsAppHandler {
             }
             break;
           }
+          
+          case '/cuaca': {
+            const { handleWeatherCommand } = require('../services/weatherService');
+            const weatherReply = await handleWeatherCommand(command, args, msg.key.remoteJid, 'whatsapp');
+            replyText = weatherReply;
+            break;
+          }
+          
+          case '/sholat': {
+            const { handleReligionCommand } = require('../services/religionService');
+            const sholatReply = await handleReligionCommand(command, args, msg.key.remoteJid, 'whatsapp');
+            replyText = sholatReply;
+            break;
+          }
+          
+          case '/me': {
+            const { handleAboutMeCommand } = require('../services/aboutService');
+            const aboutReply = await handleAboutMeCommand(command, args, msg.key.remoteJid, 'whatsapp');
+            replyText = aboutReply;
+            break;
+          }
 
           case '/start': {
             const startHeader = '> *SELAMAT DATANG DI YOGA BOT* 🤖';
