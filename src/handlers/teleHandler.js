@@ -1,7 +1,8 @@
 // Telegram message/event handler
+const os = require('os');
 const bot = require('../lib/telegramClient');
 const { Markup } = require('telegraf');
-const { askGemini } = require('../lib/geminiClient');
+const { askGeminiDetailed } = require('../lib/geminiClient');
 const handleFinanceCommand = require('../commands/finance/index');
 const { getHistoryPage } = require('../services/financeService');
 
@@ -48,6 +49,76 @@ function formatTelegramHtml(rawText) {
     return text;
 }
 
+function formatDuration(seconds) {
+    const totalSeconds = Math.max(0, Math.floor(seconds || 0));
+    const days = Math.floor(totalSeconds / 86400);
+    const hours = Math.floor((totalSeconds % 86400) / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+
+    const parts = [];
+    if (days > 0) parts.push(`${days}h`);
+    parts.push(`${hours}j`);
+    parts.push(`${minutes}m`);
+    return parts.join(' ');
+}
+
+function getCpuUsagePercent() {
+    const cpus = os.cpus() || [];
+    if (cpus.length === 0) return 0;
+
+    let idle = 0;
+    let total = 0;
+    for (const cpu of cpus) {
+        const times = cpu.times || {};
+        idle += times.idle || 0;
+        total += (times.user || 0) + (times.nice || 0) + (times.sys || 0) + (times.idle || 0) + (times.irq || 0);
+    }
+
+    if (total <= 0) return 0;
+    return Math.round((1 - (idle / total)) * 100);
+}
+
+function getRamUsageText() {
+    const total = os.totalmem();
+    const free = os.freemem();
+    const used = Math.max(total - free, 0);
+    const usedGb = (used / (1024 ** 3)).toFixed(1);
+    const totalGb = (total / (1024 ** 3)).toFixed(1);
+    return `${usedGb}/${totalGb} GB`;
+}
+
+function buildSystemStatsFooter() {
+    return [
+        '—'.repeat(19),
+        `CPU: ${getCpuUsagePercent()}%`,
+        `RAM: ${getRamUsageText()}`,
+        `UPTIME: ${formatDuration(os.uptime())}`,
+        `STATUS: ONLINE`
+    ].join('\n');
+}
+
+function buildAiStatsFooter(aiMeta = {}) {
+    const model = aiMeta.model || '-';
+    const tokenIn = aiMeta.usage?.promptTokenCount ?? 0;
+    const tokenOut = aiMeta.usage?.candidatesTokenCount ?? 0;
+    const rpmLabel = aiMeta.rpm?.label || '-';
+
+    return [
+        '—'.repeat(19),
+        `Model: ${model}`,
+        `Token In: ${tokenIn} | Token Out: ${tokenOut}`,
+        `RPM: ${rpmLabel}`
+    ].join('\n');
+}
+
+function appendFooter(text, footer) {
+    const base = String(text || '').trim();
+    const foot = String(footer || '').trim();
+    if (!base) return foot;
+    if (!foot) return base;
+    return `${base}\n\n${foot}`;
+}
+
 function buildMainMenuKeyboard() {
     return Markup.inlineKeyboard([
         [Markup.button.callback('💰 Cek Saldo', 'cmd:saldo')],
@@ -85,23 +156,72 @@ function buildDeleteConfirmKeyboard(transactionId) {
     ]);
 }
 
-function addDelimiterAndFooter(text) {
-    // Ensure text is a string
-    const content = String(text || '').trim();
-    if (!content) return '';
-    
-    // Add delimiter (using em dash) and footer
-    const delimiter = '────────────────────';
-    const footer = 'Yoga Bot 🤖 • Personal Assistant';
-    
-    return `${content}\n\n${delimiter}\n${footer}`;
+function formatBodyBold(htmlText) {
+    const lines = String(htmlText || '').split('\n');
+    const firstContentLineIndex = lines.findIndex((line) => line.trim().length > 0);
+
+    if (firstContentLineIndex === -1) {
+        return '';
+    }
+
+    const isBoxLine = (line) => /^[┌├└]\s/.test(line.trim());
+    const alreadyBold = (line) => {
+        const trimmed = line.trim();
+        return trimmed.startsWith('<b>') && trimmed.endsWith('</b>');
+    };
+    const makeBold = (line) => (alreadyBold(line) ? line : `<b>${line}</b>`);
+
+    const bodyBoxIndexes = [];
+    for (let i = firstContentLineIndex + 1; i < lines.length; i += 1) {
+        if (isBoxLine(lines[i])) {
+            bodyBoxIndexes.push(i);
+        }
+    }
+
+    const hasBodyBox = bodyBoxIndexes.length > 0;
+    const lastBodyBoxIndex = hasBodyBox ? bodyBoxIndexes[bodyBoxIndexes.length - 1] : -1;
+
+    const firstFooterLineIndex = hasBodyBox
+        ? lines.findIndex((line, index) => index > lastBodyBoxIndex && line.trim().length > 0)
+        : -1;
+
+    const formatted = [];
+    for (let i = 0; i < lines.length; i += 1) {
+        const line = lines[i];
+        const trimmed = line.trim();
+
+        if (!trimmed) {
+            formatted.push(line);
+            continue;
+        }
+
+        if (i === firstContentLineIndex) {
+            formatted.push(makeBold(line));
+            continue;
+        }
+
+        if (isBoxLine(line)) {
+            formatted.push(makeBold(line));
+            continue;
+        }
+
+        if (i === firstFooterLineIndex && hasBodyBox) {
+            if (formatted.length > 0 && String(formatted[formatted.length - 1]).trim().length > 0) {
+                formatted.push('');
+            }
+            formatted.push('—'.repeat(19));
+        }
+
+        formatted.push(line);
+    }
+
+    return formatted.join('\n');
 }
 
 async function sendTelegramReply(ctx, payload, extra = {}) {
     if (payload && typeof payload === 'object' && payload.type === 'image') {
         const caption = formatTelegramHtml(payload.caption || '');
-        // Add delimiter and footer to caption if it exists
-        const processedCaption = caption ? addDelimiterAndFooter(caption) : '';
+        const processedCaption = caption ? formatBodyBold(caption) : '';
         await ctx.replyWithPhoto(payload.url, {
             caption: processedCaption,
             parse_mode: 'HTML',
@@ -112,14 +232,14 @@ async function sendTelegramReply(ctx, payload, extra = {}) {
 
     const rawText = typeof payload === 'string' ? payload : String(payload || '');
     const formattedText = formatTelegramHtml(rawText);
-    const finalText = addDelimiterAndFooter(formattedText);
+    const finalText = formatBodyBold(formattedText);
     await ctx.reply(finalText, { parse_mode: 'HTML', ...extra });
 }
 
 async function sendHistoryPageMessage(ctx, userId, page = 1, useEdit = false) {
     const result = await getHistoryPage(userId, page, HISTORY_PAGE_SIZE);
     const html = formatTelegramHtml(result.text);
-    const finalHtml = addDelimiterAndFooter(html);
+    const finalHtml = formatBodyBold(html);
     const replyMarkup = buildHistoryKeyboard(result.page, result.hasPrev, result.hasNext).reply_markup;
 
     if (useEdit) {
@@ -148,14 +268,15 @@ async function processMenuCommand(ctx, command, userId) {
         case '/info': {
             const header = '<b>INFORMASI YOGA BOT</b> 🤖';
             const body = `Saya adalah asisten virtual pribadi milik <b>Ridwan Yoga Suryantara</b>.\n\n<b>FITUR KEUANGAN</b> 💰\n• /saldo : Cek saldo keuangan\n• /catat : Catat pengeluaran\n• /pemasukan : Catat pemasukan\n• /laporan_chart : Grafik laporan keuangan\n• /riwayat : Riwayat transaksi (paging 5 data)\n• /hapus : Hapus transaksi (dengan konfirmasi)\n• /edit : Edit transaksi\n\n<b>FITUR SISTEM</b> ⚙️\n• /ping : Cek status bot\n• /info : Menampilkan pesan ini\n• /start : Memulai bot\n\n<b>FITUR AI</b> 🧠\nKirim pesan biasa (tanpa awalan /) untuk ngobrol, tanya coding, atau diskusi teknologi.`;
-            await ctx.reply(`${header}\n\n${body}`, {
+            const message = `${header}\n\n${body}\n\n${buildSystemStatsFooter()}`;
+            await ctx.reply(message, {
                 parse_mode: 'HTML',
                 ...buildMainMenuKeyboard()
             });
             return;
         }
         case '/ping':
-            await ctx.reply('Pong! 🏓');
+            await ctx.reply(`Pong! 🏓\n\n${buildSystemStatsFooter()}`);
             return;
         case '/saldo':
         case '/catat':
@@ -263,9 +384,10 @@ function setupTelegramBot() {
             }
             
             try {
-                const geminiReply = await askGemini(text);
-                const formattedReply = formatTelegramHtml(geminiReply);
-                const finalReply = addDelimiterAndFooter(formattedReply);
+                const aiResult = await askGeminiDetailed(text);
+                const withAiFooter = appendFooter(aiResult.text, buildAiStatsFooter(aiResult));
+                const formattedReply = formatTelegramHtml(withAiFooter);
+                const finalReply = formatBodyBold(formattedReply);
                 await ctx.reply(finalReply, { parse_mode: 'HTML' });
             } catch (error) {
                 console.error('Error from Gemini AI in Telegram:', error);
@@ -287,9 +409,9 @@ function setupTelegramBot() {
                     errorHeader = '<b>ERROR AI</b> ❌';
                     errorBody = 'Maaf, otak AI sedang gangguan.\nCoba lagi nanti atau gunakan perintah sistem (/ping, /saldo).';
                 }
-                const errorText = `${errorHeader}\n\n${errorBody}`;
+                const errorText = appendFooter(`${errorHeader}\n\n${errorBody}`, buildAiStatsFooter({ model: '-', usage: { promptTokenCount: 0, candidatesTokenCount: 0 }, rpm: { label: '-' } }));
                 const formattedError = formatTelegramHtml(errorText);
-                const finalError = addDelimiterAndFooter(formattedError);
+                const finalError = formatBodyBold(formattedError);
                 await ctx.reply(finalError, { parse_mode: 'HTML' });
             }
         }
@@ -347,7 +469,7 @@ function setupTelegramBot() {
                 const result = await handleFinanceCommand('/hapus', [transactionId], userId, 'telegram');
 
                 try {
-                    await ctx.editMessageText(formatTelegramHtml(result), {
+                    await ctx.editMessageText(formatBodyBold(formatTelegramHtml(result)), {
                         parse_mode: 'HTML'
                     });
                 } catch (error) {
