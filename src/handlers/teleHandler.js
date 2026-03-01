@@ -31,8 +31,15 @@ function formatTelegramHtml(rawText) {
         return cleanSuffix ? `<b>${cleanTitle}</b> ${cleanSuffix}` : `<b>${cleanTitle}</b>`;
     });
 
-    text = text.replace(/```([\s\S]*?)```/g, (_match, codeBlock) => `<pre>${codeBlock.trim()}</pre>`);
-    text = text.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+    // Remove code block formatting (```...```) and convert to plain text
+    // First, handle multi-line code blocks
+    text = text.replace(/```([\s\S]*?)```/g, (_match, codeBlock) => {
+        // Remove any leading/trailing whitespace and convert to plain text
+        return codeBlock.trim();
+    });
+    // Handle inline code (`...`) and convert to plain text
+    text = text.replace(/`([^`\n]+)`/g, '$1');
+    // Keep bold formatting
     text = text.replace(/\*([^*\n]+)\*/g, '<b>$1</b>');
 
     text = text.replace(/(^|\n)-\s+/g, '$1');
@@ -78,36 +85,53 @@ function buildDeleteConfirmKeyboard(transactionId) {
     ]);
 }
 
+function addDelimiterAndFooter(text) {
+    // Ensure text is a string
+    const content = String(text || '').trim();
+    if (!content) return '';
+    
+    // Add delimiter (using em dash) and footer
+    const delimiter = '────────────────────';
+    const footer = 'Yoga Bot 🤖 • Personal Assistant';
+    
+    return `${content}\n\n${delimiter}\n${footer}`;
+}
+
 async function sendTelegramReply(ctx, payload, extra = {}) {
     if (payload && typeof payload === 'object' && payload.type === 'image') {
         const caption = formatTelegramHtml(payload.caption || '');
+        // Add delimiter and footer to caption if it exists
+        const processedCaption = caption ? addDelimiterAndFooter(caption) : '';
         await ctx.replyWithPhoto(payload.url, {
-            caption,
+            caption: processedCaption,
             parse_mode: 'HTML',
             ...extra
         });
         return;
     }
 
-    const text = formatTelegramHtml(typeof payload === 'string' ? payload : String(payload || ''));
-    await ctx.reply(text, { parse_mode: 'HTML', ...extra });
+    const rawText = typeof payload === 'string' ? payload : String(payload || '');
+    const formattedText = formatTelegramHtml(rawText);
+    const finalText = addDelimiterAndFooter(formattedText);
+    await ctx.reply(finalText, { parse_mode: 'HTML', ...extra });
 }
 
 async function sendHistoryPageMessage(ctx, userId, page = 1, useEdit = false) {
     const result = await getHistoryPage(userId, page, HISTORY_PAGE_SIZE);
     const html = formatTelegramHtml(result.text);
+    const finalHtml = addDelimiterAndFooter(html);
     const replyMarkup = buildHistoryKeyboard(result.page, result.hasPrev, result.hasNext).reply_markup;
 
     if (useEdit) {
         try {
-            await ctx.editMessageText(html, { parse_mode: 'HTML', reply_markup: replyMarkup });
+            await ctx.editMessageText(finalHtml, { parse_mode: 'HTML', reply_markup: replyMarkup });
             return;
         } catch (error) {
             console.error('Error editing history message in Telegram:', error);
         }
     }
 
-    await ctx.reply(html, { parse_mode: 'HTML', reply_markup: replyMarkup });
+    await ctx.reply(finalHtml, { parse_mode: 'HTML', reply_markup: replyMarkup });
 }
 
 async function processMenuCommand(ctx, command, userId) {
@@ -240,7 +264,9 @@ function setupTelegramBot() {
             
             try {
                 const geminiReply = await askGemini(text);
-                await ctx.reply(formatTelegramHtml(geminiReply), { parse_mode: 'HTML' });
+                const formattedReply = formatTelegramHtml(geminiReply);
+                const finalReply = addDelimiterAndFooter(formattedReply);
+                await ctx.reply(finalReply, { parse_mode: 'HTML' });
             } catch (error) {
                 console.error('Error from Gemini AI in Telegram:', error);
                 
@@ -261,7 +287,10 @@ function setupTelegramBot() {
                     errorHeader = '<b>ERROR AI</b> ❌';
                     errorBody = 'Maaf, otak AI sedang gangguan.\nCoba lagi nanti atau gunakan perintah sistem (/ping, /saldo).';
                 }
-                await ctx.reply(`${errorHeader}\n\n${errorBody}`, { parse_mode: 'HTML' });
+                const errorText = `${errorHeader}\n\n${errorBody}`;
+                const formattedError = formatTelegramHtml(errorText);
+                const finalError = addDelimiterAndFooter(formattedError);
+                await ctx.reply(finalError, { parse_mode: 'HTML' });
             }
         }
     });
