@@ -44,8 +44,7 @@ function formatTelegramHtml(rawText) {
 function buildMainMenuKeyboard() {
     return Markup.inlineKeyboard([
         [Markup.button.callback('💰 Cek Saldo', 'cmd:saldo')],
-        [Markup.button.callback('📜 Riwayat', 'cmd:riwayat')],
-        [Markup.button.callback('📊 Laporan Keuangan', 'cmd:laporan')],
+        [Markup.button.callback('📜 Riwayat', 'cmd:riwayat'), Markup.button.callback('📊 Laporan Keuangan', 'cmd:laporan')],
         [Markup.button.callback('⚙️ Info', 'cmd:info'), Markup.button.callback('🏓 Ping', 'cmd:ping')]
     ]);
 }
@@ -331,7 +330,7 @@ function setupTelegramBot() {
 
             if (data.startsWith('delete_cancel:')) {
                 await ctx.answerCbQuery('Dibatalkan.');
-                await ctx.editMessageText('<b>HAPUS DIBATALKAN</b> ℹ️\n\nTransaksi tidak jadi dihapus.', {
+                await ctx.editMessageText('<b>HAPUS DIBATALKAN</b> ✅\n\nTransaksi tidak jadi dihapus.', {
                     parse_mode: 'HTML'
                 });
                 return;
