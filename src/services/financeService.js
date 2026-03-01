@@ -73,7 +73,7 @@ function formatHistoryText(records, page, pageSize, totalCount) {
   const totalPages = Math.max(1, Math.ceil((totalCount || records.length) / pageSize));
   const header = '> *RIWAYAT TRANSAKSI* 📜';
   const body = `\n\n${transactions.join('\n\n')}\n\n`;
-  const footer = `\nHalaman ${page}/${totalPages} • Menampilkan ${records.length} dari ${totalCount || records.length} transaksi. Gunakan \`/hapus <id8>\` untuk menghapus atau \`/edit <id8> <jumlah> <deskripsi>\` untuk mengedit.`;
+  const footer = `\nHalaman ${page}/${totalPages} • Menampilkan ${records.length} dari ${totalCount || records.length} transaksi. \nGunakan \`/hapus <id8>\` untuk menghapus atau \`/edit <id8> <jumlah> <deskripsi>\` untuk mengedit.`;
 
   return `${header}\n\n${body}${footer}`;
 }

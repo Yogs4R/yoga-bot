@@ -24,6 +24,18 @@ function autoLink(text) {
 function formatTelegramHtml(rawText) {
     let text = String(rawText || '').replace(/\r\n/g, '\n').trim();
 
+    const preservedTags = [];
+    const preserveTag = (tag) => {
+        preservedTags.push(tag);
+        return `__HTML_TAG_${preservedTags.length - 1}__`;
+    };
+
+    text = text
+        .replace(/<b>/gi, (tag) => preserveTag(tag))
+        .replace(/<\/b>/gi, (tag) => preserveTag(tag))
+        .replace(/<code>/gi, (tag) => preserveTag(tag))
+        .replace(/<\/code>/gi, (tag) => preserveTag(tag));
+
     text = escapeHtml(text);
 
     text = text.replace(/^&gt;\s*\*([^*]+)\*\s*(.*)$/gm, (_match, title, suffix) => {
@@ -45,6 +57,11 @@ function formatTelegramHtml(rawText) {
 
     text = text.replace(/(^|\n)-\s+/g, '$1');
     text = autoLink(text);
+
+    text = text.replace(/__HTML_TAG_(\d+)__/g, (_match, indexText) => {
+        const index = parseInt(indexText, 10);
+        return preservedTags[index] || '';
+    });
 
     return text;
 }
@@ -268,7 +285,7 @@ async function processMenuCommand(ctx, command, userId) {
         }
         case '/info': {
             const header = '<b>INFORMASI YOGA BOT</b> 🤖';
-            const body = `Saya adalah asisten virtual pribadi milik <b>Ridwan Yoga Suryantara</b>.\n\n<b>FITUR KEUANGAN</b> 💰\n• /saldo : Cek saldo keuangan\n• /catat : Catat pengeluaran\n• /pemasukan : Catat pemasukan\n• /laporan_chart : Grafik laporan keuangan\n• /riwayat : Riwayat transaksi (paging 5 data)\n• /hapus : Hapus transaksi (dengan konfirmasi)\n• /edit : Edit transaksi\n\n<b>FITUR SISTEM</b> ⚙️\n• /ping : Cek status bot\n• /info : Menampilkan pesan ini\n• /start : Memulai bot\n\n<b>FITUR AI</b> 🧠\nKirim pesan biasa (tanpa awalan /) untuk ngobrol, tanya coding, atau diskusi teknologi.\n\n<b>FITUR UTILITAS</b> 🛠️\n• /cuaca <kota> : Info cuaca hari ini\n• /sholat <kota> : Jadwal sholat hari ini\n• /me : Tentang pembuat bot`;
+            const body = `Saya adalah asisten virtual pribadi milik <b>Ridwan Yoga Suryantara</b>.\n\n<b>FITUR KEUANGAN</b> 💰\n• /saldo : Cek saldo keuangan\n• /catat : Catat pengeluaran\n• /pemasukan : Catat pemasukan\n• /laporan_chart : Grafik laporan keuangan\n• /riwayat : Riwayat transaksi (paging 5 data)\n• /hapus : Hapus transaksi (dengan konfirmasi)\n• /edit : Edit transaksi\n\n<b>FITUR SISTEM</b> ⚙️\n• /ping : Cek status bot\n• /info : Menampilkan pesan ini\n• /start : Memulai bot\n\n<b>FITUR AI</b> 🧠\nKirim pesan biasa (tanpa awalan /) untuk ngobrol, tanya coding, atau diskusi teknologi.\n\n<b>FITUR UTILITAS</b> 🛠️\n• /cuaca : Info cuaca hari ini\n• /sholat : Jadwal sholat hari ini\n• /me : Tentang pembuat bot`;
             const message = `${header}\n\n${body}\n\n${buildSystemStatsFooter()}`;
             await ctx.reply(message, {
                 parse_mode: 'HTML',

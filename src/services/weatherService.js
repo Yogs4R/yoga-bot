@@ -1,5 +1,6 @@
 // Weather service
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+const { generateBoxTemplate } = require('../utils/formatter');
 
 async function getCuaca(kota) {
     try {
@@ -22,21 +23,18 @@ async function getCuaca(kota) {
         const data = await response.json();
         
         const header = '> *INFO CUACA HARI INI* 🌤️';
-        const body = [
-            `Kota: ${data.name}, ${data.sys.country}`,
-            `Deskripsi: ${data.weather[0].description}`,
-            `Suhu: ${data.main.temp}°C`,
-            `Terasa: ${data.main.feels_like}°C`,
-            `Kelembaban: ${data.main.humidity}%`,
-            `Tekanan: ${data.main.pressure} hPa`,
-            `Angin: ${data.wind.speed} m/s`
-        ].join('\n');
-        
-        const box = '┌──────────────────────────────┐\n' +
-                    body.split('\n').map(line => `│ ${line}`).join('\n') + '\n' +
-                    '└──────────────────────────────┘';
-        
-        return `${header}\n\n${box}`;
+        const body = generateBoxTemplate({
+            Kota: `${data.name}, ${data.sys.country}`,
+            Kondisi: data.weather[0].description,
+            Suhu: `${data.main.temp}°C`,
+            Terasa: `${data.main.feels_like}°C`,
+            Kelembaban: `${data.main.humidity}%`,
+            Tekanan: `${data.main.pressure} hPa`,
+            Angin: `${data.wind.speed} m/s`
+        });
+        const footer = '\nTetap jaga kesehatan dan sesuaikan aktivitasmu dengan cuaca.';
+
+        return `${header}\n\n${body}${footer}`;
     } catch (error) {
         console.error('Error fetching weather:', error);
         return '> *ERROR SISTEM* ❌\n\nTerjadi kesalahan saat mengambil data cuaca. Silakan coba lagi nanti.';
@@ -49,7 +47,12 @@ async function handleWeatherCommand(command, args, userId, platform) {
     }
     
     if (args.length === 0) {
-        return '> *FORMAT SALAH* ❌\n\nGunakan format: /cuaca <nama_kota>\nContoh: /cuaca Jakarta';
+        const header = '> *ERROR FORMAT* ❌';
+        const body = generateBoxTemplate([
+            'Gunakan format: /cuaca <nama_kota>',
+            'Contoh: /cuaca Jakarta'
+        ]);
+        return `${header}\n\n${body}`;
     }
     
     const kota = args.join(' ');

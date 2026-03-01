@@ -1,5 +1,6 @@
 // Religion service (sholat schedule)
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+const { generateBoxTemplate } = require('../utils/formatter');
 
 async function getSholat(kota) {
     try {
@@ -38,26 +39,24 @@ async function getSholat(kota) {
         const scheduleData = await scheduleResponse.json();
         
         if (!scheduleData.data || !scheduleData.data.jadwal) {
-            return '> *DATA TIDAK VALID* ❌\n\nData jadwal sholat tidak valid. Silakan coba lagi nanti.';
+            return '> *ERROR DATA* ❌\n\nData jadwal sholat tidak valid. Silakan coba lagi nanti.';
         }
         
         const jadwal = scheduleData.data.jadwal;
-        const header = `> *JADWAL SHOLAT* 🕌\n\nKota: ${cityName}\nTanggal: ${jadwal.tanggal}`;
-        
-        const body = [
-            `Imsak    : ${jadwal.imsak}`,
-            `Subuh    : ${jadwal.subuh}`,
-            `Dzuhur   : ${jadwal.dzuhur}`,
-            `Ashar    : ${jadwal.ashar}`,
-            `Maghrib  : ${jadwal.maghrib}`,
-            `Isya     : ${jadwal.isya}`
-        ].join('\n');
-        
-        const box = '┌──────────────────────────────┐\n' +
-                    body.split('\n').map(line => `│ ${line}`).join('\n') + '\n' +
-                    '└──────────────────────────────┘';
-        
-        return `${header}\n\n${box}`;
+        const header = '> *JADWAL SHOLAT HARI INI* 🕌';
+        const body = generateBoxTemplate({
+            Kota: cityName,
+            Tanggal: jadwal.tanggal,
+            Imsak: jadwal.imsak,
+            Subuh: jadwal.subuh,
+            Dzuhur: jadwal.dzuhur,
+            Ashar: jadwal.ashar,
+            Maghrib: jadwal.maghrib,
+            Isya: jadwal.isya
+        });
+        const footer = '\nSemoga ibadahmu lancar dan tepat waktu.';
+
+        return `${header}\n\n${body}${footer}`;
     } catch (error) {
         console.error('Error fetching prayer schedule:', error);
         return '> *ERROR SISTEM* ❌\n\nTerjadi kesalahan saat mengambil jadwal sholat. Silakan coba lagi nanti.';
@@ -70,7 +69,12 @@ async function handleReligionCommand(command, args, userId, platform) {
     }
     
     if (args.length === 0) {
-        return '> *FORMAT SALAH* ❌\n\nGunakan format: /sholat <nama_kota>\nContoh: /sholat Jakarta';
+        const header = '> *ERROR FORMAT* ❌';
+        const body = generateBoxTemplate([
+            'Gunakan format: /sholat <nama_kota>',
+            'Contoh: /sholat Jakarta'
+        ]);
+        return `${header}\n\n${body}`;
     }
     
     const kota = args.join(' ');

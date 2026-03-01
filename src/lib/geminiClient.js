@@ -12,6 +12,8 @@ const genAI = new GoogleGenerativeAI(apiKey);
 
 // Konfigurasi model - menggunakan model yang tersedia di tier gratis
 const modelName = "gemini-2.5-flash-lite"; 
+const RPM_LIMIT = parseInt(process.env.GEMINI_RPM_LIMIT || '15', 10);
+const requestTimestamps = [];
 
 const model = genAI.getGenerativeModel({ 
   model: modelName,
@@ -55,6 +57,48 @@ function formatForWhatsApp(text) {
  * @returns {Promise<string>} - Jawaban dari AI
  */
 async function askGemini(message) {
+  const detailed = await askGeminiDetailed(message);
+  return detailed.text;
+}
+
+function trackRequestAndGetRpmStatus() {
+  const now = Date.now();
+  const oneMinuteAgo = now - 60000;
+
+  while (requestTimestamps.length > 0 && requestTimestamps[0] < oneMinuteAgo) {
+    requestTimestamps.shift();
+  }
+
+  requestTimestamps.push(now);
+
+  const used = requestTimestamps.length;
+  const remaining = Math.max(RPM_LIMIT - used, 0);
+  const status = remaining > 0 ? 'AMAN' : 'BATAS RPM';
+
+  return {
+    used,
+    limit: RPM_LIMIT,
+    remaining,
+    status,
+    label: `${used}/${RPM_LIMIT} (${status})`
+  };
+}
+
+function extractUsageMetadata(response) {
+  const usage = response?.usageMetadata || {};
+
+  const promptTokenCount = usage.promptTokenCount || usage.inputTokenCount || 0;
+  const candidatesTokenCount = usage.candidatesTokenCount || usage.outputTokenCount || 0;
+  const totalTokenCount = usage.totalTokenCount || (promptTokenCount + candidatesTokenCount);
+
+  return {
+    promptTokenCount,
+    candidatesTokenCount,
+    totalTokenCount
+  };
+}
+
+async function askGeminiDetailed(message) {
   try {
     // Validasi API key
     if (!apiKey) {
@@ -75,8 +119,15 @@ async function askGemini(message) {
     // Ambil teks mentah lalu format untuk WhatsApp
     const rawText = response.text();
     const finalMessageWA = formatForWhatsApp(rawText);
+    const usage = extractUsageMetadata(response);
+    const rpm = trackRequestAndGetRpmStatus();
     
-    return finalMessageWA;
+    return {
+      text: finalMessageWA,
+      model: modelName,
+      usage,
+      rpm
+    };
 
   } catch (error) {
     console.error('Error saat memanggil Gemini AI:', error.message);
@@ -94,4 +145,4 @@ async function askGemini(message) {
   }
 }
 
-module.exports = { askGemini };
+module.exports = { askGemini, askGeminiDetailed, modelName };
