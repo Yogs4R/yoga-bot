@@ -121,10 +121,10 @@ function appendFooter(text, footer) {
 
 function buildMainMenuKeyboard() {
     return Markup.inlineKeyboard([
-        [Markup.button.callback('💰 Cek Saldo', 'cmd:saldo')],
-        [Markup.button.callback('📜 Riwayat', 'cmd:riwayat'), Markup.button.callback('📊 Laporan Keuangan', 'cmd:laporan')],
-        [Markup.button.callback('⚙️ Info', 'cmd:info'), Markup.button.callback('🏓 Ping', 'cmd:ping')],
-        [Markup.button.callback('🌤️ Cuaca', 'cmd:cuaca'), Markup.button.callback('🕌 Sholat', 'cmd:sholat'), Markup.button.callback('👨‍💻 About Me', 'cmd:me')]
+        [Markup.button.callback('💰 Cek Saldo', 'cmd:saldo'), Markup.button.callback('📜 Riwayat', 'cmd:riwayat')],
+        [Markup.button.callback('⚙️ Info', 'cmd:info'), Markup.button.callback('📊 Laporan Keuangan', 'cmd:laporan')],
+        [Markup.button.callback('🌤️ Cuaca', 'cmd:cuaca'), Markup.button.callback('🕌 Sholat', 'cmd:sholat')],
+        [Markup.button.callback('👨‍💻 About Me', 'cmd:me'), Markup.button.callback('🏓 Ping', 'cmd:ping')]
     ]);
 }
 

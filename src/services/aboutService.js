@@ -2,29 +2,25 @@
 function getAboutMe() {
     const header = '> *KREATOR* 👨‍💻';
     const body = [
-        'Bot ini diciptakan oleh *Ridwan Yoga Suryantara*',
+        'Bot ini diciptakan oleh *Ridwan Yoga Suryantara*.',
         '',
-        '👨‍🎓 *Mahasiswa Sistem Informasi*',
-        '🏢 *Developer di Fuenzer Studio*',
-        '💻 *Full‑Stack Developer & AI Enthusiast*',
+        '*Profil Singkat*',
+        '• 👨‍🎓 Mahasiswa Sistem Informasi',
+        '• 🏢 Developer di Fuenzer Studio',
+        '• 💻 Full-Stack Developer & AI Enthusiast',
         '',
-        '📌 *Portfolio:* https://ridwanyoga.vercel.app',
-        '🐙 *GitHub:* https://github.com/ridwanyoga',
-        '💼 *LinkedIn:* https://linkedin.com/in/ridwanyoga',
+        '*Tautan*',
+        '• 📌 Portfolio: https://ridwanyoga.vercel.app',
+        '• 🐙 GitHub: https://github.com/ridwanyoga',
+        '• 💼 LinkedIn: https://linkedin.com/in/ridwanyoga',
         '',
         'Bot ini dikembangkan dengan Node.js, Telegraf, Baileys,',
-        'dan berbagai API seperti Gemini AI, OpenWeather,',
-        'myQuran, serta Supabase untuk database.',
+        'Gemini AI, OpenWeather, myQuran, dan Supabase.',
         '',
-        'Untuk pertanyaan atau kolaborasi,',
-        'jangan ragu untuk menghubungi!'
+        'Untuk pertanyaan atau kolaborasi, jangan ragu menghubungi.'
     ].join('\n');
-    
-    const box = '┌─────────────────────────────────────────────┐\n' +
-                body.split('\n').map(line => `│ ${line}`).join('\n') + '\n' +
-                '└─────────────────────────────────────────────┘';
-    
-    return `${header}\n\n${box}`;
+
+    return `${header}\n\n${body}`;
 }
 
 async function handleAboutMeCommand(command, args, userId, platform) {
