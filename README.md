@@ -7,7 +7,7 @@ Bot WhatsApp & Telegram untuk keperluan pribadi.
 - WhatsApp Bot
 - Telegram Bot
 - Integrasi Google Services
-- Layanan AI (Gemini)
+- Layanan AI (OpenRouter via OpenAI SDK)
 - Monitoring Server
 - Layanan Keuangan
 - Layanan Cuaca
@@ -34,7 +34,7 @@ Salin .env.example ke .env dan isi variabel yang diperlukan.
 - Implementasi WhatsApp Client
 - Implementasi Telegram Client
 - Implementasi Google Services
-- Implementasi Gemini AI
+- Implementasi OpenRouter AI
 - Implementasi Supabase
 - Implementasi Services
 - Implementasi Handlers

@@ -1,5 +1,5 @@
 const os = require('os');
-const { askGeminiDetailed } = require('../lib/geminiClient');
+const { askAiDetailed } = require('../lib/aiClient');
 const handleFinanceCommand = require('../commands/finance/index');
 
 function formatDuration(seconds) {
@@ -244,25 +244,29 @@ class WhatsAppHandler {
           replyText = `${shortHeader}\n\n${shortBody}`;
         } else {
           try {
-            const aiResult = await askGeminiDetailed(cleanText);
+            const aiResult = await askAiDetailed(cleanText);
             replyText = appendFooter(aiResult.text, buildAiStatsFooter(aiResult));
           } catch (error) {
-            console.error('Error dari Gemini AI:', error);
+            console.error('Error dari OpenRouter AI:', error);
 
             let errorHeader;
             let errorBody;
-            if (error.message.includes('Kuota Gemini AI telah habis')) {
-              errorHeader = '> *KUOTA AI HABIS* 💸';
-              errorBody = 'Maaf, kuota AI saya sudah habis untuk hari ini.\nSilakan coba lagi besok atau hubungi admin untuk menambah kuota.';
-            } else if (error.message.includes('Akses ditolak')) {
-              errorHeader = '> *AKSES DITOLAK* 🔒';
-              errorBody = 'Maaf, akses AI sedang bermasalah (autentikasi gagal).\nAdmin telah diberitahu.';
-            } else if (error.message.includes('model tidak ditemukan')) {
-              errorHeader = '> *MODEL TIDAK DITEMUKAN* 🔍';
-              errorBody = 'Maaf, konfigurasi AI sedang diperbarui.\nCoba lagi nanti.';
-            } else if (error.message.includes('API key')) {
-              errorHeader = '> *API KEY TIDAK VALID* 🔑';
-              errorBody = 'Maaf, konfigurasi AI belum lengkap.\nAdmin telah diberitahu.';
+            const message = String(error?.message || '');
+            if (message.includes('429 Rate Limit')) {
+              errorHeader = '> *RATE LIMIT AI* ⏳';
+              errorBody = 'Maaf, request AI sedang padat (429 Rate Limit).\nSilakan coba lagi beberapa saat.';
+            } else if (message.includes('401 Unauthorized') || message.includes('403 Forbidden')) {
+              errorHeader = '> *AKSES AI DITOLAK* 🔒';
+              errorBody = 'Maaf, akses AI ditolak (401/403).\nAdmin perlu memeriksa API key OpenRouter.';
+            } else if (message.includes('tidak ditemukan di OpenRouter')) {
+              errorHeader = '> *MODEL AI TIDAK DITEMUKAN* 🔍';
+              errorBody = 'Maaf, model AI yang dipakai sedang tidak tersedia.\nCoba lagi nanti.';
+            } else if (message.includes('API key OpenRouter')) {
+              errorHeader = '> *API KEY AI TIDAK VALID* 🔑';
+              errorBody = 'Maaf, konfigurasi OpenRouter belum lengkap atau tidak valid.\nAdmin telah diberitahu.';
+            } else if (message.includes('Server OpenRouter sedang gangguan')) {
+              errorHeader = '> *SERVER AI GANGGUAN* 🛠️';
+              errorBody = 'Maaf, server AI sedang gangguan.\nSilakan coba lagi nanti.';
             } else {
               errorHeader = '> *ERROR AI* 🤯';
               errorBody = 'Maaf, otak AI sedang gangguan.\nCoba lagi nanti atau gunakan perintah sistem (/ping, /saldo).';

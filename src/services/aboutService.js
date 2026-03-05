@@ -2,12 +2,12 @@
 function getAboutMe(platform) {
     if (platform === 'telegram') {
         const header = '<b>TENTANG KREATOR</b> 👨‍💻';
-        const body = `Bot ini diciptakan oleh <b>Ridwan Yoga Suryantara</b>.\n\n<b>TAUTAN</b>\n• Portfolio: https://ridwansuryantara.netlify.app\n• GitHub: https://github.com/yogs4r\n• LinkedIn: https://linkedin.com/in/ridwansuryantara\n\n<b>TENTANG BOT</b>\nBot ini dikembangkan dengan Node.js, Telegraf, Baileys, Gemini AI, OpenWeather, myQuran, dan Supabase.\n\nUntuk pertanyaan atau kolaborasi, jangan ragu menghubungi.`;
+        const body = `Bot ini diciptakan oleh <b>Ridwan Yoga Suryantara</b>.\n\n<b>TAUTAN</b>\n• Portfolio: https://ridwansuryantara.netlify.app\n• GitHub: https://github.com/yogs4r\n• LinkedIn: https://linkedin.com/in/ridwansuryantara\n\n<b>TENTANG BOT</b>\nBot ini dikembangkan dengan Node.js, Telegraf, Baileys, OpenRouter AI (OpenAI SDK), OpenWeather, myQuran, dan Supabase.\n\nUntuk pertanyaan atau kolaborasi, jangan ragu menghubungi.`;
         return `${header}\n\n${body}`;
     } else {
         // WhatsApp format
         const header = '> *TENTANG KREATOR* 👨‍💻';
-        const body = `Bot ini diciptakan oleh *Ridwan Yoga Suryantara*.\n\n*TAUTAN*\n• 📌 Portfolio: https://ridwansuryantara.netlify.app\n• 🐙 GitHub: https://github.com/yogs4r\n• 💼 LinkedIn: https://linkedin.com/in/ridwansuryantara\n\n*TENTANG BOT*\nBot ini dikembangkan dengan Node.js, Telegraf, Baileys, Gemini AI, OpenWeather, myQuran, dan Supabase.\n\nUntuk pertanyaan atau kolaborasi, jangan ragu menghubungi.`;
+        const body = `Bot ini diciptakan oleh *Ridwan Yoga Suryantara*.\n\n*TAUTAN*\n• 📌 Portfolio: https://ridwansuryantara.netlify.app\n• 🐙 GitHub: https://github.com/yogs4r\n• 💼 LinkedIn: https://linkedin.com/in/ridwansuryantara\n\n*TENTANG BOT*\nBot ini dikembangkan dengan Node.js, Telegraf, Baileys, OpenRouter AI (OpenAI SDK), OpenWeather, myQuran, dan Supabase.\n\nUntuk pertanyaan atau kolaborasi, jangan ragu menghubungi.`;
         return `${header}\n\n${body}`;
     }
 }
