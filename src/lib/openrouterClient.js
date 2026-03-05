@@ -14,7 +14,7 @@ const openai = new OpenAI({
 });
 
 // Konfigurasi model - menggunakan model yang tersedia di tier gratis
-const modelName = "openai/gpt-4o-mini";
+const modelName = "openai/gpt-oss-120b";
 const RPM_LIMIT = parseInt(process.env.OPENROUTER_RPM_LIMIT || process.env.GEMINI_RPM_LIMIT || '15', 10);
 const requestTimestamps = [];
 
