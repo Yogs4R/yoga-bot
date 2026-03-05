@@ -14,7 +14,7 @@ const openai = new OpenAI({
 });
 
 // Konfigurasi model - menggunakan model yang tersedia di tier gratis
-const modelName = "google/gemma-3-27b-it:free";
+const modelName = "google/gemini-2.5-flash-lite";
 const RPM_LIMIT = parseInt(process.env.OPENROUTER_RPM_LIMIT || process.env.GEMINI_RPM_LIMIT || '15', 10);
 const requestTimestamps = [];
 
