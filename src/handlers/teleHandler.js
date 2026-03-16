@@ -197,7 +197,7 @@ function buildMainMenuKeyboard() {
 
 function buildAdminMenuKeyboard() {
     return Markup.inlineKeyboard([
-        [Markup.button.callback('📡 Monitor', 'admin:monitor')]
+        [Markup.button.callback('📡 Monitor', 'admin:monitor'), Markup.button.callback(' 📊 Statistik', 'admin:stats')]
     ]);
 }
 
