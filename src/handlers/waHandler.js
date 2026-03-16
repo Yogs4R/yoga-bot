@@ -121,6 +121,10 @@ function normalizeWhatsAppId(value) {
     .replace(/[^\d]/g, '');
 }
 
+function escapeRegex(value) {
+  return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function getMessageContextInfo(msg) {
   return msg.message?.extendedTextMessage?.contextInfo
     || msg.message?.buttonsResponseMessage?.contextInfo
@@ -131,14 +135,21 @@ function getMessageContextInfo(msg) {
     || null;
 }
 
-function cleanMentionFromGroupText(text, botNumber) {
-  const cleanText = String(text || '').trim();
-  if (!botNumber) {
-    return cleanText;
+function cleanMentionFromGroupText(text, mentionIds = []) {
+  let cleanText = String(text || '').trim();
+  const normalizedMentionIds = mentionIds
+    .map((mentionId) => normalizeWhatsAppId(mentionId))
+    .filter(Boolean);
+
+  for (const mentionId of normalizedMentionIds) {
+    const mentionRegex = new RegExp(`@${escapeRegex(mentionId)}\\b`, 'gi');
+    cleanText = cleanText.replace(mentionRegex, ' ');
   }
 
-  const mentionRegex = new RegExp(`@${botNumber}\\b`, 'gi');
-  return cleanText.replace(mentionRegex, '').replace(/\s{2,}/g, ' ').trim();
+  // Tangani pola "@LID /command" agar command tetap terbaca.
+  cleanText = cleanText.replace(/^(@\S+\s+)+(?=\/)/, '');
+
+  return cleanText.replace(/\s{2,}/g, ' ').trim();
 }
 
 class WhatsAppHandler {
@@ -171,10 +182,11 @@ class WhatsAppHandler {
 
       const contextInfo = getMessageContextInfo(msg);
       const mentionedJids = contextInfo?.mentionedJid || [];
+      const botLid = normalizeWhatsAppId(process.env.BOT_WA_LID);
       const isBotMentioned = mentionedJids.some((jid) => {
         // Hapus @s.whatsapp.net atau @lid beserta suffix device (:x)
-        const normalizedJid = String(jid || '').split('@')[0].split(':')[0];
-        return normalizedJid === botNumber || normalizedJid === process.env.BOT_WA_LID;
+        const normalizedJid = normalizeWhatsAppId(jid);
+        return normalizedJid === botNumber || normalizedJid === botLid;
       });
       const isReplyToBot = normalizeWhatsAppId(contextInfo?.participant) === botNumber;
       
@@ -186,7 +198,7 @@ class WhatsAppHandler {
 
       let cleanText = text.trim();
       if (isGroup && isBotMentioned) {
-        cleanText = cleanMentionFromGroupText(cleanText, botNumber);
+        cleanText = cleanMentionFromGroupText(cleanText, [botNumber, botLid, ...mentionedJids]);
       }
 
       if (isGroup && !cleanText) {
