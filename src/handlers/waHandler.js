@@ -174,6 +174,14 @@ class WhatsAppHandler {
       const isBotMentioned = mentionedJids.some((jid) => normalizeWhatsAppId(jid) === botNumber);
       const isReplyToBot = normalizeWhatsAppId(contextInfo?.participant) === botNumber;
 
+      console.log('\n🕵️‍♂️ --- DEBUG GROUP WA ---');
+      console.log('1. Text Pesan     :', text);
+      console.log('2. isGroup        :', isGroup);
+      console.log('3. mentionedJids  :', mentionedJids);
+      console.log('4. botNumber      :', botNumber);
+      console.log('5. isBotMentioned :', isBotMentioned);
+      console.log('------------------------\n');
+
       // Di dalam grup, bot WAJIB di-tag (mention biru) atau pesannya di-reply.
       // Jika tidak memenuhi syarat tersebut, abaikan seluruh pesan.
       if (isGroup && !isBotMentioned && !isReplyToBot) {
