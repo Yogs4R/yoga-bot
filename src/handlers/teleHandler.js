@@ -4,7 +4,10 @@ const bot = require('../lib/telegramClient');
 const { Markup } = require('telegraf');
 const { askAiDetailed } = require('../lib/aiClient');
 const handleFinanceCommand = require('../commands/finance/index');
+const { handleAdminCommand } = require('../commands/admin/index');
 const { getHistoryPage } = require('../services/financeService');
+const { isAdmin } = require('../utils/auth');
+const { checkWebsites, formatMonitorMessage, getMonitorWebsiteLinks } = require('../services/monitorService');
 
 const HISTORY_PAGE_SIZE = 5;
 
@@ -19,6 +22,37 @@ function escapeHtml(text) {
 
 function autoLink(text) {
     return String(text || '').replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>');
+}
+
+function escapeRegex(value) {
+    return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function getTelegramBotUsername() {
+    const fromBotInfo = bot.botInfo?.username;
+    const fromEnv = process.env.TELEGRAM_BOT_USERNAME;
+    const username = String(fromBotInfo || fromEnv || '')
+        .replace(/^@+/, '')
+        .replace(/\s+/g, '')
+        .trim();
+
+    return username;
+}
+
+function sanitizeTelegramIncomingText(rawText) {
+    let text = String(rawText || '').trim();
+    const botUsername = getTelegramBotUsername();
+
+    if (!botUsername) {
+        return text;
+    }
+
+    const escapedBotUsername = escapeRegex(botUsername);
+
+    text = text.replace(new RegExp(`^\/(\\w+)@${escapedBotUsername}(?=\\s|$)`, 'i'), '/$1');
+    text = text.replace(new RegExp(`(^|\\s)@${escapedBotUsername}\\b`, 'gi'), '$1');
+
+    return text.replace(/\s{2,}/g, ' ').trim();
 }
 
 function formatTelegramHtml(rawText) {
@@ -143,6 +177,25 @@ function buildMainMenuKeyboard() {
         [Markup.button.callback('🌤️ Cuaca', 'cmd:cuaca'), Markup.button.callback('🕌 Sholat', 'cmd:sholat')],
         [Markup.button.callback('👨‍💻 About Me', 'cmd:me'), Markup.button.callback('🏓 Ping', 'cmd:ping')]
     ]);
+}
+
+function buildAdminMenuKeyboard() {
+    return Markup.inlineKeyboard([
+        [Markup.button.callback('📡 Monitor', 'admin:monitor')]
+    ]);
+}
+
+function buildMonitorLinksKeyboard() {
+    const websiteLinks = getMonitorWebsiteLinks();
+    const rows = websiteLinks
+        .filter((item) => item.url)
+        .map((item) => [Markup.button.url(item.label, item.url)]);
+
+    if (rows.length === 0) {
+        return null;
+    }
+
+    return Markup.inlineKeyboard(rows);
 }
 
 function buildHistoryKeyboard(page, hasPrev, hasNext) {
@@ -285,7 +338,7 @@ async function processMenuCommand(ctx, command, userId) {
         }
         case '/info': {
             const header = '<b>INFORMASI YOGA BOT</b> 🤖';
-            const body = `Saya adalah asisten virtual pribadi milik <b>Ridwan Yoga Suryantara</b>.\n\n<b>FITUR KEUANGAN</b> 💰\n• /saldo : Cek saldo keuangan\n• /catat : Catat pengeluaran\n• /pemasukan : Catat pemasukan\n• /laporan_chart : Grafik laporan keuangan\n• /riwayat : Riwayat transaksi (paging 5 data)\n• /hapus : Hapus transaksi (dengan konfirmasi)\n• /edit : Edit transaksi\n\n<b>FITUR SISTEM</b> ⚙️\n• /ping : Cek status bot\n• /info : Menampilkan pesan ini\n• /start : Memulai bot\n\n<b>FITUR AI</b> 🧠\nKirim pesan biasa (tanpa awalan /) untuk ngobrol, tanya coding, atau diskusi teknologi.\n\n<b>FITUR UTILITAS</b> 🛠️\n• /cuaca : Info cuaca hari ini\n• /sholat : Jadwal sholat hari ini\n• /me : Tentang pembuat bot`;
+            const body = `Saya adalah asisten virtual pribadi milik <b>Ridwan Yoga Suryantara</b>.\n\n<b>FITUR KEUANGAN</b> 💰\n• /saldo : Cek saldo keuangan\n• /catat : Catat pengeluaran\n• /pemasukan : Catat pemasukan\n• /laporan_chart : Grafik laporan keuangan\n• /riwayat : Riwayat transaksi (paging 5 data)\n• /hapus : Hapus transaksi (dengan konfirmasi)\n• /edit : Edit transaksi\n\n<b>FITUR SISTEM</b> ⚙️\n• /ping : Cek status bot\n• /info : Menampilkan pesan ini\n• /start : Memulai bot\n\n<b>FITUR AI</b> 🧠\nKirim pesan biasa (tanpa awalan /) untuk ngobrol, tanya coding, atau diskusi teknologi.\n\n<b>FITUR UTILITAS</b> 🛠️\n• /cuaca : Info cuaca hari ini\n• /sholat : Jadwal sholat hari ini\n• /me : Tentang pembuat bot\n\n<b>FITUR ADMIN</b> 🛡️\n• /admin : Menu command admin\n• /monitor : Cek status website (khusus admin)`;
             const message = `${header}\n\n${body}\n\n${buildSystemStatsFooter()}`;
             await ctx.reply(message, {
                 parse_mode: 'HTML',
@@ -337,19 +390,14 @@ async function processMenuCommand(ctx, command, userId) {
 function setupTelegramBot() {
     // Event listener for text messages
     bot.on('text', async (ctx) => {
-        let text = ctx.message.text.trim();
+        const rawText = ctx.message?.text || '';
+        const text = sanitizeTelegramIncomingText(rawText);
         const userId = ctx.from.id.toString();
-        
-        // Bersihkan teks dari username bot jika ada
-        // Format: /command@bot_username atau @bot_username pesan
-        const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'Yoga Bot';
-        const botMentionRegex = new RegExp(`@${botUsername}\\b`, 'g');
-        text = text.replace(botMentionRegex, '').trim();
         
         // Handle commands
         if (text.startsWith('/')) {
             const parts = text.split(' ');
-            let command = parts[0].toLowerCase();
+            const command = parts[0].toLowerCase();
             const args = parts.slice(1);
             
             switch (command) {
@@ -415,6 +463,45 @@ function setupTelegramBot() {
                     }
                     break;
                 }
+
+                case '/admin': {
+                    try {
+                        if (!isAdmin(userId, 'telegram')) {
+                            await ctx.reply('Akses Ditolak: Command ini khusus Admin.');
+                            break;
+                        }
+
+                        const replyText = await handleAdminCommand('/admin', args, userId, 'telegram');
+                        await sendTelegramReply(ctx, replyText, buildAdminMenuKeyboard());
+                    } catch (error) {
+                        console.error(`Error handling ${command} command in Telegram:`, error);
+                        const errorHeader = '<b>ERROR SISTEM</b> ❌';
+                        const errorBody = `Terjadi kesalahan saat memproses perintah: ${escapeHtml(error.message)}`;
+                        await ctx.reply(`${errorHeader}\n\n${errorBody}`, { parse_mode: 'HTML' });
+                    }
+                    break;
+                }
+
+                case '/monitor': {
+                    try {
+                        if (!isAdmin(userId, 'telegram')) {
+                            await ctx.reply('Akses Ditolak: Command ini khusus Admin.');
+                            break;
+                        }
+
+                        const { results } = await checkWebsites();
+                        const replyText = formatMonitorMessage(results);
+                        const linksKeyboard = buildMonitorLinksKeyboard();
+                        await sendTelegramReply(ctx, replyText, linksKeyboard || {});
+                    } catch (error) {
+                        console.error(`Error handling ${command} command in Telegram:`, error);
+                        const errorHeader = '<b>ERROR SISTEM</b> ❌';
+                        const errorBody = `Terjadi kesalahan saat memproses perintah: ${escapeHtml(error.message)}`;
+                        await ctx.reply(`${errorHeader}\n\n${errorBody}`, { parse_mode: 'HTML' });
+                    }
+                    break;
+                }
+
                 case '/hapus':
                     if (args.length < 1) {
                         await ctx.reply('Format: <code>/hapus &lt;id_transaksi&gt;</code>\nContoh: <code>/hapus 123e4567</code>\nGunakan /riwayat untuk melihat ID transaksi.', { parse_mode: 'HTML' });
@@ -541,6 +628,21 @@ function setupTelegramBot() {
                     await ctx.answerCbQuery('Aksi tidak dikenal.');
                 }
 
+                return;
+            }
+
+            if (data === 'admin:monitor') {
+                await ctx.answerCbQuery();
+
+                if (!isAdmin(userId, 'telegram')) {
+                    await ctx.reply('Akses Ditolak: Command ini khusus Admin.');
+                    return;
+                }
+
+                const { results } = await checkWebsites();
+                const replyText = formatMonitorMessage(results);
+                const linksKeyboard = buildMonitorLinksKeyboard();
+                await sendTelegramReply(ctx, replyText, linksKeyboard || {});
                 return;
             }
 

@@ -1,6 +1,9 @@
 const os = require('os');
 const { askAiDetailed } = require('../lib/aiClient');
 const handleFinanceCommand = require('../commands/finance/index');
+const { handleAdminCommand } = require('../commands/admin/index');
+const { isAdmin } = require('../utils/auth');
+const { checkWebsites, formatMonitorMessage, getMonitorWebsiteLinks } = require('../services/monitorService');
 
 function formatDuration(seconds) {
   const totalSeconds = Math.max(0, Math.floor(seconds || 0));
@@ -111,6 +114,33 @@ function formatWhatsAppReply(text) {
   return formatted.join('\n');
 }
 
+function normalizeWhatsAppId(value) {
+  return String(value || '')
+    .split('@')[0]
+    .split(':')[0]
+    .replace(/[^\d]/g, '');
+}
+
+function getMessageContextInfo(msg) {
+  return msg.message?.extendedTextMessage?.contextInfo
+    || msg.message?.buttonsResponseMessage?.contextInfo
+    || msg.message?.templateButtonReplyMessage?.contextInfo
+    || msg.message?.imageMessage?.contextInfo
+    || msg.message?.videoMessage?.contextInfo
+    || msg.message?.documentMessage?.contextInfo
+    || null;
+}
+
+function cleanMentionFromGroupText(text, botNumber) {
+  const cleanText = String(text || '').trim();
+  if (!botNumber) {
+    return cleanText;
+  }
+
+  const mentionRegex = new RegExp(`@${botNumber}\\b`, 'gi');
+  return cleanText.replace(mentionRegex, '').replace(/\s{2,}/g, ' ').trim();
+}
+
 class WhatsAppHandler {
   constructor(sock) {
     this.sock = sock;
@@ -125,34 +155,42 @@ class WhatsAppHandler {
       if (!msg.message || msg.key.fromMe) return;
 
       const isGroup = msg.key.remoteJid.endsWith('@g.us');
-      const botId = this.sock.user?.id?.split(':')[0] || this.sock.user?.id;
-
-      let isBotMentioned = false;
+      const botJid = this.sock.user?.id || '';
+      const botNumber = normalizeWhatsAppId(botJid);
       let text = '';
 
       if (msg.message?.conversation) {
         text = msg.message.conversation;
       } else if (msg.message?.extendedTextMessage?.text) {
         text = msg.message.extendedTextMessage.text;
+      } else if (msg.message?.buttonsResponseMessage?.selectedButtonId) {
+        text = msg.message.buttonsResponseMessage.selectedButtonId;
+      } else if (msg.message?.templateButtonReplyMessage?.selectedId) {
+        text = msg.message.templateButtonReplyMessage.selectedId;
       }
 
-      const mentionedJids = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
-      const isReplyToBot = msg.message?.extendedTextMessage?.contextInfo?.participant === botId ||
-        msg.message?.extendedTextMessage?.contextInfo?.stanzaId?.includes(botId);
+      const contextInfo = getMessageContextInfo(msg);
+      const mentionedJids = contextInfo?.mentionedJid || [];
+      const isBotMentioned = mentionedJids.some((jid) => normalizeWhatsAppId(jid) === botNumber);
+      const isReplyToBot = normalizeWhatsAppId(contextInfo?.participant) === botNumber;
+      const isButtonInteraction = Boolean(msg.message?.buttonsResponseMessage || msg.message?.templateButtonReplyMessage);
 
-      if (botId && mentionedJids.includes(botId)) {
-        isBotMentioned = true;
-      }
-
-      if (isGroup && !isBotMentioned && !isReplyToBot) {
+      if (isGroup && !isBotMentioned && !isReplyToBot && !isButtonInteraction) {
         return;
       }
 
       let cleanText = text.trim();
-      if (isBotMentioned && botId) {
-        const mentionRegex = new RegExp(`@${botId}\\s*`, 'g');
-        cleanText = cleanText.replace(mentionRegex, '').trim();
+      if (isGroup && isBotMentioned) {
+        cleanText = cleanMentionFromGroupText(cleanText, botNumber);
       }
+
+      if (isGroup && !cleanText) {
+        return;
+      }
+
+      const userId = isGroup
+        ? (msg.key.participant || msg.participant || msg.key.remoteJid)
+        : msg.key.remoteJid;
 
       let replyText = '';
 
@@ -209,6 +247,81 @@ class WhatsAppHandler {
             replyText = sholatReply;
             break;
           }
+
+          case '/admin': {
+            if (!isAdmin(userId, 'whatsapp')) {
+              replyText = 'Akses Ditolak: Command ini khusus Admin.';
+              break;
+            }
+
+            const adminReply = await handleAdminCommand('/admin', args, userId, 'whatsapp');
+
+            try {
+              await this.sock.sendMessage(
+                msg.key.remoteJid,
+                {
+                  text: formatWhatsAppReply(adminReply),
+                  footer: 'Admin Menu',
+                  buttons: [
+                    {
+                      buttonId: '/monitor',
+                      buttonText: { displayText: 'Monitor' },
+                      type: 1
+                    }
+                  ],
+                  headerType: 1
+                },
+                { quoted: msg }
+              );
+              return;
+            } catch (error) {
+              console.error('Error sending WhatsApp admin button message:', error);
+              replyText = adminReply;
+            }
+
+            break;
+          }
+
+          case '/monitor': {
+            if (!isAdmin(userId, 'whatsapp')) {
+              replyText = 'Akses Ditolak: Command ini khusus Admin.';
+              break;
+            }
+
+            const { results } = await checkWebsites();
+            const monitorReply = formatMonitorMessage(results);
+            const monitorLinks = getMonitorWebsiteLinks();
+            const templateButtons = monitorLinks
+              .filter((item) => item.url)
+              .slice(0, 3)
+              .map((item, index) => ({
+                index: index + 1,
+                urlButton: {
+                  displayText: item.label,
+                  url: item.url
+                }
+              }));
+
+            if (templateButtons.length > 0) {
+              try {
+                await this.sock.sendMessage(
+                  msg.key.remoteJid,
+                  {
+                    text: formatWhatsAppReply(monitorReply),
+                    footer: 'Buka website monitor',
+                    templateButtons
+                  },
+                  { quoted: msg }
+                );
+                return;
+              } catch (error) {
+                console.error('Error sending WhatsApp monitor URL button message:', error);
+              }
+            }
+
+            replyText = monitorReply;
+            break;
+          }
           
           case '/me': {
             const { handleAboutMeCommand } = require('../services/aboutService');
@@ -226,7 +339,7 @@ class WhatsAppHandler {
 
           case '/info': {
             const header = '> *INFORMASI YOGA BOT* 🤖';
-            const body = `Saya adalah asisten virtual pribadi milik Ridwan Yoga Suryantara.\n\n📋 *FITUR KEUANGAN* 💰\n- \`/saldo\`         : Cek saldo keuangan\n- \`/catat\`         : Catat pengeluaran\n- \`/pemasukan\`     : Catat pemasukan\n- \`/laporan_chart\` : Grafik laporan keuangan\n- \`/riwayat\`       : Riwayat transaksi terakhir\n- \`/hapus\`         : Hapus transaksi\n- \`/edit\`          : Edit transaksi\n\n📋 *FITUR SISTEM* ⚙️\n- \`/ping\`          : Cek status bot\n- \`/info\`          : Menampilkan pesan ini\n- \`/start\`         : Memulai bot\n\n💡 *FITUR AI* 🧠\nKirimkan pesan biasa (tanpa awalan '/') untuk ngobrol,\nbertanya seputar coding, teknologi, atau sekadar bertukar pikiran!\n\n🛠️ *FITUR UTILITAS*\n- \`/cuaca\`  : Info cuaca hari ini\n- \`/sholat\` : Jadwal sholat hari ini\n- \`/me\`            : Tentang pembuat bot`;
+            const body = `Saya adalah asisten virtual pribadi milik Ridwan Yoga Suryantara.\n\n📋 *FITUR KEUANGAN* 💰\n- \`/saldo\`         : Cek saldo keuangan\n- \`/catat\`         : Catat pengeluaran\n- \`/pemasukan\`     : Catat pemasukan\n- \`/laporan_chart\` : Grafik laporan keuangan\n- \`/riwayat\`       : Riwayat transaksi terakhir\n- \`/hapus\`         : Hapus transaksi\n- \`/edit\`          : Edit transaksi\n\n📋 *FITUR SISTEM* ⚙️\n- \`/ping\`          : Cek status bot\n- \`/info\`          : Menampilkan pesan ini\n- \`/start\`         : Memulai bot\n\n💡 *FITUR AI* 🧠\nKirimkan pesan biasa (tanpa awalan '/') untuk ngobrol,\nbertanya seputar coding, teknologi, atau sekadar bertukar pikiran!\n\n🛠️ *FITUR UTILITAS*\n- \`/cuaca\`         : Info cuaca hari ini\n- \`/sholat\`        : Jadwal sholat hari ini\n- \`/me\`            : Tentang pembuat bot\n\n🛡️ *FITUR ADMIN*\n- \`/admin\`         : Menu command admin\n- \`/monitor\`       : Cek status website (khusus admin)`;
             replyText = appendFooter(`${header}\n\n${body}`, buildSystemStatsFooter());
             break;
           }

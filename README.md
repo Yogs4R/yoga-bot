@@ -29,6 +29,14 @@ Lihat tree di README.
 
 Salin .env.example ke .env dan isi variabel yang diperlukan.
 
+Variabel yang dipakai untuk modul admin dan monitor:
+
+- `ADMIN_WA_NUMBERS=6281234567890,6289876543210`
+- `ADMIN_TELE_IDS=123456789,987654321`
+- `MONITOR_URLS=https://example.com,https://example.com/health`
+
+Cron monitor server berjalan setiap hari pukul 06:00 mengikuti timezone server aplikasi.
+
 ## TODO
 
 - Implementasi WhatsApp Client

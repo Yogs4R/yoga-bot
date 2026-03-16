@@ -18,9 +18,16 @@ async function getSholat(kota) {
         if (!searchData.data || searchData.data.length === 0) {
             return `> *KOTA TIDAK DITEMUKAN* ❌\n\nKota "${kota}" tidak ditemukan dalam database jadwal sholat.\nPastikan penulisan nama kota benar.`;
         }
-        
-        const cityId = searchData.data[0].id;
-        const cityName = searchData.data[0].lokasi;
+
+        const searchKeyword = kota.toUpperCase();
+        const exactMatchCity = searchData.data.find((item) => (
+            item.lokasi === searchKeyword ||
+            item.lokasi === `KOTA ${searchKeyword}` ||
+            item.lokasi === `KAB. ${searchKeyword}`
+        ));
+        const selectedCity = exactMatchCity || searchData.data[0];
+        const cityId = selectedCity.id;
+        const cityName = selectedCity.lokasi;
         
         // Step 2: Dapatkan jadwal untuk hari ini
         const today = new Date();

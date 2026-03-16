@@ -17,12 +17,14 @@ const { connectToWhatsApp } = require('./lib/waClient');
 const WhatsAppHandler = require('./handlers/waHandler');
 const { setupTelegramBot } = require('./handlers/teleHandler');
 const telegramBot = require('./lib/telegramClient');
+const { startCronJobs } = require('./jobs/serverMonitor');
 
 console.log(`Starting ${settings.app.name} v${settings.app.version} in ${settings.app.env} mode`);
 
 // Variabel untuk menyimpan instance WhatsApp
 let waSocket = null;
 let waHandler = null;
+let monitorCronTask = null;
 
 // Fungsi untuk memulai WhatsApp bot
 async function startWhatsAppBot() {
@@ -82,8 +84,8 @@ async function main() {
     } else {
         console.warn('⚠️  TELEGRAM_BOT_TOKEN tidak ditemukan. Bot Telegram tidak akan berjalan.');
     }
-    
-    // TODO: Start scheduled jobs
+
+    monitorCronTask = startCronJobs(telegramBot, () => waSocket);
     
     console.log('Semua layanan berjalan!');
 }
@@ -94,6 +96,10 @@ main();
 // Handle graceful shutdown
 process.on('SIGINT', () => {
     console.log('\nMenerima SIGINT. Melakukan shutdown...');
+    if (monitorCronTask) {
+        monitorCronTask.stop();
+        monitorCronTask = null;
+    }
     stopWhatsAppBot();
     // Stop Telegram bot
     if (process.env.TELEGRAM_BOT_TOKEN) {
@@ -105,6 +111,10 @@ process.on('SIGINT', () => {
 
 process.on('SIGTERM', () => {
     console.log('\nMenerima SIGTERM. Melakukan shutdown...');
+    if (monitorCronTask) {
+        monitorCronTask.stop();
+        monitorCronTask = null;
+    }
     stopWhatsAppBot();
     // Stop Telegram bot
     if (process.env.TELEGRAM_BOT_TOKEN) {
