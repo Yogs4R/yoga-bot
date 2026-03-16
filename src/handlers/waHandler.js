@@ -296,6 +296,17 @@ class WhatsAppHandler {
             break;
           }
 
+          case '/stats': {
+            if (!isAdmin(userId, 'whatsapp')) {
+              replyText = '> *AKSES DITOLAK* ❌\n\nCommand ini khusus admin.';
+              break;
+            }
+
+            const statsReply = await handleAdminCommand('/stats', args, userId, 'whatsapp');
+            replyText = statsReply;
+            break;
+          }
+
           case '/start': {
             const startHeader = '> *SELAMAT DATANG DI YOGA BOT* 🤖';
             const startBody = `Halo! Saya adalah asisten virtual pribadi.\n\nGunakan /info untuk melihat daftar perintah lengkap.\n\nBot ini dapat membantu Anda dengan:\n• Manajemen keuangan (/saldo, /catat, dll)\n• Percakapan AI (langsung ketik pesan)\n• Dan berbagai fitur lainnya!`;

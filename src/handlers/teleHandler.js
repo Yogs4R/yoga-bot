@@ -243,6 +243,25 @@ function buildDeleteConfirmKeyboard(transactionId) {
     ]);
 }
 
+async function handleUtilityCommand(command, args, userId, platform = 'telegram') {
+    if (command === '/cuaca') {
+        const { handleWeatherCommand } = require('../services/weatherService');
+        return handleWeatherCommand(command, args, userId, platform);
+    }
+
+    if (command === '/sholat') {
+        const { handleReligionCommand } = require('../services/religionService');
+        return handleReligionCommand(command, args, userId, platform);
+    }
+
+    if (command === '/me') {
+        const { handleAboutMeCommand } = require('../services/aboutService');
+        return handleAboutMeCommand(command, args, userId, platform);
+    }
+
+    return 'Perintah tidak dikenali.';
+}
+
 function formatBodyBold(htmlText) {
     const lines = String(htmlText || '').split('\n');
     const firstContentLineIndex = lines.findIndex((line) => line.trim().length > 0);
@@ -381,17 +400,7 @@ async function processMenuCommand(ctx, command, userId) {
         case '/me': {
             const parts = ctx.message?.text?.trim()?.split(' ') || [command];
             const args = parts.slice(1);
-            let replyPayload;
-            if (command === '/cuaca') {
-                const { handleWeatherCommand } = require('../services/weatherService');
-                replyPayload = await handleWeatherCommand(command, args, userId, 'telegram');
-            } else if (command === '/sholat') {
-                const { handleReligionCommand } = require('../services/religionService');
-                replyPayload = await handleReligionCommand(command, args, userId, 'telegram');
-            } else if (command === '/me') {
-                const { handleAboutMeCommand } = require('../services/aboutService');
-                replyPayload = await handleAboutMeCommand(command, args, userId, 'telegram');
-            }
+            const replyPayload = await handleUtilityCommand(command, args, userId, 'telegram');
             await sendTelegramReply(ctx, replyPayload);
             return;
         }
@@ -469,17 +478,7 @@ function setupTelegramBot() {
                 case '/sholat':
                 case '/me': {
                     try {
-                        let replyText;
-                        if (command === '/cuaca') {
-                            const { handleWeatherCommand } = require('../services/weatherService');
-                            replyText = await handleWeatherCommand(command, args, userId, 'telegram');
-                        } else if (command === '/sholat') {
-                            const { handleReligionCommand } = require('../services/religionService');
-                            replyText = await handleReligionCommand(command, args, userId, 'telegram');
-                        } else if (command === '/me') {
-                            const { handleAboutMeCommand } = require('../services/aboutService');
-                            replyText = await handleAboutMeCommand(command, args, userId, 'telegram');
-                        }
+                        const replyText = await handleUtilityCommand(command, args, userId, 'telegram');
                         await sendTelegramReply(ctx, replyText);
                     } catch (error) {
                         console.error(`Error handling ${command} command in Telegram:`, error);
@@ -519,6 +518,24 @@ function setupTelegramBot() {
                         const replyText = formatMonitorMessage(results, null, 'telegram');
                         const linksKeyboard = buildMonitorLinksKeyboard();
                         await sendTelegramReply(ctx, replyText, linksKeyboard || {});
+                    } catch (error) {
+                        console.error(`Error handling ${command} command in Telegram:`, error);
+                        const errorHeader = '<b>ERROR SISTEM</b> ❌';
+                        const errorBody = `Terjadi kesalahan saat memproses perintah: ${escapeHtml(error.message)}`;
+                        await ctx.reply(`${errorHeader}\n\n${errorBody}`, { parse_mode: 'HTML' });
+                    }
+                    break;
+                }
+
+                case '/stats': {
+                    try {
+                        if (!isAdmin(userId, 'telegram')) {
+                            await ctx.reply('<b>AKSES DITOLAK</b> ❌\n\nCommand ini khusus admin.', { parse_mode: 'HTML' });
+                            break;
+                        }
+
+                        const replyText = await handleAdminCommand('/stats', args, userId, 'telegram');
+                        await sendTelegramReply(ctx, replyText);
                     } catch (error) {
                         console.error(`Error handling ${command} command in Telegram:`, error);
                         const errorHeader = '<b>ERROR SISTEM</b> ❌';
@@ -643,8 +660,7 @@ function setupTelegramBot() {
                     
                     if (mapped === '/me') {
                         await ctx.answerCbQuery();
-                        const { handleAboutMeCommand } = require('../services/aboutService');
-                        const result = await handleAboutMeCommand('/me', [], userId, 'telegram');
+                        const result = await handleUtilityCommand('/me', [], userId, 'telegram');
                         await sendTelegramReply(ctx, result);
                         return;
                     }
