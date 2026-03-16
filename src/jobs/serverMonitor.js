@@ -74,7 +74,7 @@ function startCronJobs(telegramBot, waSocket) {
         return;
       }
 
-      const alertMessage = formatMonitorMessage(results, URGENT_ALERT_HEADER);
+      const alertMessage = formatMonitorMessage(results, URGENT_ALERT_HEADER, 'whatsapp');
       const adminWaNumbers = parseCommaSeparatedList(process.env.ADMIN_WA_NUMBERS);
       const adminTeleIds = parseCommaSeparatedList(process.env.ADMIN_TELE_IDS);
       const currentWaSocket = resolveWaSocket(waSocket);

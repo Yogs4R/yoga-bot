@@ -1,5 +1,3 @@
-const { generateBoxTemplate } = require('../utils/formatter');
-
 const DEFAULT_MONITOR_TIMEOUT_MS = 10000;
 const MONITOR_BUTTON_LABELS = ['🌐 Fuenzer Apps', '🌐 Fuenzer Studio', '👨‍💻 Ridwan Portfolio'];
 
@@ -76,25 +74,49 @@ async function checkWebsites() {
   };
 }
 
-function formatMonitorMessage(results = [], headerOverride) {
+function getPlatformName(platform) {
+  const value = String(platform || '').toLowerCase().trim();
+  if (value === 'whatsapp' || value === 'telegram') {
+    return value;
+  }
+  return 'telegram';
+}
+
+function getWebsiteLabel(result, index) {
+  return MONITOR_BUTTON_LABELS[index] || getFallbackLabel(result?.url, index);
+}
+
+function formatMonitorMessage(results = [], headerOverride, platform) {
+  const platformName = getPlatformName(platform);
+  const isWhatsApp = platformName === 'whatsapp';
+
   if (!Array.isArray(results) || results.length === 0) {
-    const header = headerOverride || '*MONITOR BELUM DIKONFIGURASI* ⚠️';
-    const body = generateBoxTemplate([
+    const header = headerOverride
+      || (isWhatsApp ? '> *MONITOR BELUM DIKONFIGURASI* ⚠️' : '<b>MONITOR BELUM DIKONFIGURASI</b> ⚠️');
+    const body = [
       'MONITOR_URLS belum diatur.',
       'Isi environment dengan daftar URL dipisahkan koma.'
-    ]);
+    ].join('\n');
     return `${header}\n\n${body}`;
   }
 
   const hasError = results.some((result) => !result.ok);
-  const header = headerOverride || (hasError ? '*STATUS WEB MONITOR* ⚠️' : '*STATUS WEB MONITOR* ✅');
-  const body = generateBoxTemplate(
-    results.map((result) => `${result.url} -> ${result.label}`)
-  );
+  const header = headerOverride
+    || (isWhatsApp
+      ? (hasError ? '> *STATUS WEB MONITOR* ⚠️' : '> *STATUS WEB MONITOR* ✅')
+      : (hasError ? '<b>STATUS WEB MONITOR</b> ⚠️' : '<b>STATUS WEB MONITOR</b> ✅'));
+  const sectionTitle = isWhatsApp ? '📡 *FITUR MONITOR*' : '<b>FITUR MONITOR</b> 📡';
+  const bodyLines = results.map((result, index) => {
+    const websiteLabel = getWebsiteLabel(result, index);
+    return isWhatsApp
+      ? `- ${websiteLabel} : ${result.label}`
+      : `• ${websiteLabel} : ${result.label}`;
+  });
+  const body = [sectionTitle, ...bodyLines].join('\n');
   const downCount = results.filter((result) => !result.ok).length;
-  const footer = `\nTotal: ${results.length} | Down: ${downCount}`;
+  const footer = ['—'.repeat(19), `Total: ${results.length} | Down: ${downCount}`].join('\n');
 
-  return `${header}\n\n${body}${footer}`;
+  return `${header}\n\n${body}\n\n${footer}`;
 }
 
 module.exports = {

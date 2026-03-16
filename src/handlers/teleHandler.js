@@ -407,6 +407,16 @@ function setupTelegramBot() {
     // Event listener for text messages
     bot.on('text', async (ctx) => {
         const rawText = ctx.message?.text || '';
+        const isGroup = ctx.chat.type === 'group' || ctx.chat.type === 'supergroup';
+        const botUsername = process.env.TELEGRAM_BOT_USERNAME;
+        const isMentioned = botUsername && rawText.includes(`@${botUsername}`);
+
+        // Di dalam grup, bot HANYA merespon jika di-mention (tag).
+        // Abaikan semua pesan (termasuk command) jika tidak ada mention.
+        if (isGroup && !isMentioned) {
+            return;
+        }
+
         const text = sanitizeTelegramIncomingText(rawText);
         const userId = ctx.from.id.toString();
         
@@ -483,7 +493,7 @@ function setupTelegramBot() {
                 case '/admin': {
                     try {
                         if (!isAdmin(userId, 'telegram')) {
-                            await ctx.reply('Akses Ditolak: Command ini khusus Admin.');
+                            await ctx.reply('<b>AKSES DITOLAK</b> ❌\n\nCommand ini khusus admin.', { parse_mode: 'HTML' });
                             break;
                         }
 
@@ -501,12 +511,12 @@ function setupTelegramBot() {
                 case '/monitor': {
                     try {
                         if (!isAdmin(userId, 'telegram')) {
-                            await ctx.reply('Akses Ditolak: Command ini khusus Admin.');
+                            await ctx.reply('<b>AKSES DITOLAK</b> ❌\n\nCommand ini khusus admin.', { parse_mode: 'HTML' });
                             break;
                         }
 
                         const { results } = await checkWebsites();
-                        const replyText = formatMonitorMessage(results);
+                        const replyText = formatMonitorMessage(results, null, 'telegram');
                         const linksKeyboard = buildMonitorLinksKeyboard();
                         await sendTelegramReply(ctx, replyText, linksKeyboard || {});
                     } catch (error) {
@@ -651,12 +661,12 @@ function setupTelegramBot() {
                 await ctx.answerCbQuery();
 
                 if (!isAdmin(userId, 'telegram')) {
-                    await ctx.reply('Akses Ditolak: Command ini khusus Admin.');
+                    await ctx.reply('<b>AKSES DITOLAK</b> ❌\n\nCommand ini khusus admin.', { parse_mode: 'HTML' });
                     return;
                 }
 
                 const { results } = await checkWebsites();
-                const replyText = formatMonitorMessage(results);
+                const replyText = formatMonitorMessage(results, null, 'telegram');
                 const linksKeyboard = buildMonitorLinksKeyboard();
                 await sendTelegramReply(ctx, replyText, linksKeyboard || {});
                 return;

@@ -173,9 +173,10 @@ class WhatsAppHandler {
       const mentionedJids = contextInfo?.mentionedJid || [];
       const isBotMentioned = mentionedJids.some((jid) => normalizeWhatsAppId(jid) === botNumber);
       const isReplyToBot = normalizeWhatsAppId(contextInfo?.participant) === botNumber;
-      const isButtonInteraction = Boolean(msg.message?.buttonsResponseMessage || msg.message?.templateButtonReplyMessage);
 
-      if (isGroup && !isBotMentioned && !isReplyToBot && !isButtonInteraction) {
+      // Di dalam grup, bot WAJIB di-tag (mention biru) atau pesannya di-reply.
+      // Jika tidak memenuhi syarat tersebut, abaikan seluruh pesan.
+      if (isGroup && !isBotMentioned && !isReplyToBot) {
         return;
       }
 
@@ -198,12 +199,6 @@ class WhatsAppHandler {
         const parts = cleanText.split(' ');
         const command = parts[0].toLowerCase();
         const args = parts.slice(1);
-
-        console.log('\n🕵️‍♂️ --- DEBUG WA ADMIN ---');
-        console.log('1. UserId mentah dari WA :', userId);
-        console.log('2. Isi ENV Admin WA      :', process.env.ADMIN_WA_NUMBERS);
-        console.log('3. Hasil isAdmin()       :', isAdmin(userId, 'whatsapp'));
-        console.log('------------------------\n');
 
         switch (command) {
           case '/ping':
@@ -256,7 +251,7 @@ class WhatsAppHandler {
 
           case '/admin': {
             if (!isAdmin(userId, 'whatsapp')) {
-              replyText = 'Akses Ditolak: Command ini khusus Admin.';
+              replyText = '> *AKSES DITOLAK* ❌\n\nCommand ini khusus admin.';
               break;
             }
 
@@ -268,12 +263,12 @@ class WhatsAppHandler {
 
           case '/monitor': {
             if (!isAdmin(userId, 'whatsapp')) {
-              replyText = 'Akses Ditolak: Command ini khusus Admin.';
+              replyText = '> *AKSES DITOLAK* ❌\n\nCommand ini khusus admin.';
               break;
             }
 
             const { results } = await checkWebsites();
-            const monitorReply = formatMonitorMessage(results);
+            const monitorReply = formatMonitorMessage(results, null, 'whatsapp');
             replyText = monitorReply;
             break;
           }
