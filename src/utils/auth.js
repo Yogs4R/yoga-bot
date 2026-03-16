@@ -1,19 +1,33 @@
+function stripWrappingQuotes(value) {
+  const text = String(value || '').trim();
+  if (!text) return '';
+
+  const hasDoubleQuotes = text.startsWith('"') && text.endsWith('"');
+  const hasSingleQuotes = text.startsWith("'") && text.endsWith("'");
+
+  if (hasDoubleQuotes || hasSingleQuotes) {
+    return text.slice(1, -1).trim();
+  }
+
+  return text;
+}
+
 function parseCommaSeparatedList(value) {
-  return String(value || '')
-    .split(',')
-    .map((item) => item.trim())
+  return stripWrappingQuotes(value)
+    .split(/[\s,;|]+/)
+    .map((item) => stripWrappingQuotes(item))
     .filter(Boolean);
 }
 
 function normalizeWhatsAppUserId(userId) {
-  return String(userId || '')
+  return stripWrappingQuotes(userId)
     .split('@')[0]
     .split(':')[0]
     .replace(/[^\d]/g, '');
 }
 
 function normalizeTelegramUserId(userId) {
-  return String(userId || '').trim();
+  return stripWrappingQuotes(userId).replace(/[^\d-]/g, '');
 }
 
 function isAdmin(userId, platform) {
@@ -21,13 +35,14 @@ function isAdmin(userId, platform) {
 
   if (platformName === 'whatsapp') {
     const adminNumbers = parseCommaSeparatedList(process.env.ADMIN_WA_NUMBERS)
-      .map((adminNumber) => adminNumber.replace(/[^\d]/g, ''));
+      .map((adminNumber) => normalizeWhatsAppUserId(adminNumber));
     const normalizedUserId = normalizeWhatsAppUserId(userId);
     return adminNumbers.includes(normalizedUserId);
   }
 
   if (platformName === 'telegram') {
-    const adminIds = parseCommaSeparatedList(process.env.ADMIN_TELE_IDS);
+    const adminIds = parseCommaSeparatedList(process.env.ADMIN_TELE_IDS)
+      .map((adminId) => normalizeTelegramUserId(adminId));
     const normalizedUserId = normalizeTelegramUserId(userId);
     return adminIds.includes(normalizedUserId);
   }

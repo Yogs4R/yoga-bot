@@ -28,10 +28,26 @@ function escapeRegex(value) {
     return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+function stripWrappingQuotes(value) {
+    const text = String(value || '').trim();
+    if (!text) {
+        return '';
+    }
+
+    const hasDoubleQuotes = text.startsWith('"') && text.endsWith('"');
+    const hasSingleQuotes = text.startsWith("'") && text.endsWith("'");
+
+    if (hasDoubleQuotes || hasSingleQuotes) {
+        return text.slice(1, -1).trim();
+    }
+
+    return text;
+}
+
 function getTelegramBotUsername() {
     const fromBotInfo = bot.botInfo?.username;
     const fromEnv = process.env.TELEGRAM_BOT_USERNAME;
-    const username = String(fromBotInfo || fromEnv || '')
+    const username = stripWrappingQuotes(fromBotInfo || fromEnv || '')
         .replace(/^@+/, '')
         .replace(/\s+/g, '')
         .trim();
@@ -50,7 +66,7 @@ function sanitizeTelegramIncomingText(rawText) {
     const escapedBotUsername = escapeRegex(botUsername);
 
     text = text.replace(new RegExp(`^\/(\\w+)@${escapedBotUsername}(?=\\s|$)`, 'i'), '/$1');
-    text = text.replace(new RegExp(`(^|\\s)@${escapedBotUsername}\\b`, 'gi'), '$1');
+    text = text.replace(new RegExp(`(^|\\s)@${escapedBotUsername}(?=\\s|$|[.,!?;:])`, 'gi'), '$1');
 
     return text.replace(/\s{2,}/g, ' ').trim();
 }
@@ -338,7 +354,7 @@ async function processMenuCommand(ctx, command, userId) {
         }
         case '/info': {
             const header = '<b>INFORMASI YOGA BOT</b> 🤖';
-            const body = `Saya adalah asisten virtual pribadi milik <b>Ridwan Yoga Suryantara</b>.\n\n<b>FITUR KEUANGAN</b> 💰\n• /saldo : Cek saldo keuangan\n• /catat : Catat pengeluaran\n• /pemasukan : Catat pemasukan\n• /laporan_chart : Grafik laporan keuangan\n• /riwayat : Riwayat transaksi (paging 5 data)\n• /hapus : Hapus transaksi (dengan konfirmasi)\n• /edit : Edit transaksi\n\n<b>FITUR SISTEM</b> ⚙️\n• /ping : Cek status bot\n• /info : Menampilkan pesan ini\n• /start : Memulai bot\n\n<b>FITUR AI</b> 🧠\nKirim pesan biasa (tanpa awalan /) untuk ngobrol, tanya coding, atau diskusi teknologi.\n\n<b>FITUR UTILITAS</b> 🛠️\n• /cuaca : Info cuaca hari ini\n• /sholat : Jadwal sholat hari ini\n• /me : Tentang pembuat bot\n\n<b>FITUR ADMIN</b> 🛡️\n• /admin : Menu command admin\n• /monitor : Cek status website (khusus admin)`;
+            const body = `Saya adalah asisten virtual pribadi milik <b>Ridwan Yoga Suryantara</b>.\n\n<b>FITUR KEUANGAN</b> 💰\n• /saldo : Cek saldo keuangan\n• /catat : Catat pengeluaran\n• /pemasukan : Catat pemasukan\n• /laporan_chart : Grafik laporan keuangan\n• /riwayat : Riwayat transaksi (paging 5 data)\n• /hapus : Hapus transaksi (dengan konfirmasi)\n• /edit : Edit transaksi\n\n<b>FITUR SISTEM</b> ⚙️\n• /ping : Cek status bot\n• /info : Menampilkan pesan ini\n• /start : Memulai bot\n\n<b>FITUR AI</b> 🧠\nKirim pesan biasa (tanpa awalan /) untuk ngobrol, tanya coding, atau diskusi teknologi.\n\n<b>FITUR UTILITAS</b> 🛠️\n• /cuaca : Info cuaca hari ini\n• /sholat : Jadwal sholat hari ini\n• /me : Tentang pembuat bot\n\n<b>FITUR ADMIN</b> 🛡️\n• /admin : Menu command admin`;
             const message = `${header}\n\n${body}\n\n${buildSystemStatsFooter()}`;
             await ctx.reply(message, {
                 parse_mode: 'HTML',
