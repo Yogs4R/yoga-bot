@@ -3,7 +3,7 @@ const { askAiDetailed } = require('../lib/aiClient');
 const handleFinanceCommand = require('../commands/finance/index');
 const { handleAdminCommand } = require('../commands/admin/index');
 const { isAdmin } = require('../utils/auth');
-const { checkWebsites, formatMonitorMessage, getMonitorWebsiteLinks } = require('../services/monitorService');
+const { checkWebsites, formatMonitorMessage } = require('../services/monitorService');
 
 function formatDuration(seconds) {
   const totalSeconds = Math.max(0, Math.floor(seconds || 0));
@@ -199,6 +199,12 @@ class WhatsAppHandler {
         const command = parts[0].toLowerCase();
         const args = parts.slice(1);
 
+        console.log('\n🕵️‍♂️ --- DEBUG WA ADMIN ---');
+        console.log('1. UserId mentah dari WA :', userId);
+        console.log('2. Isi ENV Admin WA      :', process.env.ADMIN_WA_NUMBERS);
+        console.log('3. Hasil isAdmin()       :', isAdmin(userId, 'whatsapp'));
+        console.log('------------------------\n');
+
         switch (command) {
           case '/ping':
             replyText = appendFooter('Pong! 🏓', buildSystemStatsFooter());
@@ -255,29 +261,7 @@ class WhatsAppHandler {
             }
 
             const adminReply = await handleAdminCommand('/admin', args, userId, 'whatsapp');
-
-            try {
-              await this.sock.sendMessage(
-                msg.key.remoteJid,
-                {
-                  text: formatWhatsAppReply(adminReply),
-                  footer: 'Admin Menu',
-                  buttons: [
-                    {
-                      buttonId: '/monitor',
-                      buttonText: { displayText: 'Monitor' },
-                      type: 1
-                    }
-                  ],
-                  headerType: 1
-                },
-                { quoted: msg }
-              );
-              return;
-            } catch (error) {
-              console.error('Error sending WhatsApp admin button message:', error);
-              replyText = adminReply;
-            }
+            replyText = adminReply;
 
             break;
           }
@@ -290,35 +274,6 @@ class WhatsAppHandler {
 
             const { results } = await checkWebsites();
             const monitorReply = formatMonitorMessage(results);
-            const monitorLinks = getMonitorWebsiteLinks();
-            const templateButtons = monitorLinks
-              .filter((item) => item.url)
-              .slice(0, 3)
-              .map((item, index) => ({
-                index: index + 1,
-                urlButton: {
-                  displayText: item.label,
-                  url: item.url
-                }
-              }));
-
-            if (templateButtons.length > 0) {
-              try {
-                await this.sock.sendMessage(
-                  msg.key.remoteJid,
-                  {
-                    text: formatWhatsAppReply(monitorReply),
-                    footer: 'Buka website monitor',
-                    templateButtons
-                  },
-                  { quoted: msg }
-                );
-                return;
-              } catch (error) {
-                console.error('Error sending WhatsApp monitor URL button message:', error);
-              }
-            }
-
             replyText = monitorReply;
             break;
           }

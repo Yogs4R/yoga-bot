@@ -1,7 +1,7 @@
 const { generateBoxTemplate } = require('../utils/formatter');
 
 const DEFAULT_MONITOR_TIMEOUT_MS = 10000;
-const MONITOR_BUTTON_LABELS = ['Fuenzer Apps', 'Fuenzer Studio', 'Ridwan Portfolio'];
+const MONITOR_BUTTON_LABELS = ['🌐 Fuenzer Apps', '🌐 Fuenzer Studio', '👨‍💻 Ridwan Portfolio'];
 
 function parseMonitorUrls() {
   return String(process.env.MONITOR_URLS || '')
@@ -78,7 +78,7 @@ async function checkWebsites() {
 
 function formatMonitorMessage(results = [], headerOverride) {
   if (!Array.isArray(results) || results.length === 0) {
-    const header = headerOverride || '> *MONITOR BELUM DIKONFIGURASI* ⚠️';
+    const header = headerOverride || '*MONITOR BELUM DIKONFIGURASI* ⚠️';
     const body = generateBoxTemplate([
       'MONITOR_URLS belum diatur.',
       'Isi environment dengan daftar URL dipisahkan koma.'
@@ -87,7 +87,7 @@ function formatMonitorMessage(results = [], headerOverride) {
   }
 
   const hasError = results.some((result) => !result.ok);
-  const header = headerOverride || (hasError ? '> *STATUS WEB MONITOR* ⚠️' : '> *STATUS WEB MONITOR* ✅');
+  const header = headerOverride || (hasError ? '*STATUS WEB MONITOR* ⚠️' : '*STATUS WEB MONITOR* ✅');
   const body = generateBoxTemplate(
     results.map((result) => `${result.url} -> ${result.label}`)
   );

@@ -1,5 +1,4 @@
 const { checkWebsites, formatMonitorMessage } = require('../../services/monitorService');
-const { generateBoxTemplate } = require('../../utils/formatter');
 
 async function handleAdminCommand(command, args, userId, platform) {
   void args;
@@ -10,11 +9,12 @@ async function handleAdminCommand(command, args, userId, platform) {
 
   switch (cleanCommand) {
     case '/admin': {
-      const header = '> *MENU ADMIN* 🛡️';
-      const body = generateBoxTemplate([
-        '/admin - Daftar command admin',
-        '/monitor - Cek status web'
-      ]);
+      const header = '*MENU ADMIN* 🛡️';
+      const body = [
+        'Daftar command admin:',
+        '• /admin : Tampilkan menu admin',
+        '• /monitor : Cek status website'
+      ].join('\n');
       return `${header}\n\n${body}`;
     }
 
@@ -24,11 +24,11 @@ async function handleAdminCommand(command, args, userId, platform) {
     }
 
     default: {
-      const header = '> *COMMAND ADMIN TIDAK DIKENAL* ❌';
-      const body = generateBoxTemplate([
+      const header = '*COMMAND ADMIN TIDAK DIKENAL* ❌';
+      const body = [
         `Perintah admin "${cleanCommand}" tidak tersedia.`,
         'Gunakan /admin untuk melihat daftar command admin.'
-      ]);
+      ].join('\n');
       return `${header}\n\n${body}`;
     }
   }
