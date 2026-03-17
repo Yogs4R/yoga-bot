@@ -1,9 +1,13 @@
 const os = require('os');
+const fs = require('fs/promises');
+const path = require('path');
 const { askAiDetailed } = require('../lib/aiClient');
 const handleFinanceCommand = require('../commands/finance/index');
 const { handleAdminCommand } = require('../commands/admin/index');
 const { isAdmin } = require('../utils/auth');
 const { checkWebsites, formatMonitorMessage } = require('../services/monitorService');
+const { handleImgCommand } = require('../commands/converter/index');
+const { MAX_FILE_SIZE } = require('../services/converterService');
 
 function formatDuration(seconds) {
   const totalSeconds = Math.max(0, Math.floor(seconds || 0));
@@ -307,6 +311,62 @@ class WhatsAppHandler {
             break;
           }
 
+          case '/img': {
+            let inputPath = null;
+            let outputPath = null;
+
+            try {
+              const imageMsg = msg.message?.imageMessage;
+              if (!imageMsg) {
+                replyText = '> *❌ ERROR CONVERTER*\n\nBalas pesan dengan gambar untuk menggunakan converter.';
+                break;
+              }
+
+              const fileSizeBytes = imageMsg.fileLength || 0;
+              if (fileSizeBytes > MAX_FILE_SIZE) {
+                replyText = '> *❌ Gagal*\n\nUkuran gambar maksimal 5MB!';
+                break;
+              }
+
+              const timestamp = Date.now();
+              const tempDir = path.join(process.cwd(), 'temp');
+              inputPath = path.join(tempDir, `input_${timestamp}.jpg`);
+              outputPath = path.join(tempDir, `output_${timestamp}.jpg`);
+
+              const mediaBuffer = await this.sock.downloadMediaMessage(msg.message?.imageMessage || msg.message?.videoMessage);
+              await fs.writeFile(inputPath, mediaBuffer);
+
+              const action = String(args[0] || '').toLowerCase().trim();
+              if (action === 'to' && args[1]) {
+                const format = String(args[1]).toLowerCase();
+                const formatMap = { 'jpg': '.jpg', 'jpeg': '.jpg', 'png': '.png', 'webp': '.webp' };
+                const newExt = formatMap[format] || '.jpg';
+                outputPath = path.join(tempDir, `output_${timestamp}${newExt}`);
+              }
+
+              const resultMsg = await handleImgCommand(args, inputPath, outputPath, 'whatsapp');
+              replyText = resultMsg;
+
+              const outputExists = await fs.stat(outputPath).catch(() => null);
+              if (outputExists && replyText.includes('BERHASIL')) {
+                const fileBuffer = await fs.readFile(outputPath);
+                const mediaType = outputPath.endsWith('.png') ? 'image/png' : outputPath.endsWith('.webp') ? 'image/webp' : 'image/jpeg';
+                await this.sock.sendMessage(msg.key.remoteJid, {
+                  image: fileBuffer,
+                  mimetype: mediaType,
+                  caption: '✅ Gambar siap!'
+                });
+              }
+            } catch (error) {
+              console.error('Error in /img handler for WhatsApp:', error);
+              replyText = `> *❌ ERROR CONVERTER*\n\nGagal memproses gambar: ${error.message}`;
+            } finally {
+              if (inputPath) await fs.unlink(inputPath).catch(() => {});
+              if (outputPath) await fs.unlink(outputPath).catch(() => {});
+            }
+            break;
+          }
+
           case '/start': {
             const startHeader = '> *SELAMAT DATANG DI YOGA BOT* 🤖';
             const startBody = `Halo! Saya adalah asisten virtual pribadi.\n\nGunakan /info untuk melihat daftar perintah lengkap.\n\nBot ini dapat membantu Anda dengan:\n• Manajemen keuangan (/saldo, /catat, dll)\n• Percakapan AI (langsung ketik pesan)\n• Dan berbagai fitur lainnya!`;
@@ -316,7 +376,7 @@ class WhatsAppHandler {
 
           case '/info': {
             const header = '> *INFORMASI YOGA BOT* 🤖';
-            const body = `Saya adalah asisten virtual pribadi milik Ridwan Yoga Suryantara.\n\n📋 *FITUR KEUANGAN* 💰\n- \`/saldo\`         : Cek saldo keuangan\n- \`/catat\`         : Catat pengeluaran\n- \`/pemasukan\`     : Catat pemasukan\n- \`/laporan_chart\` : Grafik laporan keuangan\n- \`/riwayat\`       : Riwayat transaksi terakhir\n- \`/hapus\`         : Hapus transaksi\n- \`/edit\`          : Edit transaksi\n\n📋 *FITUR SISTEM* ⚙️\n- \`/ping\`          : Cek status bot\n- \`/info\`          : Menampilkan pesan ini\n- \`/start\`         : Memulai bot\n\n💡 *FITUR AI* 🧠\nKirimkan pesan biasa (tanpa awalan '/') untuk ngobrol,\nbertanya seputar coding, teknologi, atau sekadar bertukar pikiran!\n\n🛠️ *FITUR UTILITAS*\n- \`/cuaca\`         : Info cuaca hari ini\n- \`/sholat\`        : Jadwal sholat hari ini\n- \`/me\`            : Tentang pembuat bot\n\n🛡️ *FITUR ADMIN*\n- \`/admin\`         : Menu command admin`;
+            const body = `Saya adalah asisten virtual pribadi milik Ridwan Yoga Suryantara.\n\n📋 *FITUR KEUANGAN* 💰\n- \`/saldo\`         : Cek saldo keuangan\n- \`/catat\`         : Catat pengeluaran\n- \`/pemasukan\`     : Catat pemasukan\n- \`/laporan_chart\` : Grafik laporan keuangan\n- \`/riwayat\`       : Riwayat transaksi terakhir\n- \`/hapus\`         : Hapus transaksi\n- \`/edit\`          : Edit transaksi\n\n📋 *FITUR SISTEM* ⚙️\n- \`/ping\`          : Cek status bot\n- \`/info\`          : Menampilkan pesan ini\n- \`/start\`         : Memulai bot\n\n💡 *FITUR AI* 🧠\nKirimkan pesan biasa (tanpa awalan '/') untuk ngobrol,\nbertanya seputar coding, teknologi, atau sekadar bertukar pikiran!\n\n🛠️ *FITUR UTILITAS*\n- \`/cuaca\`         : Info cuaca hari ini\n- \`/sholat\`        : Jadwal sholat hari ini\n- \`/me\`            : Tentang pembuat bot\n\n�️ *FITUR CONVERTER*\n- \`/img compress\`    : Kompres ukuran gambar\n- \`/img resize WxH\`  : Ubah ukuran (contoh: 500x500)\n- \`/img to format\`   : Konversi format (jpg, png, webp)\n- \`/img rotate deg\`  : Putar gambar (90, 180, 270°)\n_(Balas pesan dengan foto lalu ketik command. Max 5MB)_\n\n�🛡️ *FITUR ADMIN*\n- \`/admin\`         : Menu command admin`;
             replyText = appendFooter(`${header}\n\n${body}`, buildSystemStatsFooter());
             break;
           }

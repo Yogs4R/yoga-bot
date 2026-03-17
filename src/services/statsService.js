@@ -5,7 +5,7 @@ async function getPlatformStats() {
     try {
         const { data, error } = await supabase
             .from('platform_stats')
-            .select('platform, stats, updated_at')
+            .select('platform, stats')
             .order('platform', { ascending: true });
 
         if (error) {
@@ -47,6 +47,98 @@ function formatStatsKey(key) {
         .join(' ');
 }
 
+function formatAcronymWord(word) {
+    const value = String(word || '').trim();
+    if (!value) return '-';
+
+    const acronymMap = {
+        sql: 'SQL',
+        api: 'API',
+        ui: 'UI',
+        ux: 'UX',
+        html: 'HTML',
+        css: 'CSS',
+        js: 'JS',
+        ts: 'TS'
+    };
+
+    const mapped = acronymMap[value.toLowerCase()];
+    if (mapped) return mapped;
+
+    return formatStatsKey(value);
+}
+
+function formatStarsValue(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return '(Tidak ada data)';
+    }
+
+    const stars = Object.entries(value)
+        .map(([skill, count]) => {
+            const skillLabel = formatAcronymWord(skill);
+            const starCount = Number(count);
+
+            if (!Number.isFinite(starCount)) {
+                return null;
+            }
+
+            return `${skillLabel} ${starCount} Stars`;
+        })
+        .filter(Boolean);
+
+    return stars.length > 0 ? stars.join(', ') : '(Tidak ada data)';
+}
+
+function formatReadableDateTime(value) {
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return String(value);
+    }
+
+    const localized = new Intl.DateTimeFormat('id-ID', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+        timeZone: 'Asia/Jakarta'
+    }).format(date);
+
+    return `${localized} WIB`;
+}
+
+function formatStatsValue(key, value) {
+    if (value === null || value === undefined) {
+        return '-';
+    }
+
+    if (key === 'stars') {
+        return formatStarsValue(value);
+    }
+
+    if (key === 'last_fetched') {
+        return formatReadableDateTime(value);
+    }
+
+    if (Array.isArray(value)) {
+        return value.length > 0 ? value.join(', ') : '(Tidak ada data)';
+    }
+
+    if (typeof value === 'object') {
+        const nestedParts = Object.entries(value).map(([nestedKey, nestedValue]) => {
+            const nestedLabel = formatStatsKey(nestedKey);
+            return `${nestedLabel}: ${nestedValue}`;
+        });
+
+        return nestedParts.length > 0 ? nestedParts.join(', ') : '(Tidak ada data)';
+    }
+
+    return String(value);
+}
+
 function formatStatsMessage(statsData = [], platform = 'telegram') {
     const isWhatsApp = String(platform || '').toLowerCase() === 'whatsapp';
 
@@ -72,20 +164,22 @@ function formatStatsMessage(statsData = [], platform = 'telegram') {
         if (typeof statsObj === 'object' && Object.keys(statsObj).length > 0) {
             for (const [key, value] of Object.entries(statsObj)) {
                 const formattedKey = formatStatsKey(key);
+                const formattedValue = formatStatsValue(key, value);
                 const bullet = isWhatsApp ? '- ' : '• ';
-                statsLines.push(`${bullet}${formattedKey}: ${value}`);
+
+                if (key === 'stars') {
+                    statsLines.push(`${bullet}${formattedValue}`);
+                    continue;
+                }
+
+                statsLines.push(`${bullet}${formattedKey}: ${formattedValue}`);
             }
         } else {
             const noBullet = isWhatsApp ? '- ' : '• ';
             statsLines.push(`${noBullet}(Tidak ada data)`);
         }
 
-        const lastUpdated = item.updated_at ? new Date(item.updated_at).toLocaleString('id-ID') : '(Tidak diketahui)';
-        const updateInfo = isWhatsApp
-            ? `_Terakhir diupdate: ${lastUpdated}_`
-            : `Terakhir diupdate: ${lastUpdated}`;
-
-        sections.push([platformHeader, ...statsLines, '', updateInfo].join('\n'));
+        sections.push([platformHeader, ...statsLines].join('\n'));
     }
 
     const body = sections.join('\n\n');

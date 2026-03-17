@@ -1,5 +1,7 @@
 // Telegram message/event handler
 const os = require('os');
+const fs = require('fs/promises');
+const path = require('path');
 const bot = require('../lib/telegramClient');
 const { Markup } = require('telegraf');
 const { askAiDetailed } = require('../lib/aiClient');
@@ -8,6 +10,8 @@ const { handleAdminCommand } = require('../commands/admin/index');
 const { getHistoryPage } = require('../services/financeService');
 const { isAdmin } = require('../utils/auth');
 const { checkWebsites, formatMonitorMessage, getMonitorWebsiteLinks } = require('../services/monitorService');
+const { handleImgCommand } = require('../commands/converter/index');
+const { MAX_FILE_SIZE } = require('../services/converterService');
 
 const HISTORY_PAGE_SIZE = 5;
 
@@ -191,7 +195,8 @@ function buildMainMenuKeyboard() {
         [Markup.button.callback('💰 Cek Saldo', 'cmd:saldo'), Markup.button.callback('📜 Riwayat', 'cmd:riwayat')],
         [Markup.button.callback('⚙️ Info', 'cmd:info'), Markup.button.callback('📊 Laporan Keuangan', 'cmd:laporan')],
         [Markup.button.callback('🌤️ Cuaca', 'cmd:cuaca'), Markup.button.callback('🕌 Sholat', 'cmd:sholat')],
-        [Markup.button.callback('👨‍💻 About Me', 'cmd:me'), Markup.button.callback('🏓 Ping', 'cmd:ping')]
+        [Markup.button.callback('👨‍💻 About Me', 'cmd:me'), Markup.button.callback('🏓 Ping', 'cmd:ping')],
+        [Markup.button.callback('🖼️ Image Tools', 'cmd:img_info')]
     ]);
 }
 
@@ -260,6 +265,81 @@ async function handleUtilityCommand(command, args, userId, platform = 'telegram'
     }
 
     return 'Perintah tidak dikenali.';
+}
+
+async function sendAboutMeMessage(ctx, userId, args = []) {
+    const replyText = await handleUtilityCommand('/me', args, userId, 'telegram');
+    const linksKeyboard = buildMonitorLinksKeyboard();
+    await sendTelegramReply(ctx, replyText, linksKeyboard || {});
+}
+
+async function handleImageConverter(ctx, args) {
+    let inputPath = null;
+    let outputPath = null;
+
+    try {
+        const message = ctx.message;
+        const replyTo = message?.reply_to_message;
+
+        if (!replyTo || !replyTo.photo) {
+            await ctx.reply('<b>❌ ERROR CONVERTER</b>\n\nBalas pesan dengan gambar untuk menggunakan converter.', { parse_mode: 'HTML' });
+            return;
+        }
+
+        const photoSize = replyTo.photo[replyTo.photo.length - 1];
+        const fileId = photoSize.file_id;
+        const fileSizeBytes = photoSize.file_size || 0;
+
+        if (fileSizeBytes > MAX_FILE_SIZE) {
+            await ctx.reply('<b>❌ Gagal</b>\n\nUkuran gambar maksimal 5MB!', { parse_mode: 'HTML' });
+            return;
+        }
+
+        const timestamp = Date.now();
+        const tempDir = path.join(process.cwd(), 'temp');
+        inputPath = path.join(tempDir, `input_${timestamp}.jpg`);
+        outputPath = path.join(tempDir, `output_${timestamp}.jpg`);
+
+        const file = await ctx.telegram.getFile(fileId);
+        const fileLink = `https://api.telegram.org/file/bot${bot.token}/${file.file_path}`;
+
+        const https = require('https');
+        const fileData = await new Promise((resolve, reject) => {
+            https.get(fileLink, (response) => {
+                let data = Buffer.alloc(0);
+                response.on('data', (chunk) => {
+                    data = Buffer.concat([data, chunk]);
+                });
+                response.on('end', () => resolve(data));
+                response.on('error', reject);
+            }).on('error', reject);
+        });
+
+        await fs.writeFile(inputPath, fileData);
+
+        const action = String(args[0] || '').toLowerCase().trim();
+        if (action === 'to' && args[1]) {
+            const format = String(args[1]).toLowerCase();
+            const formatMap = { 'jpg': '.jpg', 'jpeg': '.jpg', 'png': '.png', 'webp': '.webp' };
+            const newExt = formatMap[format] || '.jpg';
+            outputPath = path.join(tempDir, `output_${timestamp}${newExt}`);
+        }
+
+        const resultMsg = await handleImgCommand(args, inputPath, outputPath, 'telegram');
+        await ctx.reply(resultMsg, { parse_mode: 'HTML' });
+
+        const outputExists = await fs.stat(outputPath).catch(() => null);
+        if (outputExists) {
+            const fileBuffer = await fs.readFile(outputPath);
+            await ctx.replyWithPhoto({ source: fileBuffer }, { caption: '✅ Gambar siap!', parse_mode: 'HTML' });
+        }
+    } catch (error) {
+        console.error('Error in handleImageConverter:', error);
+        await ctx.reply(`<b>❌ ERROR CONVERTER</b>\n\nGagal memproses gambar: ${escapeHtml(error.message)}`, { parse_mode: 'HTML' });
+    } finally {
+        if (inputPath) await fs.unlink(inputPath).catch(() => {});
+        if (outputPath) await fs.unlink(outputPath).catch(() => {});
+    }
 }
 
 function formatBodyBold(htmlText) {
@@ -373,7 +453,7 @@ async function processMenuCommand(ctx, command, userId) {
         }
         case '/info': {
             const header = '<b>INFORMASI YOGA BOT</b> 🤖';
-            const body = `Saya adalah asisten virtual pribadi milik <b>Ridwan Yoga Suryantara</b>.\n\n<b>FITUR KEUANGAN</b> 💰\n• /saldo : Cek saldo keuangan\n• /catat : Catat pengeluaran\n• /pemasukan : Catat pemasukan\n• /laporan_chart : Grafik laporan keuangan\n• /riwayat : Riwayat transaksi (paging 5 data)\n• /hapus : Hapus transaksi (dengan konfirmasi)\n• /edit : Edit transaksi\n\n<b>FITUR SISTEM</b> ⚙️\n• /ping : Cek status bot\n• /info : Menampilkan pesan ini\n• /start : Memulai bot\n\n<b>FITUR AI</b> 🧠\nKirim pesan biasa (tanpa awalan /) untuk ngobrol, tanya coding, atau diskusi teknologi.\n\n<b>FITUR UTILITAS</b> 🛠️\n• /cuaca : Info cuaca hari ini\n• /sholat : Jadwal sholat hari ini\n• /me : Tentang pembuat bot\n\n<b>FITUR ADMIN</b> 🛡️\n• /admin : Menu command admin`;
+            const body = `Saya adalah asisten virtual pribadi milik <b>Ridwan Yoga Suryantara</b>.\n\n<b>FITUR KEUANGAN</b> 💰\n• /saldo : Cek saldo keuangan\n• /catat : Catat pengeluaran\n• /pemasukan : Catat pemasukan\n• /laporan_chart : Grafik laporan keuangan\n• /riwayat : Riwayat transaksi (paging 5 data)\n• /hapus : Hapus transaksi (dengan konfirmasi)\n• /edit : Edit transaksi\n\n<b>FITUR SISTEM</b> ⚙️\n• /ping : Cek status bot\n• /info : Menampilkan pesan ini\n• /start : Memulai bot\n\n<b>FITUR AI</b> 🧠\nKirim pesan biasa (tanpa awalan /) untuk ngobrol, tanya coding, atau diskusi teknologi.\n\n<b>FITUR UTILITAS</b> 🛠️\n• /cuaca : Info cuaca hari ini\n• /sholat : Jadwal sholat hari ini\n• /me : Tentang pembuat bot\n\n<b>FITUR CONVERTER</b> 🖼️\n• /img compress : Kompres gambar\n• /img resize 500x500 : Ubah ukuran\n• /img to png : Konversi format (jpg, png, webp)\n• /img rotate 90 : Putar gambar\n(Balas pesan dengan gambar lalu ketik command)\n\n<b>FITUR ADMIN</b> 🛡️\n• /admin : Menu command admin`;
             const message = `${header}\n\n${body}\n\n${buildSystemStatsFooter()}`;
             await ctx.reply(message, {
                 parse_mode: 'HTML',
@@ -400,8 +480,7 @@ async function processMenuCommand(ctx, command, userId) {
         case '/me': {
             const parts = ctx.message?.text?.trim()?.split(' ') || [command];
             const args = parts.slice(1);
-            const replyPayload = await handleUtilityCommand(command, args, userId, 'telegram');
-            await sendTelegramReply(ctx, replyPayload);
+            await sendAboutMeMessage(ctx, userId, args);
             return;
         }
         case '/riwayat':
@@ -478,8 +557,7 @@ function setupTelegramBot() {
                 case '/sholat':
                 case '/me': {
                     try {
-                        const replyText = await handleUtilityCommand(command, args, userId, 'telegram');
-                        await sendTelegramReply(ctx, replyText);
+                        await sendAboutMeMessage(ctx, userId, args);
                     } catch (error) {
                         console.error(`Error handling ${command} command in Telegram:`, error);
                         const errorHeader = '<b>ERROR SISTEM</b> ❌';
@@ -540,6 +618,18 @@ function setupTelegramBot() {
                         console.error(`Error handling ${command} command in Telegram:`, error);
                         const errorHeader = '<b>ERROR SISTEM</b> ❌';
                         const errorBody = `Terjadi kesalahan saat memproses perintah: ${escapeHtml(error.message)}`;
+                        await ctx.reply(`${errorHeader}\n\n${errorBody}`, { parse_mode: 'HTML' });
+                    }
+                    break;
+                }
+
+                case '/img': {
+                    try {
+                        await handleImageConverter(ctx, args);
+                    } catch (error) {
+                        console.error('Error handling /img command in Telegram:', error);
+                        const errorHeader = '<b>ERROR CONVERTER</b> ❌';
+                        const errorBody = `Gagal memproses gambar: ${escapeHtml(error.message)}`;
                         await ctx.reply(`${errorHeader}\n\n${errorBody}`, { parse_mode: 'HTML' });
                     }
                     break;
@@ -617,6 +707,13 @@ function setupTelegramBot() {
         const userId = ctx.from.id.toString();
 
         try {
+            if (data === 'cmd:img_info') {
+                await ctx.answerCbQuery();
+                const message = `<b>IMAGE TOOLS</b> 🖼️\n\nKonversi dan edit gambar dengan mudah:\n\n<b>CARA PENGGUNAAN:</b>\n1. Balas pesan dengan gambar/foto\n2. Ketik salah satu command:\n\n<code>/img compress</code>\nKompres ukuran file hingga 60% lebih kecil\n\n<code>/img resize 500x500</code>\nUbah ukuran jadi 500x500px\n\n<code>/img to png</code>\nKonversi ke format (jpg, png, webp)\n\n<code>/img rotate 90</code>\nPutar gambar (90, 180, 270°)\n\n<b>BATASAN:</b> Maks 5MB\n\nTips: Gunakan 'compress' untuk file besar!`;
+                await ctx.reply(message, { parse_mode: 'HTML' });
+                return;
+            }
+
             if (data.startsWith('cmd:')) {
                 const key = data.split(':')[1];
                 const commandMap = {
@@ -660,8 +757,7 @@ function setupTelegramBot() {
                     
                     if (mapped === '/me') {
                         await ctx.answerCbQuery();
-                        const result = await handleUtilityCommand('/me', [], userId, 'telegram');
-                        await sendTelegramReply(ctx, result);
+                        await sendAboutMeMessage(ctx, userId, []);
                         return;
                     }
 
