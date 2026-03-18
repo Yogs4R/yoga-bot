@@ -11,7 +11,57 @@ const fsSync = require('fs');
 const CloudConvert = require('cloudconvert');
 const { checkAndIncrementQuota } = require('./quotaService');
 
-const cloudConvert = new CloudConvert(process.env.CLOUDCONVERT_API_KEY);
+function normalizeEnvValue(value) {
+    const text = String(value || '').trim();
+    if (!text) {
+        return '';
+    }
+
+    const hasDoubleQuotes = text.startsWith('"') && text.endsWith('"');
+    const hasSingleQuotes = text.startsWith("'") && text.endsWith("'");
+
+    if (hasDoubleQuotes || hasSingleQuotes) {
+        return text.slice(1, -1).trim();
+    }
+
+    return text;
+}
+
+function getHttpStatus(error) {
+    return Number(error?.response?.status || 0);
+}
+
+function getHttpMessage(error, fallback) {
+    const fromResponse = error?.response?.data?.error
+        || error?.response?.data?.message
+        || error?.response?.statusText;
+    const fromError = error?.message;
+    return String(fromResponse || fromError || fallback || 'Unknown error');
+}
+
+async function streamToFile(readableStream, outputPath) {
+    return new Promise((resolve, reject) => {
+        const writeStream = fsSync.createWriteStream(outputPath);
+        readableStream.pipe(writeStream);
+
+        writeStream.on('finish', () => resolve(true));
+        writeStream.on('error', reject);
+        readableStream.on('error', reject);
+    });
+}
+
+async function downloadFileToPath(fileUrl, outputPath) {
+    const imageResponse = await axios.get(fileUrl, {
+        responseType: 'stream',
+        timeout: 45000
+    });
+
+    await streamToFile(imageResponse.data, outputPath);
+    return true;
+}
+
+const CLOUDCONVERT_API_KEY = normalizeEnvValue(process.env.CLOUDCONVERT_API_KEY);
+const cloudConvert = CLOUDCONVERT_API_KEY ? new CloudConvert(CLOUDCONVERT_API_KEY) : null;
 
 async function checkQuotaSafely(serviceName, limit, isDaily = false) {
     try {
@@ -117,36 +167,34 @@ async function removeBackground(inputPath, outputPath) {
         form.append('image_file', fsSync.createReadStream(inputPath));
 
         // Send request to remove.bg
+        const removeBgApiKey = normalizeEnvValue(process.env.REMOVEBG_API_KEY);
+        if (!removeBgApiKey) {
+            throw new Error('REMOVEBG_API_KEY belum diatur.');
+        }
+
         const response = await axios.post(
             'https://api.remove.bg/v1.0/removebg',
             form,
             {
                 headers: {
-                    'X-API-Key': process.env.REMOVEBG_API_KEY,
+                    'X-API-Key': removeBgApiKey,
                     ...form.getHeaders()
                 },
-                responseType: 'stream'
+                responseType: 'stream',
+                timeout: 90000
             }
         );
 
-        // Pipe response to output file
-        return new Promise((resolve, reject) => {
-            const writeStream = fsSync.createWriteStream(outputPath);
-            response.data.pipe(writeStream);
-
-            writeStream.on('finish', () => {
-                resolve(true);
-            });
-
-            writeStream.on('error', (error) => {
-                reject(error);
-            });
-
-            response.data.on('error', (error) => {
-                reject(error);
-            });
-        });
+        await streamToFile(response.data, outputPath);
+        return true;
     } catch (error) {
+        const status = getHttpStatus(error);
+        if (status === 401 || status === 403) {
+            throw new Error('Akses remove.bg ditolak (401/403). Periksa REMOVEBG_API_KEY pada environment.');
+        }
+        if (status === 402) {
+            throw new Error('Kredit remove.bg habis (402 Payment Required).');
+        }
         console.error('Remove background error:', error.message);
         throw error;
     }
@@ -166,45 +214,52 @@ async function htmlToImage(url, outputPath) {
             throw new Error('❌ Kuota Web2Img habis (50/50 bulan ini)');
         }
 
-        // Request image generation from hcti.io
-        const response = await axios.post(
-            'https://hcti.io/v1/image',
-            { url: url },
-            {
-                auth: {
-                    username: process.env.HCTI_USER_ID,
-                    password: process.env.HCTI_API_KEY
-                }
-            }
-        );
+        const targetUrl = String(url || '').trim();
+        const hctiUserId = normalizeEnvValue(process.env.HCTI_USER_ID);
+        const hctiApiKey = normalizeEnvValue(process.env.HCTI_API_KEY);
 
-        // Extract image URL from response
-        const imageUrl = response.data?.image_url;
-        if (!imageUrl) {
-            throw new Error('Failed to generate image from URL');
+        let primaryError = null;
+
+        if (hctiUserId && hctiApiKey) {
+            try {
+                const response = await axios.post(
+                    'https://hcti.io/v1/image',
+                    { url: targetUrl },
+                    {
+                        auth: {
+                            username: hctiUserId,
+                            password: hctiApiKey
+                        },
+                        timeout: 90000
+                    }
+                );
+
+                const imageUrl = response.data?.image_url || response.data?.url;
+                if (!imageUrl) {
+                    const responseDetails = response.data?.message || response.data?.error || JSON.stringify(response.data || {});
+                    throw new Error(`Failed to generate image from URL: ${responseDetails}`);
+                }
+
+                await downloadFileToPath(imageUrl, outputPath);
+                return true;
+            } catch (error) {
+                primaryError = error;
+                console.warn('Primary screenshot provider (hcti) failed:', getHttpMessage(error, 'unknown hcti error'));
+            }
+        } else {
+            primaryError = new Error('HCTI_USER_ID/HCTI_API_KEY belum diatur.');
+            console.warn('HCTI credentials missing, using fallback screenshot provider.');
         }
 
-        // Download image and save to file
-        const imageResponse = await axios.get(imageUrl, {
-            responseType: 'stream'
-        });
-
-        return new Promise((resolve, reject) => {
-            const writeStream = fsSync.createWriteStream(outputPath);
-            imageResponse.data.pipe(writeStream);
-
-            writeStream.on('finish', () => {
-                resolve(true);
-            });
-
-            writeStream.on('error', (error) => {
-                reject(error);
-            });
-
-            imageResponse.data.on('error', (error) => {
-                reject(error);
-            });
-        });
+        try {
+            const fallbackUrl = `https://image.thum.io/get/width/1366/noanimate/${encodeURIComponent(targetUrl)}`;
+            await downloadFileToPath(fallbackUrl, outputPath);
+            return true;
+        } catch (fallbackError) {
+            const primaryMessage = getHttpMessage(primaryError, 'Primary screenshot provider failed');
+            const fallbackMessage = getHttpMessage(fallbackError, 'Fallback screenshot provider failed');
+            throw new Error(`${primaryMessage}. ${fallbackMessage}`);
+        }
     } catch (error) {
         console.error('HTML to image error:', error.message);
         throw error;
@@ -271,7 +326,7 @@ async function rotatePdf(inputPath, outputPath, angle) {
     }
 
     const buffer = await fs.readFile(inputPath);
-    const pdfDoc = await PDFDocument.load(buffer);
+    const pdfDoc = await PDFDocument.load(buffer, { ignoreEncryption: true });
     const pages = pdfDoc.getPages();
 
     for (const page of pages) {
@@ -287,7 +342,7 @@ async function rotatePdf(inputPath, outputPath, angle) {
 // Extract specified pages from PDF and save as new PDF
 async function extractPdf(inputPath, outputPath, pageString) {
     const buffer = await fs.readFile(inputPath);
-    const sourcePdf = await PDFDocument.load(buffer);
+    const sourcePdf = await PDFDocument.load(buffer, { ignoreEncryption: true });
     const totalPages = sourcePdf.getPageCount();
     const pageIndexes = parsePageIndexes(pageString, totalPages);
 
@@ -312,7 +367,7 @@ async function mergePdfs(inputPathsArray, outputPath) {
     const mergedPdf = await PDFDocument.create();
 
     for (const inputPath of inputPathsArray) {
-        const pdf = await PDFDocument.load(await fs.readFile(inputPath));
+        const pdf = await PDFDocument.load(await fs.readFile(inputPath), { ignoreEncryption: true });
         const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
 
         for (const page of copiedPages) {
@@ -326,60 +381,67 @@ async function mergePdfs(inputPathsArray, outputPath) {
 
 // Run a CloudConvert job with specified input, output, and task configuration
 async function runCloudConvertJob(inputPath, outputPath, taskConfig) {
+    if (!cloudConvert) {
+        throw new Error('CLOUDCONVERT_API_KEY belum diatur atau tidak valid.');
+    }
+
     const hasQuota = await checkQuotaSafely('cloudconvert', 10, true);
     if (!hasQuota) {
         throw new Error('❌ Kuota CloudConvert harian habis (10/10 hari ini).');
     }
 
-    const processTaskConfig = {
-        input: 'import-1',
-        ...taskConfig
-    };
+    try {
+        const processTaskConfig = {
+            input: 'import-1',
+            ...taskConfig
+        };
 
-    const job = await cloudConvert.jobs.create({
-        tasks: {
-            'import-1': {
-                operation: 'import/upload'
-            },
-            'task-2': processTaskConfig,
-            'export-1': {
-                operation: 'export/url',
-                input: 'task-2'
+        const job = await cloudConvert.jobs.create({
+            tasks: {
+                'import-1': {
+                    operation: 'import/upload'
+                },
+                'task-2': processTaskConfig,
+                'export-1': {
+                    operation: 'export/url',
+                    input: 'task-2'
+                }
             }
+        });
+
+        const importTask = job.tasks.find((task) => task.name === 'import-1');
+        if (!importTask) {
+            throw new Error('Gagal menyiapkan task upload CloudConvert.');
         }
-    });
 
-    const importTask = job.tasks.find((task) => task.name === 'import-1');
-    if (!importTask) {
-        throw new Error('Gagal menyiapkan task upload CloudConvert.');
+        await cloudConvert.tasks.upload(
+            importTask,
+            fsSync.createReadStream(inputPath),
+            path.basename(inputPath)
+        );
+
+        const completedJob = await cloudConvert.jobs.wait(job.id);
+        const exportTask = completedJob.tasks.find((task) => task.name === 'export-1' && task.status === 'finished');
+        const downloadUrl = exportTask?.result?.files?.[0]?.url;
+
+        if (!downloadUrl) {
+            throw new Error('Gagal mengambil URL hasil dari CloudConvert.');
+        }
+
+        const response = await axios.get(downloadUrl, { responseType: 'stream' });
+        await streamToFile(response.data, outputPath);
+
+        return true;
+    } catch (error) {
+        const status = getHttpStatus(error);
+        const message = String(error?.message || '');
+
+        if (status === 401 || status === 403 || /forbidden/i.test(message)) {
+            throw new Error('Akses CloudConvert ditolak (Forbidden). Periksa CLOUDCONVERT_API_KEY pada environment.');
+        }
+
+        throw error;
     }
-
-    await cloudConvert.tasks.upload(
-        importTask,
-        fsSync.createReadStream(inputPath),
-        path.basename(inputPath)
-    );
-
-    const completedJob = await cloudConvert.jobs.wait(job.id);
-    const exportTask = completedJob.tasks.find((task) => task.name === 'export-1' && task.status === 'finished');
-    const downloadUrl = exportTask?.result?.files?.[0]?.url;
-
-    if (!downloadUrl) {
-        throw new Error('Gagal mengambil URL hasil dari CloudConvert.');
-    }
-
-    const response = await axios.get(downloadUrl, { responseType: 'stream' });
-
-    await new Promise((resolve, reject) => {
-        const writer = fsSync.createWriteStream(outputPath);
-        response.data.pipe(writer);
-
-        writer.on('finish', resolve);
-        writer.on('error', reject);
-        response.data.on('error', reject);
-    });
-
-    return true;
 }
 
 // Convert file to PDF using CloudConvert

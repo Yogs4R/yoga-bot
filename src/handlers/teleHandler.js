@@ -426,7 +426,14 @@ async function handleImageConverter(ctx, args) {
         const outputExists = await fs.stat(outputPath).catch(() => null);
         if (outputExists) {
             const fileBuffer = await fs.readFile(outputPath);
-            await ctx.replyWithPhoto({ source: fileBuffer }, { caption: '✅ Gambar siap!', parse_mode: 'HTML' });
+            if (action === 'to') {
+                await ctx.replyWithDocument(
+                    { source: fileBuffer, filename: path.basename(outputPath) },
+                    { caption: '✅ File hasil konversi siap!', parse_mode: 'HTML' }
+                );
+            } else {
+                await ctx.replyWithPhoto({ source: fileBuffer }, { caption: '✅ Gambar siap!', parse_mode: 'HTML' });
+            }
         }
     } catch (error) {
         console.error('Error in handleImageConverter:', error);

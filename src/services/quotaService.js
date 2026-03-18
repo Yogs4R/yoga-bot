@@ -15,9 +15,9 @@ async function checkAndIncrementQuota(serviceName, limit = 50, isDaily = false) 
 
     const { data, error } = await supabaseClient
       .from('api_quotas')
-      .select('id, usage, updated_at')
+      .select('service, usage, limit, updated_at')
       .eq('service', serviceName)
-      .single();
+      .maybeSingle();
 
     if (error && error.code !== 'PGRST116') {
       // PGRST116 = no rows found
@@ -47,6 +47,7 @@ async function checkAndIncrementQuota(serviceName, limit = 50, isDaily = false) 
     }
 
     let usage = Number(data.usage || 0);
+    const effectiveLimit = Number(data.limit || limit);
 
     if (isDaily) {
       const updatedAtDate = data.updated_at ? new Date(data.updated_at) : null;
@@ -60,7 +61,7 @@ async function checkAndIncrementQuota(serviceName, limit = 50, isDaily = false) 
     }
 
     // Check if quota exhausted
-    if (usage >= limit) {
+    if (usage >= effectiveLimit) {
       return false;
     }
 
@@ -69,10 +70,10 @@ async function checkAndIncrementQuota(serviceName, limit = 50, isDaily = false) 
       .from('api_quotas')
       .update({
         usage: usage + 1,
-        limit,
+        limit: effectiveLimit,
         updated_at: nowIso
       })
-      .eq('id', data.id);
+      .eq('service', serviceName);
 
     if (updateError) {
       console.error(`Error updating quota for ${serviceName}:`, updateError);

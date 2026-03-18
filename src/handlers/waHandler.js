@@ -515,11 +515,20 @@ class WhatsAppHandler {
               if (outputExists && replyText.includes('BERHASIL')) {
                 const fileBuffer = await fs.readFile(outputPath);
                 const mediaType = outputPath.endsWith('.png') ? 'image/png' : outputPath.endsWith('.webp') ? 'image/webp' : 'image/jpeg';
-                await this.sock.sendMessage(msg.key.remoteJid, {
-                  image: fileBuffer,
-                  mimetype: mediaType,
-                  caption: '✅ Gambar siap!'
-                });
+                if (action === 'to') {
+                  await this.sock.sendMessage(msg.key.remoteJid, {
+                    document: fileBuffer,
+                    mimetype: mediaType,
+                    fileName: path.basename(outputPath),
+                    caption: '✅ File hasil konversi siap!'
+                  });
+                } else {
+                  await this.sock.sendMessage(msg.key.remoteJid, {
+                    image: fileBuffer,
+                    mimetype: mediaType,
+                    caption: '✅ Gambar siap!'
+                  });
+                }
               }
             } catch (error) {
               console.error('Error in /img handler for WhatsApp:', error);
