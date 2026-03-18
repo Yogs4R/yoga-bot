@@ -2,6 +2,7 @@ const os = require('os');
 const fs = require('fs/promises');
 const fsSync = require('fs');
 const path = require('path');
+const { downloadMediaMessage } = require('@whiskeysockets/baileys');
 const { askAiDetailed } = require('../lib/aiClient');
 const handleFinanceCommand = require('../commands/finance/index');
 const { handleAdminCommand } = require('../commands/admin/index');
@@ -217,6 +218,12 @@ function isWhatsAppPdfDocument(documentMessage) {
   return extFromName === 'pdf' || mimeType.includes('pdf');
 }
 
+async function ensureTempDir() {
+  const tempDir = path.join(process.cwd(), 'temp');
+  await fs.mkdir(tempDir, { recursive: true });
+  return tempDir;
+}
+
 function safeUnlinkSync(filePath) {
   try {
     if (filePath && fsSync.existsSync(filePath)) {
@@ -336,17 +343,22 @@ class WhatsAppHandler {
           }
 
           const timestamp = Date.now();
-          const tempDir = path.join(process.cwd(), 'temp');
+          const tempDir = await ensureTempDir();
           const nextIndex = mergeSessions[userId].length + 1;
           downloadPath = path.join(tempDir, `input_merge_${timestamp}_${nextIndex}.pdf`);
 
-          const mediaBuffer = await this.sock.downloadMediaMessage(incomingDocumentMsg);
-          await fs.writeFile(downloadPath, mediaBuffer);
+          const buffer = await downloadMediaMessage(
+            msg,
+            'buffer',
+            {},
+            { reuploadRequest: this.sock.updateMediaMessage }
+          );
+          await fs.writeFile(downloadPath, buffer);
           mergeSessions[userId].push(downloadPath);
 
           await this.sock.sendMessage(
             msg.key.remoteJid,
-            { text: `📄 File ke-${mergeSessions[userId].length} diterima! Kirim lagi atau ketik /pdf merge done.` },
+            { text: `📄 File ke-${mergeSessions[userId].length} diterima! Kirim lagi atau ketik \`/pdf merge done\`.` },
             { quoted: msg }
           );
         } catch (error) {
@@ -476,12 +488,17 @@ class WhatsAppHandler {
               }
 
               const timestamp = Date.now();
-              const tempDir = path.join(process.cwd(), 'temp');
+              const tempDir = await ensureTempDir();
               inputPath = path.join(tempDir, `input_${timestamp}.jpg`);
               outputPath = path.join(tempDir, `output_${timestamp}.jpg`);
 
-              const mediaBuffer = await this.sock.downloadMediaMessage(msg.message?.imageMessage || msg.message?.videoMessage);
-              await fs.writeFile(inputPath, mediaBuffer);
+              const buffer = await downloadMediaMessage(
+                msg,
+                'buffer',
+                {},
+                { reuploadRequest: this.sock.updateMediaMessage }
+              );
+              await fs.writeFile(inputPath, buffer);
 
               const action = String(args[0] || '').toLowerCase().trim();
               if (action === 'to' && args[1]) {
@@ -516,14 +533,14 @@ class WhatsAppHandler {
 
           case '/img_info': {
             const startHeader = '> *IMAGE TOOLS* 🖼️';
-            const startBody = `Konversi, edit, hapus background, dan screenshot web.\n\n*MODE 1 - BALAS FOTO:*\n1. Balas pesan dengan gambar/foto\n2. Kirim salah satu command berikut\n\n\`\`\`\n/img compress\n/img resize WxH\n/img to format\n/img rotate deg\n/hapusbg\n\`\`\`\n\n*MODE 2 - SCREENSHOT WEB:*\n\`\`\`\n/ss https://example.com\n\`\`\`\n\n*KETERANGAN:*\n- /img compress : Kompres ukuran gambar\n- /img resize WxH : Ubah ukuran (contoh: 500x500)\n- /img to format : Format didukung jpg, png, jpeg, webp\n- /img rotate deg : Sudut didukung 90, 180, 270\n- /hapusbg : Hapus background (kuota 50/bulan)\n- /ss <url> : Screenshot website (kuota 50/bulan)\n\n*CATATAN REMOVE BG:*\nGratis hanya preview rendah (maks 0,25 MP).\n\n*BATASAN FILE FOTO:* Maks 5MB`;
+            const startBody = `Konversi, edit, hapus background, dan screenshot web.\n\n*MODE 1 - BALAS FOTO:*\n1. Balas pesan dengan gambar/foto\n2. Kirim salah satu command berikut\n\n\`\`\`\n\`/img compress\`\n\`/img resize WxH\`\n\`/img to format\`\n\`/img rotate deg\`\n\`/hapusbg\`\n\`\`\`\n\n*MODE 2 - SCREENSHOT WEB:*\n\`\`\`\n/ss https://example.com\n\`\`\`\n\n*KETERANGAN:*\n- /img compress : Kompres ukuran gambar\n- /img resize WxH : Ubah ukuran (contoh: 500x500)\n- /img to format : Format didukung jpg, png, jpeg, webp\n- /img rotate deg : Sudut didukung 90, 180, 270\n- /hapusbg : Hapus background (kuota 50/bulan)\n- /ss <url> : Screenshot website (kuota 50/bulan)\n\n*CATATAN REMOVE BG:*\nGratis hanya preview rendah (maks 0,25 MP).\n\n*BATASAN FILE FOTO:* Maks 5MB`;
             replyText = `${startHeader}\n\n${startBody}`;
             break;
           }
 
           case '/pdf_info': {
             const startHeader = '> *PDF TOOLS* 📄';
-            const startBody = `Konversi, optimasi, rotasi, ekstrak, dan merge halaman PDF.\n\n*MODE 1 - KE PDF:*\nKirim dokumen/media dengan caption:\n\n\`\`\`\n/topdf\n\`\`\`\n\n*MODE 2 - DARI PDF:*\nKirim file PDF dengan caption:\n\n\`\`\`\n/pdf compress\n/pdf to format\n/pdf rotate deg\n/pdf extract 1-3,5\n\`\`\`\n\n*MODE 3 - MERGE BANYAK PDF:*\n\`\`\`\n/pdf merge start\n(kirim file PDF satu per satu)\n/pdf merge done\n/pdf merge cancel\n\`\`\`\n\n*KETERANGAN:*\n- /topdf : Konversi file ke PDF (CloudConvert)\n- /pdf compress : Kompres ukuran PDF (CloudConvert)\n- /pdf to format : Konversi PDF ke format lain (CloudConvert)\n- /pdf rotate deg : Rotasi semua halaman PDF (lokal)\n- /pdf extract pages : Ambil halaman tertentu (lokal)\n- /pdf merge start|done|cancel : Gabung banyak PDF (lokal)\n\n*CONTOH:*\n- /pdf to docx\n- /pdf rotate 90\n- /pdf extract 1-3,5\n- /pdf merge start\n\n*BATASAN:*\n- CloudConvert: max 10MB, kuota 10 request/hari\n- Proses lokal (rotate/extract/merge): max 15MB per file`;
+            const startBody = `Konversi, optimasi, rotasi, ekstrak, dan merge halaman PDF.\n\n*MODE 1 - KE PDF:*\nKirim dokumen/media dengan caption:\n\n\`\`\`\n/topdf\n\`\`\`\n\n*MODE 2 - DARI PDF:*\nKirim file PDF dengan caption:\n\n\`\`\`\n\`/pdf compress\`\n\`/pdf to format\`\n\`/pdf rotate deg\`\n\`/pdf extract 1-3,5\`\n\`\`\`\n\n*MODE 3 - MERGE BANYAK PDF:*\n\`\`\`\n/pdf merge start\n(kirim file PDF satu per satu)\n/pdf merge done\n/pdf merge cancel\n\`\`\`\n\n*KETERANGAN:*\n- /topdf : Konversi file ke PDF (CloudConvert)\n- /pdf compress : Kompres ukuran PDF (CloudConvert)\n- /pdf to format : Konversi PDF ke format lain (CloudConvert)\n- /pdf rotate deg : Rotasi semua halaman PDF (lokal)\n- /pdf extract pages : Ambil halaman tertentu (lokal)\n- /pdf merge start|done|cancel : Gabung banyak PDF (lokal)\n\n*CONTOH:*\n- /pdf to docx\n- /pdf rotate 90\n- /pdf extract 1-3,5\n- /pdf merge start\n\n*BATASAN:*\n- CloudConvert: max 10MB, kuota 10 request/hari\n- Proses lokal (rotate/extract/merge): max 15MB per file`;
             replyText = `${startHeader}\n\n${startBody}`;
             break;
           }
@@ -537,7 +554,7 @@ class WhatsAppHandler {
 
           case '/info': {
             const header = '> *INFORMASI YOGA BOT* 🤖';
-            const body = `Saya adalah asisten virtual pribadi milik Ridwan Yoga Suryantara.\n\n📋 *FITUR KEUANGAN* 💰\n- \`/saldo\`         : Cek saldo keuangan\n- \`/catat\`         : Catat pengeluaran\n- \`/pemasukan\`     : Catat pemasukan\n- \`/laporan_chart\` : Grafik laporan keuangan\n- \`/riwayat\`       : Riwayat transaksi terakhir\n- \`/hapus\`         : Hapus transaksi\n- \`/edit\`          : Edit transaksi\n\n📋 *FITUR SISTEM* ⚙️\n- \`/ping\`          : Cek status bot\n- \`/info\`          : Menampilkan pesan ini\n- \`/start\`         : Memulai bot\n\n💡 *FITUR AI* 🧠\nKirimkan pesan biasa (tanpa awalan '/') untuk ngobrol,\nbertanya seputar coding, teknologi, atau sekadar bertukar pikiran!\n\n🛠️ *FITUR UTILITAS*\n- \`/cuaca\`         : Info cuaca hari ini\n- \`/sholat\`        : Jadwal sholat hari ini\n- \`/me\`            : Tentang pembuat bot\n\n🖼️ *FITUR CONVERTER*\n- \`/img_info\`      : Panduan lengkap image tools\n- \`/pdf_info\`      : Panduan lengkap PDF tools\n\n🛡️ *FITUR ADMIN*\n- \`/admin\`         : Menu command admin`;
+            const body = `Saya adalah asisten virtual pribadi milik Ridwan Yoga Suryantara.\n\n📋 *FITUR KEUANGAN* 💰\n- \`/saldo\`         : Cek saldo keuangan\n- \`/catat\`         : Catat pengeluaran\n- \`/pemasukan\`     : Catat pemasukan\n- \`/laporan_chart\` : Grafik laporan keuangan\n- \`/riwayat\`       : Riwayat transaksi terakhir\n- \`/hapus\`         : Hapus transaksi\n- \`/edit\`          : Edit transaksi\n\n📋 *FITUR SISTEM* ⚙️\n- \`/ping\`          : Cek status bot\n- \`/info\`          : Menampilkan pesan ini\n- \`/start\`         : Memulai bot\n\n💡 *FITUR AI* 🧠\nKirimkan pesan biasa (tanpa awalan '/') untuk ngobrol,\nbertanya seputar coding, teknologi, atau sekadar bertukar pikiran!\n\n🛠️ *FITUR UTILITAS*\n- \`/cuaca\`         : Info cuaca hari ini\n- \`/sholat\`        : Jadwal sholat hari ini\n- \`/me\`            : Tentang pembuat bot\n\n🖼️ *FITUR CONVERTER* 📄\n- \`/img_info\`      : Panduan lengkap image tools\n- \`/pdf_info\`      : Panduan lengkap PDF tools\n\n🛡️ *FITUR ADMIN*\n- \`/admin\`         : Menu command admin`;
             replyText = appendFooter(`${header}\n\n${body}`, buildSystemStatsFooter());
             break;
           }
@@ -560,12 +577,17 @@ class WhatsAppHandler {
               }
 
               const timestamp = Date.now();
-              const tempDir = path.join(process.cwd(), 'temp');
+              const tempDir = await ensureTempDir();
               inputPath = path.join(tempDir, `input_bg_${timestamp}.jpg`);
               outputPath = path.join(tempDir, `output_bg_${timestamp}.png`);
 
-              const mediaBuffer = await this.sock.downloadMediaMessage(msg.message?.imageMessage);
-              await fs.writeFile(inputPath, mediaBuffer);
+              const buffer = await downloadMediaMessage(
+                msg,
+                'buffer',
+                {},
+                { reuploadRequest: this.sock.updateMediaMessage }
+              );
+              await fs.writeFile(inputPath, buffer);
 
               await removeBackground(inputPath, outputPath);
 
@@ -597,7 +619,7 @@ class WhatsAppHandler {
 
             try {
               if (args.length === 0) {
-                replyText = '> *❌ FORMAT SALAH*\n\nGunakan: `/ss <URL>`\n\nContoh: `/ss https://example.com`';
+                replyText = '> *❌ FORMAT SALAH*\n\nGunakan: \`/ss <URL>\`\n\nContoh: \`/ss https://example.com\`';
                 break;
               }
 
@@ -612,7 +634,7 @@ class WhatsAppHandler {
               }
 
               const timestamp = Date.now();
-              const tempDir = path.join(process.cwd(), 'temp');
+              const tempDir = await ensureTempDir();
               outputPath = path.join(tempDir, `output_ss_${timestamp}.jpg`);
 
               await htmlToImage(url, outputPath);
@@ -670,7 +692,7 @@ class WhatsAppHandler {
               }
 
               if (!source) {
-                replyText = '> *❌ FILE TIDAK DITEMUKAN*\n\nKirim dokumen/media dengan caption `/topdf`.';
+                replyText = '> *❌ FILE TIDAK DITEMUKAN*\n\nKirim dokumen/media dengan caption \`/topdf\`.';
                 break;
               }
 
@@ -680,12 +702,17 @@ class WhatsAppHandler {
               }
 
               const timestamp = Date.now();
-              const tempDir = path.join(process.cwd(), 'temp');
+              const tempDir = await ensureTempDir();
               inputPath = path.join(tempDir, `input_${timestamp}.${source.inputExt}`);
               outputPath = path.join(tempDir, `output_${timestamp}.pdf`);
 
-              const mediaBuffer = await this.sock.downloadMediaMessage(source.mediaMessage);
-              await fs.writeFile(inputPath, mediaBuffer);
+              const buffer = await downloadMediaMessage(
+                msg,
+                'buffer',
+                {},
+                { reuploadRequest: this.sock.updateMediaMessage }
+              );
+              await fs.writeFile(inputPath, buffer);
 
               await convertToPdf(inputPath, outputPath, source.inputExt);
 
@@ -701,7 +728,7 @@ class WhatsAppHandler {
                 { quoted: msg }
               );
             } catch (error) {
-              console.error('Error in /topdf handler for WhatsApp:', error);
+              console.error('Error in \`/topdf\` handler for WhatsApp:', error);
               replyText = `> *ERROR PDF TOOLS*\n\n${error.message}`;
             } finally {
               safeUnlinkSync(inputPath);
@@ -731,7 +758,7 @@ class WhatsAppHandler {
                   }
 
                   mergeSessions[userId] = [];
-                  replyText = '✅ Mode Merge Aktif! Kirim file PDF satu per satu. Ketik /pdf merge done jika sudah semua, atau /pdf merge cancel untuk batal.';
+                  replyText = '✅ Mode Merge Aktif! Kirim file PDF satu per satu. Ketik \`/pdf merge done\` jika sudah semua, atau \`/pdf merge cancel\` untuk batal.';
                   break;
                 }
 
@@ -754,7 +781,7 @@ class WhatsAppHandler {
                   }
 
                   const filesToMerge = [...sessionFiles];
-                  const tempDir = path.join(process.cwd(), 'temp');
+                  const tempDir = await ensureTempDir();
                   outputPath = path.join(tempDir, `merged_${Date.now()}.pdf`);
 
                   try {
@@ -781,7 +808,7 @@ class WhatsAppHandler {
                   break;
                 }
 
-                replyText = '> *❌ FORMAT SALAH*\n\nGunakan:\n`/pdf merge start`\n`/pdf merge done`\n`/pdf merge cancel`';
+                replyText = '> *❌ FORMAT SALAH*\n\nGunakan:\n\`/pdf merge start\`\n\`/pdf merge done\`\n\`/pdf merge cancel\`';
                 break;
               }
 
@@ -796,7 +823,7 @@ class WhatsAppHandler {
                 outputFormat = 'pdf';
                 rotateAngle = parseInt(args[1], 10);
                 if (!Number.isInteger(rotateAngle)) {
-                  replyText = '> *❌ FORMAT SALAH*\n\nContoh rotasi: `/pdf rotate 90`';
+                  replyText = '> *❌ FORMAT SALAH*\n\nContoh rotasi: \`/pdf rotate 90\`';
                   break;
                 }
               } else if (action === 'extract' && args.length > 1) {
@@ -804,24 +831,24 @@ class WhatsAppHandler {
                 outputFormat = 'pdf';
                 extractPages = args.slice(1).join(' ').trim();
                 if (!extractPages) {
-                  replyText = '> *❌ FORMAT SALAH*\n\nContoh extract: `/pdf extract 1-3,5`';
+                  replyText = '> *❌ FORMAT SALAH*\n\nContoh extract: \`/pdf extract 1-3,5\`';
                   break;
                 }
               } else {
-                replyText = '> *❌ FORMAT SALAH*\n\nGunakan:\n`/pdf compress`\n`/pdf to <format>`\n`/pdf rotate <deg>`\n`/pdf extract <halaman>`\n`/pdf merge start|done|cancel`';
+                replyText = '> *❌ FORMAT SALAH*\n\nGunakan:\n\`/pdf compress\`\n\`/pdf to <format>\`\n\`/pdf rotate <deg>\`\n\`/pdf extract <halaman>\`\n\`/pdf merge start|done|cancel\`';
                 break;
               }
 
               const documentMsg = msg.message?.documentMessage;
               if (!documentMsg) {
-                replyText = '> *❌ FILE TIDAK DITEMUKAN*\n\nKirim file PDF dengan caption `/pdf compress` atau `/pdf to <format>`.';
+                replyText = '> *❌ FILE TIDAK DITEMUKAN*\n\nKirim file PDF dengan caption \`/pdf compress\` atau \`/pdf to <format>\`.';
                 break;
               }
 
               const inputExt = getExtensionFromFileName(documentMsg.fileName) || getExtensionFromMimeType(documentMsg.mimetype) || 'bin';
               const isPdfInput = inputExt === 'pdf' || String(documentMsg.mimetype || '').toLowerCase().includes('pdf');
               if (!isPdfInput) {
-                replyText = '> *❌ FORMAT SALAH*\n\nCommand `/pdf` hanya untuk file PDF.';
+                replyText = '> *❌ FORMAT SALAH*\n\nCommand \`/pdf\` hanya untuk file PDF.';
                 break;
               }
 
@@ -835,12 +862,17 @@ class WhatsAppHandler {
               }
 
               const timestamp = Date.now();
-              const tempDir = path.join(process.cwd(), 'temp');
+              const tempDir = await ensureTempDir();
               inputPath = path.join(tempDir, `input_${timestamp}.pdf`);
               outputPath = path.join(tempDir, `output_${timestamp}.${outputFormat}`);
 
-              const mediaBuffer = await this.sock.downloadMediaMessage(documentMsg);
-              await fs.writeFile(inputPath, mediaBuffer);
+              const buffer = await downloadMediaMessage(
+                msg,
+                'buffer',
+                {},
+                { reuploadRequest: this.sock.updateMediaMessage }
+              );
+              await fs.writeFile(inputPath, buffer);
 
               if (mode === 'compress') {
                 await compressPdf(inputPath, outputPath);

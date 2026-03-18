@@ -90,6 +90,28 @@ function safeUnlinkSync(filePath) {
     }
 }
 
+async function ensureTempDir() {
+    const tempDir = path.join(process.cwd(), 'temp');
+    await fs.mkdir(tempDir, { recursive: true });
+    return tempDir;
+}
+
+function getTelegramPhotoSource(message) {
+    const candidates = [message, message?.reply_to_message].filter(Boolean);
+
+    for (const candidate of candidates) {
+        if (Array.isArray(candidate.photo) && candidate.photo.length > 0) {
+            const largestPhoto = candidate.photo[candidate.photo.length - 1];
+            return {
+                fileId: largestPhoto.file_id,
+                fileSize: Number(largestPhoto.file_size || 0)
+            };
+        }
+    }
+
+    return null;
+}
+
 function stripWrappingQuotes(value) {
     const text = String(value || '').trim();
     if (!text) {
@@ -353,16 +375,15 @@ async function handleImageConverter(ctx, args) {
 
     try {
         const message = ctx.message;
-        const replyTo = message?.reply_to_message;
+        const photoSource = getTelegramPhotoSource(message);
 
-        if (!replyTo || !replyTo.photo) {
-            await ctx.reply('<b>❌ ERROR CONVERTER</b>\n\nBalas pesan dengan gambar untuk menggunakan converter.', { parse_mode: 'HTML' });
+        if (!photoSource) {
+            await ctx.reply('<b>❌ ERROR CONVERTER</b>\n\nKirim foto dengan caption command /img atau balas foto untuk menggunakan converter.', { parse_mode: 'HTML' });
             return;
         }
 
-        const photoSize = replyTo.photo[replyTo.photo.length - 1];
-        const fileId = photoSize.file_id;
-        const fileSizeBytes = photoSize.file_size || 0;
+        const fileId = photoSource.fileId;
+        const fileSizeBytes = photoSource.fileSize;
 
         if (fileSizeBytes > MAX_FILE_SIZE) {
             await ctx.reply('<b>❌ Gagal</b>\n\nUkuran gambar maksimal 5MB!', { parse_mode: 'HTML' });
@@ -370,7 +391,7 @@ async function handleImageConverter(ctx, args) {
         }
 
         const timestamp = Date.now();
-        const tempDir = path.join(process.cwd(), 'temp');
+        const tempDir = await ensureTempDir();
         inputPath = path.join(tempDir, `input_${timestamp}.jpg`);
         outputPath = path.join(tempDir, `output_${timestamp}.jpg`);
 
@@ -463,7 +484,7 @@ async function handleTelegramPdfTools(ctx, command, args) {
                     }
 
                     const filesToMerge = [...sessionFiles];
-                    const tempDir = path.join(process.cwd(), 'temp');
+                    const tempDir = await ensureTempDir();
                     outputPath = path.join(tempDir, `merged_${Date.now()}.pdf`);
 
                     try {
@@ -584,7 +605,7 @@ async function handleTelegramPdfTools(ctx, command, args) {
         }
 
         const timestamp = Date.now();
-        const tempDir = path.join(process.cwd(), 'temp');
+        const tempDir = await ensureTempDir();
         inputPath = path.join(tempDir, `input_${timestamp}.${inputExt || 'bin'}`);
         outputPath = path.join(tempDir, `output_${timestamp}.${outputFormat}`);
 
@@ -816,7 +837,7 @@ function setupTelegramBot() {
                 }
 
                 const timestamp = Date.now();
-                const tempDir = path.join(process.cwd(), 'temp');
+                const tempDir = await ensureTempDir();
                 const nextIndex = mergeSessions[userId].length + 1;
                 downloadPath = path.join(tempDir, `input_merge_${timestamp}_${nextIndex}.pdf`);
 
@@ -994,16 +1015,15 @@ function setupTelegramBot() {
 
                     try {
                         const message = ctx.message;
-                        const replyTo = message?.reply_to_message;
+                        const photoSource = getTelegramPhotoSource(message);
 
-                        if (!replyTo || !replyTo.photo) {
-                            await ctx.reply('<b>❌ ERROR REMOVE BG</b>\n\nBalas pesan dengan gambar untuk menghapus background.', { parse_mode: 'HTML' });
+                        if (!photoSource) {
+                            await ctx.reply('<b>❌ ERROR REMOVE BG</b>\n\nKirim foto dengan caption command /hapusbg atau balas foto untuk menghapus background.', { parse_mode: 'HTML' });
                             break;
                         }
 
-                        const photoSize = replyTo.photo[replyTo.photo.length - 1];
-                        const fileId = photoSize.file_id;
-                        const fileSizeBytes = photoSize.file_size || 0;
+                        const fileId = photoSource.fileId;
+                        const fileSizeBytes = photoSource.fileSize;
 
                         if (fileSizeBytes > MAX_FILE_SIZE) {
                             await ctx.reply('<b>❌ Gagal</b>\n\nUkuran gambar maksimal 5MB!', { parse_mode: 'HTML' });
@@ -1011,7 +1031,7 @@ function setupTelegramBot() {
                         }
 
                         const timestamp = Date.now();
-                        const tempDir = path.join(process.cwd(), 'temp');
+                        const tempDir = await ensureTempDir();
                         inputPath = path.join(tempDir, `input_bg_${timestamp}.jpg`);
                         outputPath = path.join(tempDir, `output_bg_${timestamp}.png`);
 
@@ -1073,7 +1093,7 @@ function setupTelegramBot() {
                         }
 
                         const timestamp = Date.now();
-                        const tempDir = path.join(process.cwd(), 'temp');
+                        const tempDir = await ensureTempDir();
                         outputPath = path.join(tempDir, `output_ss_${timestamp}.jpg`);
 
                         await htmlToImage(url, outputPath);

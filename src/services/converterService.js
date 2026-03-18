@@ -13,6 +13,15 @@ const { checkAndIncrementQuota } = require('./quotaService');
 
 const cloudConvert = new CloudConvert(process.env.CLOUDCONVERT_API_KEY);
 
+async function checkQuotaSafely(serviceName, limit, isDaily = false) {
+    try {
+        return await checkAndIncrementQuota(serviceName, limit, isDaily);
+    } catch (error) {
+        console.warn(`Quota service unavailable for ${serviceName}, proceeding without quota enforcement:`, error.message);
+        return true;
+    }
+}
+
 // Process local image with specified action (compress, resize, convert format, rotate)
 async function processLocalImage(inputPath, outputPath, options = {}) {
     try {
@@ -97,7 +106,7 @@ async function processLocalImage(inputPath, outputPath, options = {}) {
 async function removeBackground(inputPath, outputPath) {
     try {
         // Check quota
-        const hasQuota = await checkAndIncrementQuota('removebg', 50);
+        const hasQuota = await checkQuotaSafely('removebg', 50);
         if (!hasQuota) {
             throw new Error('❌ Kuota Remove BG habis (50/50 bulan ini)');
         }
@@ -152,7 +161,7 @@ async function removeBackground(inputPath, outputPath) {
 async function htmlToImage(url, outputPath) {
     try {
         // Check quota
-        const hasQuota = await checkAndIncrementQuota('html2img', 50);
+        const hasQuota = await checkQuotaSafely('html2img', 50);
         if (!hasQuota) {
             throw new Error('❌ Kuota Web2Img habis (50/50 bulan ini)');
         }
@@ -317,7 +326,7 @@ async function mergePdfs(inputPathsArray, outputPath) {
 
 // Run a CloudConvert job with specified input, output, and task configuration
 async function runCloudConvertJob(inputPath, outputPath, taskConfig) {
-    const hasQuota = await checkAndIncrementQuota('cloudconvert', 10, true);
+    const hasQuota = await checkQuotaSafely('cloudconvert', 10, true);
     if (!hasQuota) {
         throw new Error('❌ Kuota CloudConvert harian habis (10/10 hari ini).');
     }
