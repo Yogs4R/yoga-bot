@@ -1,6 +1,7 @@
 // Telegram message/event handler
 const os = require('os');
 const fs = require('fs/promises');
+const fsSync = require('fs');
 const path = require('path');
 const bot = require('../lib/telegramClient');
 const { Markup } = require('telegraf');
@@ -11,9 +12,21 @@ const { getHistoryPage } = require('../services/financeService');
 const { isAdmin } = require('../utils/auth');
 const { checkWebsites, formatMonitorMessage, getMonitorWebsiteLinks } = require('../services/monitorService');
 const { handleImgCommand } = require('../commands/converter/index');
-const { MAX_FILE_SIZE } = require('../services/converterService');
-
+const {
+    MAX_FILE_SIZE,
+    removeBackground,
+    htmlToImage,
+    rotatePdf,
+    extractPdf,
+    mergePdfs,
+    convertToPdf,
+    convertFromPdf,
+    compressPdf
+} = require('../services/converterService');
 const HISTORY_PAGE_SIZE = 5;
+const MAX_PDF_INPUT_SIZE = 10 * 1024 * 1024;
+const MAX_PDF_LOCAL_INPUT_SIZE = 15 * 1024 * 1024;
+const mergeSessions = {};
 
 function escapeHtml(text) {
     return String(text || '')
@@ -30,6 +43,51 @@ function autoLink(text) {
 
 function escapeRegex(value) {
     return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function getExtensionFromFileName(fileName) {
+    const ext = path.extname(String(fileName || '')).replace('.', '').toLowerCase();
+    return ext || '';
+}
+
+function getExtensionFromMimeType(mimeType) {
+    const mime = String(mimeType || '').toLowerCase();
+    const map = {
+        'application/pdf': 'pdf',
+        'application/msword': 'doc',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+        'application/vnd.ms-excel': 'xls',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+        'application/vnd.ms-powerpoint': 'ppt',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
+        'text/plain': 'txt',
+        'image/jpeg': 'jpg',
+        'image/png': 'png',
+        'image/webp': 'webp',
+        'video/mp4': 'mp4'
+    };
+
+    return map[mime] || '';
+}
+
+function isTelegramPdfDocument(document) {
+    if (!document) {
+        return false;
+    }
+
+    const extFromName = getExtensionFromFileName(document.file_name);
+    const mimeType = String(document.mime_type || '').toLowerCase();
+    return extFromName === 'pdf' || mimeType.includes('pdf');
+}
+
+function safeUnlinkSync(filePath) {
+    try {
+        if (filePath && fsSync.existsSync(filePath)) {
+            fsSync.unlinkSync(filePath);
+        }
+    } catch (error) {
+        console.error('Failed to delete temp file:', filePath, error);
+    }
 }
 
 function stripWrappingQuotes(value) {
@@ -196,7 +254,7 @@ function buildMainMenuKeyboard() {
         [Markup.button.callback('⚙️ Info', 'cmd:info'), Markup.button.callback('📊 Laporan Keuangan', 'cmd:laporan')],
         [Markup.button.callback('🌤️ Cuaca', 'cmd:cuaca'), Markup.button.callback('🕌 Sholat', 'cmd:sholat')],
         [Markup.button.callback('👨‍💻 About Me', 'cmd:me'), Markup.button.callback('🏓 Ping', 'cmd:ping')],
-        [Markup.button.callback('🖼️ Image Tools', 'cmd:img_info')]
+        [Markup.button.callback('🖼️ Image Tools', 'cmd:img_info'), Markup.button.callback('📄 PDF Tools', 'cmd:pdf_info')]
     ]);
 }
 
@@ -246,6 +304,22 @@ function buildDeleteConfirmKeyboard(transactionId) {
             Markup.button.callback('❌ Batal', `delete_cancel:${transactionId}`)
         ]
     ]);
+}
+
+function buildImageToolsInfoTelegramMessage() {
+    return `<b>IMAGE TOOLS</b> 🖼️\n\nKonversi, edit, hapus background, dan screenshot web.\n\n<b>MODE 1 - BALAS FOTO:</b>\n1. Balas pesan dengan gambar/foto\n2. Kirim salah satu command berikut\n\n<pre>/img compress\n/img resize WxH\n/img to format\n/img rotate deg\n/hapusbg</pre>\n\n<b>MODE 2 - SCREENSHOT WEB:</b>\n<pre>/ss https://example.com</pre>\n\n<b>KETERANGAN:</b>\n• /img compress : Kompres ukuran gambar\n• /img resize WxH : Ubah ukuran (contoh: 500x500)\n• /img to format : Format didukung jpg, png, jpeg, webp\n• /img rotate deg : Sudut didukung 90, 180, 270\n• /hapusbg : Hapus background (kuota 50/bulan)\n• /ss &lt;url&gt; : Screenshot website (kuota 50/bulan)\n\n<b>CATATAN REMOVE BG:</b>\nGratis hanya preview rendah (maks 0,25 MP).\n\n<b>BATASAN FILE FOTO:</b> Maks 5MB`;
+}
+
+async function sendImageToolsInfoMessage(ctx) {
+    await ctx.reply(buildImageToolsInfoTelegramMessage(), { parse_mode: 'HTML' });
+}
+
+function buildPdfToolsInfoTelegramMessage() {
+    return `<b>PDF TOOLS</b> 📄\n\nKonversi, optimasi, rotasi, ekstrak, dan merge halaman PDF.\n\n<b>MODE 1 - KE PDF:</b>\n1. Balas/kirim dokumen atau media\n2. Kirim command:\n\n<pre>/topdf</pre>\n\n<b>MODE 2 - DARI PDF:</b>\nBalas/kirim file PDF, lalu gunakan:\n\n<pre>/pdf compress\n/pdf to format\n/pdf rotate deg\n/pdf extract 1-3,5</pre>\n\n<b>MODE 3 - MERGE BANYAK PDF:</b>\n<pre>/pdf merge start\n(kirim file PDF satu per satu)\n/pdf merge done\n/pdf merge cancel</pre>\n\n<b>KETERANGAN:</b>\n• /topdf : Konversi file ke PDF (CloudConvert)\n• /pdf compress : Kompres ukuran PDF (CloudConvert)\n• /pdf to format : Konversi PDF ke format lain (CloudConvert)\n• /pdf rotate deg : Rotasi semua halaman PDF (lokal)\n• /pdf extract pages : Ambil halaman tertentu (lokal)\n• /pdf merge start|done|cancel : Gabung banyak PDF (lokal)\n\n<b>CONTOH:</b>\n• <code>/pdf to docx</code>\n• <code>/pdf rotate 90</code>\n• <code>/pdf extract 1-3,5</code>\n• <code>/pdf merge start</code>\n\n<b>BATASAN:</b>\n• CloudConvert: max 10MB, kuota 10 request/hari\n• Proses lokal (rotate/extract/merge): max 15MB per file`;
+}
+
+async function sendPdfToolsInfoMessage(ctx) {
+    await ctx.reply(buildPdfToolsInfoTelegramMessage(), { parse_mode: 'HTML' });
 }
 
 async function handleUtilityCommand(command, args, userId, platform = 'telegram') {
@@ -339,6 +413,228 @@ async function handleImageConverter(ctx, args) {
     } finally {
         if (inputPath) await fs.unlink(inputPath).catch(() => {});
         if (outputPath) await fs.unlink(outputPath).catch(() => {});
+    }
+}
+
+async function handleTelegramPdfTools(ctx, command, args) {
+    let inputPath = null;
+    let outputPath = null;
+
+    try {
+        const isToPdf = command === '/topdf';
+        const userId = ctx.from.id.toString();
+        let mode = isToPdf ? 'topdf' : '';
+        let outputFormat = 'pdf';
+        let rotateAngle = 0;
+        let extractPages = '';
+
+        if (!isToPdf) {
+            const action = String(args[0] || '').toLowerCase().trim();
+
+            if (action === 'merge') {
+                const mergeAction = String(args[1] || '').toLowerCase().trim();
+
+                if (mergeAction === 'start') {
+                    const previousFiles = mergeSessions[userId] || [];
+                    for (const filePath of previousFiles) {
+                        safeUnlinkSync(filePath);
+                    }
+
+                    mergeSessions[userId] = [];
+                    await ctx.reply('✅ Mode Merge Aktif! Kirim file PDF satu per satu. Ketik /pdf merge done jika sudah semua, atau /pdf merge cancel untuk batal.');
+                    return;
+                }
+
+                if (mergeAction === 'cancel') {
+                    const sessionFiles = mergeSessions[userId] || [];
+                    for (const filePath of sessionFiles) {
+                        safeUnlinkSync(filePath);
+                    }
+                    delete mergeSessions[userId];
+                    await ctx.reply('❌ Merge dibatalkan. Semua file sesi dihapus.');
+                    return;
+                }
+
+                if (mergeAction === 'done') {
+                    const sessionFiles = mergeSessions[userId];
+                    if (!Array.isArray(sessionFiles) || sessionFiles.length < 2) {
+                        await ctx.reply('❌ Minimal butuh 2 file PDF!');
+                        return;
+                    }
+
+                    const filesToMerge = [...sessionFiles];
+                    const tempDir = path.join(process.cwd(), 'temp');
+                    outputPath = path.join(tempDir, `merged_${Date.now()}.pdf`);
+
+                    try {
+                        await mergePdfs(filesToMerge, outputPath);
+                        await ctx.replyWithDocument(
+                            { source: outputPath, filename: path.basename(outputPath) },
+                            { caption: '<b>✅ PDF MERGE BERHASIL</b>\n\nSemua file PDF berhasil digabung.', parse_mode: 'HTML' }
+                        );
+                    } finally {
+                        for (const filePath of filesToMerge) {
+                            safeUnlinkSync(filePath);
+                        }
+                        safeUnlinkSync(outputPath);
+                        delete mergeSessions[userId];
+                    }
+
+                    return;
+                }
+
+                await ctx.reply(
+                    '<b>❌ Format Salah</b>\n\nGunakan:\n<code>/pdf merge start</code>\n<code>/pdf merge done</code>\n<code>/pdf merge cancel</code>',
+                    { parse_mode: 'HTML' }
+                );
+                return;
+            }
+
+            if (action === 'compress') {
+                mode = 'compress';
+                outputFormat = 'pdf';
+            } else if (action === 'to' && args[1]) {
+                mode = 'to';
+                outputFormat = String(args[1] || '').replace(/^\./, '').toLowerCase();
+            } else if (action === 'rotate' && args[1]) {
+                mode = 'rotate';
+                outputFormat = 'pdf';
+                rotateAngle = parseInt(args[1], 10);
+                if (!Number.isInteger(rotateAngle)) {
+                    await ctx.reply('<b>❌ Format Salah</b>\n\nContoh rotasi: <code>/pdf rotate 90</code>', { parse_mode: 'HTML' });
+                    return;
+                }
+            } else if (action === 'extract' && args.length > 1) {
+                mode = 'extract';
+                outputFormat = 'pdf';
+                extractPages = args.slice(1).join(' ').trim();
+                if (!extractPages) {
+                    await ctx.reply('<b>❌ Format Salah</b>\n\nContoh extract: <code>/pdf extract 1-3,5</code>', { parse_mode: 'HTML' });
+                    return;
+                }
+            } else {
+                await ctx.reply(
+                    '<b>❌ Format Salah</b>\n\nGunakan:\n<code>/pdf compress</code>\n<code>/pdf to &lt;format&gt;</code>\n<code>/pdf rotate &lt;deg&gt;</code>\n<code>/pdf extract &lt;halaman&gt;</code>\n<code>/pdf merge start|done|cancel</code>',
+                    { parse_mode: 'HTML' }
+                );
+                return;
+            }
+        }
+
+        const candidates = [ctx.message, ctx.message?.reply_to_message].filter(Boolean);
+        let source = null;
+
+        for (const candidate of candidates) {
+            if (candidate.document) {
+                const extFromName = getExtensionFromFileName(candidate.document.file_name);
+                const extFromMime = getExtensionFromMimeType(candidate.document.mime_type);
+                source = {
+                    fileId: candidate.document.file_id,
+                    fileSize: Number(candidate.document.file_size || 0),
+                    inputExt: extFromName || extFromMime || 'bin',
+                    mimeType: String(candidate.document.mime_type || '')
+                };
+                break;
+            }
+
+            if (isToPdf && Array.isArray(candidate.photo) && candidate.photo.length > 0) {
+                const largestPhoto = candidate.photo[candidate.photo.length - 1];
+                source = {
+                    fileId: largestPhoto.file_id,
+                    fileSize: Number(largestPhoto.file_size || 0),
+                    inputExt: 'jpg',
+                    mimeType: 'image/jpeg'
+                };
+                break;
+            }
+
+            if (isToPdf && candidate.video) {
+                source = {
+                    fileId: candidate.video.file_id,
+                    fileSize: Number(candidate.video.file_size || 0),
+                    inputExt: getExtensionFromMimeType(candidate.video.mime_type) || 'mp4',
+                    mimeType: String(candidate.video.mime_type || '')
+                };
+                break;
+            }
+        }
+
+        if (!source) {
+            const usage = isToPdf
+                ? 'Balas atau kirim dokumen/media lalu gunakan <code>/topdf</code>.'
+                : 'Balas atau kirim file PDF lalu gunakan <code>/pdf compress</code> atau <code>/pdf to &lt;format&gt;</code>.';
+            await ctx.reply(`<b>❌ File Tidak Ditemukan</b>\n\n${usage}`, { parse_mode: 'HTML' });
+            return;
+        }
+
+        const isLocalPdfProcess = mode === 'rotate' || mode === 'extract';
+        const maxPdfSize = isLocalPdfProcess ? MAX_PDF_LOCAL_INPUT_SIZE : MAX_PDF_INPUT_SIZE;
+        if (source.fileSize > maxPdfSize) {
+            const maxLabel = isLocalPdfProcess ? '15MB' : '10MB';
+            await ctx.reply(`<b>❌ Gagal: Ukuran file maksimal ${maxLabel}!</b>`, { parse_mode: 'HTML' });
+            return;
+        }
+
+        const inputExt = String(source.inputExt || '').toLowerCase();
+        const isPdfInput = inputExt === 'pdf' || source.mimeType.toLowerCase().includes('pdf');
+
+        if (!isToPdf && !isPdfInput) {
+            await ctx.reply('<b>❌ Format Salah</b>\n\nCommand <code>/pdf</code> hanya untuk file PDF.', { parse_mode: 'HTML' });
+            return;
+        }
+
+        const timestamp = Date.now();
+        const tempDir = path.join(process.cwd(), 'temp');
+        inputPath = path.join(tempDir, `input_${timestamp}.${inputExt || 'bin'}`);
+        outputPath = path.join(tempDir, `output_${timestamp}.${outputFormat}`);
+
+        const file = await ctx.telegram.getFile(source.fileId);
+        const fileLink = `https://api.telegram.org/file/bot${bot.token}/${file.file_path}`;
+
+        const https = require('https');
+        const fileData = await new Promise((resolve, reject) => {
+            https.get(fileLink, (response) => {
+                const chunks = [];
+                response.on('data', (chunk) => chunks.push(chunk));
+                response.on('end', () => resolve(Buffer.concat(chunks)));
+                response.on('error', reject);
+            }).on('error', reject);
+        });
+
+        await fs.writeFile(inputPath, fileData);
+
+        if (isToPdf) {
+            await convertToPdf(inputPath, outputPath, inputExt);
+        } else if (mode === 'compress') {
+            await compressPdf(inputPath, outputPath);
+        } else if (mode === 'rotate') {
+            await rotatePdf(inputPath, outputPath, rotateAngle);
+        } else if (mode === 'extract') {
+            await extractPdf(inputPath, outputPath, extractPages);
+        } else {
+            await convertFromPdf(inputPath, outputPath, outputFormat);
+        }
+
+        const caption = isToPdf
+            ? '<b>✅ TOPDF BERHASIL</b>\n\nFile berhasil dikonversi ke PDF.'
+            : mode === 'compress'
+                ? '<b>✅ PDF COMPRESS BERHASIL</b>\n\nFile PDF berhasil dikompres.'
+                : mode === 'rotate'
+                    ? `<b>✅ PDF ROTATE BERHASIL</b>\n\nSemua halaman diputar <code>${escapeHtml(String(rotateAngle))}</code> derajat.`
+                    : mode === 'extract'
+                        ? `<b>✅ PDF EXTRACT BERHASIL</b>\n\nHalaman terpilih: <code>${escapeHtml(extractPages)}</code>.`
+                : `<b>✅ PDF CONVERT BERHASIL</b>\n\nFile PDF berhasil dikonversi ke <code>${escapeHtml(outputFormat)}</code>.`;
+
+        await ctx.replyWithDocument(
+            { source: outputPath, filename: path.basename(outputPath) },
+            { caption, parse_mode: 'HTML' }
+        );
+    } catch (error) {
+        console.error('Error in PDF tools Telegram handler:', error);
+        await ctx.reply(`<b>ERROR PDF TOOLS</b> ❌\n\n${escapeHtml(error.message)}`, { parse_mode: 'HTML' });
+    } finally {
+        safeUnlinkSync(inputPath);
+        safeUnlinkSync(outputPath);
     }
 }
 
@@ -453,7 +749,7 @@ async function processMenuCommand(ctx, command, userId) {
         }
         case '/info': {
             const header = '<b>INFORMASI YOGA BOT</b> 🤖';
-            const body = `Saya adalah asisten virtual pribadi milik <b>Ridwan Yoga Suryantara</b>.\n\n<b>FITUR KEUANGAN</b> 💰\n• /saldo : Cek saldo keuangan\n• /catat : Catat pengeluaran\n• /pemasukan : Catat pemasukan\n• /laporan_chart : Grafik laporan keuangan\n• /riwayat : Riwayat transaksi (paging 5 data)\n• /hapus : Hapus transaksi (dengan konfirmasi)\n• /edit : Edit transaksi\n\n<b>FITUR SISTEM</b> ⚙️\n• /ping : Cek status bot\n• /info : Menampilkan pesan ini\n• /start : Memulai bot\n\n<b>FITUR AI</b> 🧠\nKirim pesan biasa (tanpa awalan /) untuk ngobrol, tanya coding, atau diskusi teknologi.\n\n<b>FITUR UTILITAS</b> 🛠️\n• /cuaca : Info cuaca hari ini\n• /sholat : Jadwal sholat hari ini\n• /me : Tentang pembuat bot\n\n<b>FITUR CONVERTER</b> 🖼️\n• /img compress : Kompres gambar\n• /img resize 500x500 : Ubah ukuran\n• /img to png : Konversi format (jpg, png, webp)\n• /img rotate 90 : Putar gambar\n(Balas pesan dengan gambar lalu ketik command)\n\n<b>FITUR ADMIN</b> 🛡️\n• /admin : Menu command admin`;
+            const body = `Saya adalah asisten virtual pribadi milik <b>Ridwan Yoga Suryantara</b>.\n\n<b>FITUR KEUANGAN</b> 💰\n• /saldo : Cek saldo keuangan\n• /catat : Catat pengeluaran\n• /pemasukan : Catat pemasukan\n• /laporan_chart : Grafik laporan keuangan\n• /riwayat : Riwayat transaksi (paging 5 data)\n• /hapus : Hapus transaksi (dengan konfirmasi)\n• /edit : Edit transaksi\n\n<b>FITUR SISTEM</b> ⚙️\n• /ping : Cek status bot\n• /info : Menampilkan pesan ini\n• /start : Memulai bot\n\n<b>FITUR AI</b> 🧠\nKirim pesan biasa (tanpa awalan /) untuk ngobrol, tanya coding, atau diskusi teknologi.\n\n<b>FITUR UTILITAS</b> 🛠️\n• /cuaca : Info cuaca hari ini\n• /sholat : Jadwal sholat hari ini\n• /me : Tentang pembuat bot\n\n<b>FITUR CONVERTER</b> 🖼️\n• /img_info : Panduan lengkap image tools\n• /pdf_info : Panduan lengkap PDF tools\n\n<b>FITUR ADMIN</b> 🛡️\n• /admin : Menu command admin`;
             const message = `${header}\n\n${body}\n\n${buildSystemStatsFooter()}`;
             await ctx.reply(message, {
                 parse_mode: 'HTML',
@@ -492,21 +788,68 @@ async function processMenuCommand(ctx, command, userId) {
 }
 
 function setupTelegramBot() {
-    // Event listener for text messages
-    bot.on('text', async (ctx) => {
-        const rawText = ctx.message?.text || '';
+    // Event listener for text/caption messages
+    bot.on('message', async (ctx) => {
+        let text = ctx.message?.text || ctx.message?.caption || '';
+        const userId = ctx.from.id.toString();
+        const hasPdfDocument = isTelegramPdfDocument(ctx.message?.document);
+        const hasActiveMergeSession = Array.isArray(mergeSessions[userId]);
         const isGroup = ctx.chat.type === 'group' || ctx.chat.type === 'supergroup';
         const botUsername = process.env.TELEGRAM_BOT_USERNAME;
-        const isMentioned = botUsername && rawText.includes(`@${botUsername}`);
+        const isMentioned = botUsername && text.includes(`@${botUsername}`);
 
         // Di dalam grup, bot HANYA merespon jika di-mention (tag).
         // Abaikan semua pesan (termasuk command) jika tidak ada mention.
-        if (isGroup && !isMentioned) {
+        if (isGroup && !isMentioned && !(hasActiveMergeSession && hasPdfDocument)) {
             return;
         }
 
-        const text = sanitizeTelegramIncomingText(rawText);
-        const userId = ctx.from.id.toString();
+        if (hasPdfDocument && hasActiveMergeSession) {
+            let downloadPath = null;
+
+            try {
+                const document = ctx.message.document;
+                const fileSize = Number(document.file_size || 0);
+                if (fileSize > MAX_PDF_LOCAL_INPUT_SIZE) {
+                    await ctx.reply('<b>❌ Gagal</b>\n\nUkuran file maksimal 15MB per PDF untuk merge.', { parse_mode: 'HTML' });
+                    return;
+                }
+
+                const timestamp = Date.now();
+                const tempDir = path.join(process.cwd(), 'temp');
+                const nextIndex = mergeSessions[userId].length + 1;
+                downloadPath = path.join(tempDir, `input_merge_${timestamp}_${nextIndex}.pdf`);
+
+                const file = await ctx.telegram.getFile(document.file_id);
+                const fileLink = `https://api.telegram.org/file/bot${bot.token}/${file.file_path}`;
+
+                const https = require('https');
+                const fileData = await new Promise((resolve, reject) => {
+                    https.get(fileLink, (response) => {
+                        const chunks = [];
+                        response.on('data', (chunk) => chunks.push(chunk));
+                        response.on('end', () => resolve(Buffer.concat(chunks)));
+                        response.on('error', reject);
+                    }).on('error', reject);
+                });
+
+                await fs.writeFile(downloadPath, fileData);
+                mergeSessions[userId].push(downloadPath);
+
+                await ctx.reply(`📄 File ke-${mergeSessions[userId].length} diterima! Kirim lagi atau ketik /pdf merge done.`);
+            } catch (error) {
+                safeUnlinkSync(downloadPath);
+                console.error('Error saat menerima file merge PDF Telegram:', error);
+                await ctx.reply(`<b>ERROR PDF MERGE</b> ❌\n\n${escapeHtml(error.message)}`, { parse_mode: 'HTML' });
+            }
+
+            return;
+        }
+
+        text = sanitizeTelegramIncomingText(text);
+        if (!text) {
+            return;
+        }
         
         // Handle commands
         if (text.startsWith('/')) {
@@ -635,6 +978,132 @@ function setupTelegramBot() {
                     break;
                 }
 
+                case '/img_info': {
+                    await sendImageToolsInfoMessage(ctx);
+                    break;
+                }
+
+                case '/pdf_info': {
+                    await sendPdfToolsInfoMessage(ctx);
+                    break;
+                }
+
+                case '/hapusbg': {
+                    let inputPath = null;
+                    let outputPath = null;
+
+                    try {
+                        const message = ctx.message;
+                        const replyTo = message?.reply_to_message;
+
+                        if (!replyTo || !replyTo.photo) {
+                            await ctx.reply('<b>❌ ERROR REMOVE BG</b>\n\nBalas pesan dengan gambar untuk menghapus background.', { parse_mode: 'HTML' });
+                            break;
+                        }
+
+                        const photoSize = replyTo.photo[replyTo.photo.length - 1];
+                        const fileId = photoSize.file_id;
+                        const fileSizeBytes = photoSize.file_size || 0;
+
+                        if (fileSizeBytes > MAX_FILE_SIZE) {
+                            await ctx.reply('<b>❌ Gagal</b>\n\nUkuran gambar maksimal 5MB!', { parse_mode: 'HTML' });
+                            break;
+                        }
+
+                        const timestamp = Date.now();
+                        const tempDir = path.join(process.cwd(), 'temp');
+                        inputPath = path.join(tempDir, `input_bg_${timestamp}.jpg`);
+                        outputPath = path.join(tempDir, `output_bg_${timestamp}.png`);
+
+                        const file = await ctx.telegram.getFile(fileId);
+                        const fileLink = `https://api.telegram.org/file/bot${bot.token}/${file.file_path}`;
+
+                        const https = require('https');
+                        const fileData = await new Promise((resolve, reject) => {
+                            https.get(fileLink, (response) => {
+                                const chunks = [];
+                                response.on('data', (chunk) => chunks.push(chunk));
+                                response.on('end', () => resolve(Buffer.concat(chunks)));
+                                response.on('error', reject);
+                            }).on('error', reject);
+                        });
+
+                        await require('fs/promises').writeFile(inputPath, fileData);
+
+                        await removeBackground(inputPath, outputPath);
+
+                        const fileBuffer = await require('fs/promises').readFile(outputPath);
+                        await ctx.replyWithPhoto(
+                            { source: fileBuffer },
+                            {
+                                caption: '<b>✅ Background Dihapus!</b>\n\n<i>Preview resolusi rendah. Untuk HD resolution, gunakan kredit berbayar di situs remove.bg.</i>',
+                                parse_mode: 'HTML'
+                            }
+                        );
+                    } catch (error) {
+                        console.error('Error in /hapusbg handler:', error);
+                        const errorMsg = error.message.includes('Kuota') 
+                            ? error.message 
+                            : `❌ Error: ${escapeHtml(error.message)}`;
+                        await ctx.reply(`<b>ERROR REMOVE BG</b>\n\n${errorMsg}`, { parse_mode: 'HTML' });
+                    } finally {
+                        if (inputPath) await require('fs/promises').unlink(inputPath).catch(() => {});
+                        if (outputPath) await require('fs/promises').unlink(outputPath).catch(() => {});
+                    }
+                    break;
+                }
+
+                case '/ss': {
+                    let outputPath = null;
+
+                    try {
+                        if (args.length === 0) {
+                            await ctx.reply('<b>❌ Format Salah</b>\n\nGunakan: <code>/ss &lt;URL&gt;</code>\n\nContoh: <code>/ss https://example.com</code>', { parse_mode: 'HTML' });
+                            break;
+                        }
+
+                        const url = args.join(' ').trim();
+
+                        // Validate URL
+                        try {
+                            new URL(url);
+                        } catch (e) {
+                            await ctx.reply('<b>❌ URL Tidak Valid</b>\n\nTetapkan URL yang benar dimulai dengan http:// atau https://', { parse_mode: 'HTML' });
+                            break;
+                        }
+
+                        const timestamp = Date.now();
+                        const tempDir = path.join(process.cwd(), 'temp');
+                        outputPath = path.join(tempDir, `output_ss_${timestamp}.jpg`);
+
+                        await htmlToImage(url, outputPath);
+
+                        const fileBuffer = await require('fs/promises').readFile(outputPath);
+                        await ctx.replyWithPhoto(
+                            { source: fileBuffer },
+                            {
+                                caption: '<b>✅ Screenshot Berhasil!</b>\n\n<i>Tangkapan halaman web diambil dengan resolusi standar.</i>',
+                                parse_mode: 'HTML'
+                            }
+                        );
+                    } catch (error) {
+                        console.error('Error in /ss handler:', error);
+                        const errorMsg = error.message.includes('Kuota') 
+                            ? error.message 
+                            : `❌ Error: ${escapeHtml(error.message)}`;
+                        await ctx.reply(`<b>ERROR SCREENSHOT</b>\n\n${errorMsg}`, { parse_mode: 'HTML' });
+                    } finally {
+                        if (outputPath) await require('fs/promises').unlink(outputPath).catch(() => {});
+                    }
+                    break;
+                }
+
+                case '/topdf':
+                case '/pdf': {
+                    await handleTelegramPdfTools(ctx, command, args);
+                    break;
+                }
+
                 case '/hapus':
                     if (args.length < 1) {
                         await ctx.reply('Format: <code>/hapus &lt;id_transaksi&gt;</code>\nContoh: <code>/hapus 123e4567</code>\nGunakan /riwayat untuk melihat ID transaksi.', { parse_mode: 'HTML' });
@@ -709,8 +1178,13 @@ function setupTelegramBot() {
         try {
             if (data === 'cmd:img_info') {
                 await ctx.answerCbQuery();
-                const message = `<b>IMAGE TOOLS</b> 🖼️\n\nKonversi dan edit gambar dengan mudah:\n\n<b>CARA PENGGUNAAN:</b>\n1. Balas pesan dengan gambar/foto\n2. Ketik salah satu command:\n\n<code>/img compress</code>\nKompres ukuran file hingga 60% lebih kecil\n\n<code>/img resize 500x500</code>\nUbah ukuran jadi 500x500px\n\n<code>/img to png</code>\nKonversi ke format (jpg, png, webp)\n\n<code>/img rotate 90</code>\nPutar gambar (90, 180, 270°)\n\n<b>BATASAN:</b> Maks 5MB\n\nTips: Gunakan 'compress' untuk file besar!`;
-                await ctx.reply(message, { parse_mode: 'HTML' });
+                await sendImageToolsInfoMessage(ctx);
+                return;
+            }
+
+            if (data === 'cmd:pdf_info') {
+                await ctx.answerCbQuery();
+                await sendPdfToolsInfoMessage(ctx);
                 return;
             }
 
