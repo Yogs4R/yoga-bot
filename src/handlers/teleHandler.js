@@ -12,6 +12,7 @@ const { getHistoryPage } = require('../services/financeService');
 const { isAdmin } = require('../utils/auth');
 const { checkWebsites, formatMonitorMessage, getMonitorWebsiteLinks } = require('../services/monitorService');
 const { handleImgCommand } = require('../commands/converter/index');
+const { getQuotaStatus } = require('../services/quotaService');
 const {
     MAX_FILE_SIZE,
     removeBackground,
@@ -328,20 +329,47 @@ function buildDeleteConfirmKeyboard(transactionId) {
     ]);
 }
 
-function buildImageToolsInfoTelegramMessage() {
-    return `<b>IMAGE TOOLS</b> 🖼️\n\nKonversi, edit, hapus background, dan screenshot web.\n\n<b>MODE 1 - BALAS FOTO:</b>\n1. Balas pesan dengan gambar/foto\n2. Kirim salah satu command berikut\n\n<pre>/img compress\n/img resize WxH\n/img to format\n/img rotate deg\n/hapusbg</pre>\n\n<b>MODE 2 - SCREENSHOT WEB:</b>\n<pre>/ss https://example.com</pre>\n\n<b>KETERANGAN:</b>\n• /img compress : Kompres ukuran gambar\n• /img resize WxH : Ubah ukuran (contoh: 500x500)\n• /img to format : Format didukung jpg, png, jpeg, webp\n• /img rotate deg : Sudut didukung 90, 180, 270\n• /hapusbg : Hapus background (kuota 50/bulan)\n• /ss &lt;url&gt; : Screenshot website (kuota 50/bulan)\n\n<b>CATATAN REMOVE BG:</b>\nGratis hanya preview rendah (maks 0,25 MP).\n\n<b>BATASAN FILE FOTO:</b> Maks 5MB`;
+function formatQuotaLimit(limit) {
+    const numericLimit = Number(limit);
+    return Number.isFinite(numericLimit) && numericLimit > 0 ? String(numericLimit) : 'Unlimited';
 }
 
-async function sendImageToolsInfoMessage(ctx) {
-    await ctx.reply(buildImageToolsInfoTelegramMessage(), { parse_mode: 'HTML' });
+function formatQuotaUsageText(status) {
+    const usage = Number(status?.usage || 0);
+    const limitText = formatQuotaLimit(status?.limit);
+    return limitText === 'Unlimited' ? String(usage) : `${usage}/${limitText}`;
 }
 
-function buildPdfToolsInfoTelegramMessage() {
-    return `<b>PDF TOOLS</b> 📄\n\nKonversi, optimasi, rotasi, ekstrak, dan merge halaman PDF.\n\n<b>MODE 1 - KE PDF:</b>\n1. Balas/kirim dokumen atau media\n2. Kirim command:\n\n<pre>/topdf</pre>\n\n<b>MODE 2 - DARI PDF:</b>\nBalas/kirim file PDF, lalu gunakan:\n\n<pre>/pdf compress\n/pdf to format\n/pdf rotate deg\n/pdf extract 1-3,5</pre>\n\n<b>MODE 3 - MERGE BANYAK PDF:</b>\n<pre>/pdf merge start\n(kirim file PDF satu per satu)\n/pdf merge done\n/pdf merge cancel</pre>\n\n<b>KETERANGAN:</b>\n• /topdf : Konversi file ke PDF (CloudConvert)\n• /pdf compress : Kompres ukuran PDF (CloudConvert)\n• /pdf to format : Konversi PDF ke format lain (CloudConvert)\n• /pdf rotate deg : Rotasi semua halaman PDF (lokal)\n• /pdf extract pages : Ambil halaman tertentu (lokal)\n• /pdf merge start|done|cancel : Gabung banyak PDF (lokal)\n\n<b>CONTOH:</b>\n• <code>/pdf to docx</code>\n• <code>/pdf rotate 90</code>\n• <code>/pdf extract 1-3,5</code>\n• <code>/pdf merge start</code>\n\n<b>BATASAN:</b>\n• CloudConvert: max 10MB, kuota 10 request/hari\n• Proses lokal (rotate/extract/merge): max 15MB per file`;
+async function buildImageToolsQuotaFooter() {
+    const [removeBgStatus, htmlToImageStatus] = await Promise.all([
+        getQuotaStatus('removebg', 50, false),
+        getQuotaStatus('html2img', 50, false)
+    ]);
+
+    return [
+        '—'.repeat(19),
+        `REMOVEBG: Usage: ${formatQuotaUsageText(removeBgStatus)} | Limit: ${formatQuotaLimit(removeBgStatus.limit)}`,
+        `html2img: Usage: ${formatQuotaUsageText(htmlToImageStatus)} | Limit: ${formatQuotaLimit(htmlToImageStatus.limit)}`
+    ].join('\n');
 }
 
-async function sendPdfToolsInfoMessage(ctx) {
-    await ctx.reply(buildPdfToolsInfoTelegramMessage(), { parse_mode: 'HTML' });
+async function buildPdfToolsQuotaFooter() {
+    const cloudConvertStatus = await getQuotaStatus('cloudconvert', 10, true);
+    const cloudConvertLimit = formatQuotaLimit(cloudConvertStatus.limit);
+    const cloudConvertUsage = formatQuotaUsageText(cloudConvertStatus);
+
+    return [
+        '—'.repeat(19),
+        `CloudConvert: Usage: ${cloudConvertUsage} | Limit: ${cloudConvertLimit}`
+    ].join('\n');
+}
+
+function buildImageToolsInfoTelegramBody() {
+    return `Konversi, edit, hapus background, dan screenshot web.\n\n<b>MODE 1 - BALAS FOTO:</b>\n1. Balas pesan dengan gambar/foto\n2. Kirim salah satu command berikut\n\n<pre>/img compress\n/img resize WxH\n/img to format\n/img rotate deg\n/hapusbg</pre>\n\n<b>MODE 2 - SCREENSHOT WEB:</b>\n<pre>/ss https://example.com</pre>\n\n<b>KETERANGAN:</b>\n• /img compress : Kompres ukuran gambar\n• /img resize WxH : Ubah ukuran (contoh: 500x500)\n• /img to format : Format didukung jpg, png, jpeg, webp\n• /img rotate deg : Sudut didukung 90, 180, 270\n• /hapusbg : Hapus background (kuota 50/bulan)\n• /ss &lt;url&gt; : Screenshot website (kuota 50/bulan)\n\n<b>CATATAN REMOVE BG:</b>\nGratis hanya preview rendah (maks 0,25 MP).\n\n<b>BATASAN FILE FOTO:</b> Maks 5MB`;
+}
+
+function buildPdfToolsInfoTelegramBody() {
+    return `Konversi, optimasi, rotasi, ekstrak, dan merge halaman PDF.\n\n<b>MODE 1 - KE PDF:</b>\n1. Balas/kirim dokumen atau media\n2. Kirim command:\n\n<pre>/topdf</pre>\n\n<b>MODE 2 - DARI PDF:</b>\nBalas/kirim file PDF, lalu gunakan:\n\n<pre>/pdf compress\n/pdf to format\n/pdf rotate deg\n/pdf extract 1-3,5</pre>\n\n<b>MODE 3 - MERGE BANYAK PDF:</b>\n<pre>/pdf merge start\n(kirim file PDF satu per satu)\n/pdf merge done\n/pdf merge cancel</pre>\n\n<b>KETERANGAN:</b>\n• /topdf : Konversi file ke PDF (CloudConvert)\n• /pdf compress : Kompres ukuran PDF (CloudConvert)\n• /pdf to format : Konversi PDF ke format lain (CloudConvert)\n• /pdf rotate deg : Rotasi semua halaman PDF (lokal)\n• /pdf extract pages : Ambil halaman tertentu (lokal)\n• /pdf merge start|done|cancel : Gabung banyak PDF (lokal)\n\n<b>CONTOH:</b>\n• <code>/pdf to docx</code>\n• <code>/pdf rotate 90</code>\n• <code>/pdf extract 1-3,5</code>\n• <code>/pdf merge start</code>\n\n<b>BATASAN:</b>\n• CloudConvert: max 10MB, kuota 10 request/hari\n• Proses lokal (rotate/extract/merge): max 15MB per file`;
 }
 
 async function handleUtilityCommand(command, args, userId, platform = 'telegram') {
@@ -363,9 +391,9 @@ async function handleUtilityCommand(command, args, userId, platform = 'telegram'
     return 'Perintah tidak dikenali.';
 }
 
-async function sendAboutMeMessage(ctx, userId, args = []) {
-    const replyText = await handleUtilityCommand('/me', args, userId, 'telegram');
-    const linksKeyboard = buildMonitorLinksKeyboard();
+async function sendUtilityCommandMessage(ctx, command, userId, args = []) {
+    const replyText = await handleUtilityCommand(command, args, userId, 'telegram');
+    const linksKeyboard = command === '/me' ? buildMonitorLinksKeyboard() : null;
     await sendTelegramReply(ctx, replyText, linksKeyboard || {});
 }
 
@@ -804,12 +832,28 @@ async function processMenuCommand(ctx, command, userId) {
         case '/me': {
             const parts = ctx.message?.text?.trim()?.split(' ') || [command];
             const args = parts.slice(1);
-            await sendAboutMeMessage(ctx, userId, args);
+            await sendUtilityCommandMessage(ctx, command, userId, args);
             return;
         }
         case '/riwayat':
             await sendHistoryPageMessage(ctx, userId, 1, false);
             return;
+        case '/img_info': {
+            const header = '<b>IMAGE TOOLS</b> 🖼️';
+            const body = buildImageToolsInfoTelegramBody();
+            const footer = await buildImageToolsQuotaFooter();
+            const message = appendFooter(`${header}\n\n${body}`, footer);
+            await ctx.reply(message, { parse_mode: 'HTML' });
+            return;
+        }
+        case '/pdf_info': {
+            const header = '<b>PDF TOOLS</b> 📄';
+            const body = buildPdfToolsInfoTelegramBody();
+            const footer = await buildPdfToolsQuotaFooter();
+            const message = appendFooter(`${header}\n\n${body}`, footer);
+            await ctx.reply(message, { parse_mode: 'HTML' });
+            return;
+        }
         default:
             return;
     }
@@ -928,7 +972,7 @@ function setupTelegramBot() {
                 case '/sholat':
                 case '/me': {
                     try {
-                        await sendAboutMeMessage(ctx, userId, args);
+                        await sendUtilityCommandMessage(ctx, command, userId, args);
                     } catch (error) {
                         console.error(`Error handling ${command} command in Telegram:`, error);
                         const errorHeader = '<b>ERROR SISTEM</b> ❌';
@@ -1007,12 +1051,12 @@ function setupTelegramBot() {
                 }
 
                 case '/img_info': {
-                    await sendImageToolsInfoMessage(ctx);
+                    await processMenuCommand(ctx, '/img_info', userId);
                     break;
                 }
 
                 case '/pdf_info': {
-                    await sendPdfToolsInfoMessage(ctx);
+                    await processMenuCommand(ctx, '/pdf_info', userId);
                     break;
                 }
 
@@ -1203,18 +1247,6 @@ function setupTelegramBot() {
         const userId = ctx.from.id.toString();
 
         try {
-            if (data === 'cmd:img_info') {
-                await ctx.answerCbQuery();
-                await sendImageToolsInfoMessage(ctx);
-                return;
-            }
-
-            if (data === 'cmd:pdf_info') {
-                await ctx.answerCbQuery();
-                await sendPdfToolsInfoMessage(ctx);
-                return;
-            }
-
             if (data.startsWith('cmd:')) {
                 const key = data.split(':')[1];
                 const commandMap = {
@@ -1226,7 +1258,9 @@ function setupTelegramBot() {
                     laporan: '/laporan_chart',
                     cuaca: '/cuaca',
                     sholat: '/sholat',
-                    me: '/me'
+                    me: '/me',
+                    img_info: '/img_info',
+                    pdf_info: '/pdf_info'
                 };
 
                 const mapped = commandMap[key];
@@ -1258,7 +1292,7 @@ function setupTelegramBot() {
                     
                     if (mapped === '/me') {
                         await ctx.answerCbQuery();
-                        await sendAboutMeMessage(ctx, userId, []);
+                        await sendUtilityCommandMessage(ctx, '/me', userId, []);
                         return;
                     }
 
