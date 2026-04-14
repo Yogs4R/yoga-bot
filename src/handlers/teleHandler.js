@@ -285,7 +285,7 @@ function buildMainMenuKeyboard() {
 function buildAdminMenuKeyboard() {
     return Markup.inlineKeyboard([
         [Markup.button.callback('📡 Monitor', 'admin:monitor'), Markup.button.callback('📊 Statistik', 'admin:stats')],
-        [Markup.button.callback('🧾 Cmd Usage', 'admin:cmd_usage')]
+        [Markup.button.callback('🧾 Cmd Usage', 'admin:cmd_usage'), Markup.button.callback('📢 Broadcast', 'admin:broadcast')]
     ]);
 }
 
@@ -1034,6 +1034,39 @@ function setupTelegramBot() {
 
                         const replyText = await handleAdminCommand(command, args, userId, 'telegram');
                         await sendTelegramReply(ctx, replyText);
+                    } catch (error) {
+                        console.error(`Error handling ${command} command in Telegram:`, error);
+                        const errorHeader = '<b>ERROR SISTEM</b> ❌';
+                        const errorBody = `Terjadi kesalahan saat memproses perintah: ${escapeHtml(error.message)}`;
+                        await ctx.reply(`${errorHeader}\n\n${errorBody}`, { parse_mode: 'HTML' });
+                    }
+                    break;
+                }
+
+                case '/broadcast': {
+                    try {
+                        if (!isAdmin(userId, 'telegram')) {
+                            await ctx.reply('<b>AKSES DITOLAK</b> ❌\n\nCommand ini khusus admin.', { parse_mode: 'HTML' });
+                            break;
+                        }
+
+                        const replyText = await handleAdminCommand(command, args, userId, 'telegram', {
+                            notifyAdmin: async (textToAdmin) => {
+                                await sendTelegramReply(ctx, String(textToAdmin || ''));
+                            },
+                            sendToUser: async (targetId, textToSend) => {
+                                const chatId = Number(targetId);
+                                if (!Number.isFinite(chatId)) {
+                                    throw new Error('Invalid Telegram target');
+                                }
+
+                                await ctx.telegram.sendMessage(chatId, String(textToSend || ''));
+                            }
+                        });
+
+                        if (replyText) {
+                            await sendTelegramReply(ctx, replyText);
+                        }
                     } catch (error) {
                         console.error(`Error handling ${command} command in Telegram:`, error);
                         const errorHeader = '<b>ERROR SISTEM</b> ❌';

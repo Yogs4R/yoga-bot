@@ -180,6 +180,20 @@ function normalizeWhatsAppId(value) {
     .replace(/[^\d]/g, '');
 }
 
+function toWhatsAppJid(value) {
+  const raw = String(value || '').trim();
+  if (!raw) {
+    return '';
+  }
+
+  if (raw.includes('@g.us')) {
+    return raw;
+  }
+
+  const normalized = normalizeWhatsAppId(raw);
+  return normalized ? `${normalized}@s.whatsapp.net` : '';
+}
+
 function escapeRegex(value) {
   return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -510,6 +524,34 @@ class WhatsAppHandler {
 
             const statsReply = await handleAdminCommand(command, args, userId, 'whatsapp');
             replyText = statsReply;
+            break;
+          }
+
+          case '/broadcast': {
+            if (!isAdmin(userId, 'whatsapp')) {
+              replyText = '> *AKSES DITOLAK* ❌\n\nCommand ini khusus admin.';
+              break;
+            }
+
+            const broadcastReply = await handleAdminCommand(command, args, userId, 'whatsapp', {
+              notifyAdmin: async (textToAdmin) => {
+                await this.sock.sendMessage(
+                  msg.key.remoteJid,
+                  { text: formatWhatsAppReply(String(textToAdmin || '')) },
+                  { quoted: msg }
+                );
+              },
+              sendToUser: async (targetId, textToSend) => {
+                const targetJid = toWhatsAppJid(targetId);
+                if (!targetJid) {
+                  throw new Error('Invalid WhatsApp target');
+                }
+
+                await this.sock.sendMessage(targetJid, { text: String(textToSend || '') });
+              }
+            });
+
+            replyText = broadcastReply;
             break;
           }
 

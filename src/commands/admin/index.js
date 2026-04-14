@@ -1,6 +1,8 @@
 const { checkWebsites, formatMonitorMessage } = require('../../services/monitorService');
 const { getPlatformStats, formatStatsMessage } = require('../../services/statsService');
+const { getUniqueUsers } = require('../../services/broadcastService');
 const supabase = require('../../lib/supabaseClient');
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function formatNumber(value) {
   return Number(value || 0).toLocaleString('en-US');
@@ -58,8 +60,7 @@ async function getCommandUsageStats() {
   };
 }
 
-async function handleAdminCommand(command, args, userId, platform) {
-  void args;
+async function handleAdminCommand(command, args, userId, platform, options = {}) {
   void userId;
 
   const cleanCommand = String(command || '').toLowerCase();
@@ -75,7 +76,8 @@ async function handleAdminCommand(command, args, userId, platform) {
           '- \`/admin\` : Tampilkan menu command admin',
           '- \`/monitor\` : Cek status website',
           '- \`/stats\` : Statistik platform kreator',
-          '- \`/cmd_usage\` : Statistik penggunaan bot'
+          '- \`/cmd_usage\` : Statistik penggunaan bot',
+          '- \`/broadcast\` : Kirim pesan ke semua pengguna'
         ].join('\n');
         const footer = ['—'.repeat(19), 'Gunakan command di atas untuk mengakses fitur admin.'].join('\n');
         return `${header}\n\n${body}\n\n${footer}`;
@@ -87,9 +89,51 @@ async function handleAdminCommand(command, args, userId, platform) {
         '• /admin : Tampilkan menu command admin',
         '• /monitor : Cek status website',
         '• /stats : Statistik platform kreator',
-        '• /cmd_usage : Statistik penggunaan bot'
+        '• /cmd_usage : Statistik penggunaan bot',
+        '• /broadcast : Kirim pesan ke semua pengguna'
       ].join('\n');
       return `${header}\n\n${body}`;
+    }
+
+    case '/broadcast': {
+      const broadcastMsg = args.join(' ').trim();
+      if (!broadcastMsg) {
+        return '❌ Harap masukkan pesan! Contoh: /broadcast Halo semua, bot sedang maintenance.';
+      }
+
+      const targets = await getUniqueUsers(platformName);
+      if (!Array.isArray(targets) || targets.length === 0) {
+        return '❌ Tidak ada pengguna yang ditemukan.';
+      }
+
+      const notifyAdmin = options.notifyAdmin;
+      const sendToUser = options.sendToUser;
+
+      if (typeof notifyAdmin !== 'function' || typeof sendToUser !== 'function') {
+        return isWhatsApp
+          ? '> *ERROR BROADCAST* ❌\n\nSender broadcast belum dikonfigurasi.'
+          : '<b>ERROR BROADCAST</b> ❌\n\nSender broadcast belum dikonfigurasi.';
+      }
+
+      await notifyAdmin(`⏳ Memulai broadcast ke ${targets.length} pengguna... Mohon tunggu.`);
+
+      let success = 0;
+      let failed = 0;
+      const payload = `[ 📢 BROADCAST ADMIN ]\n\n${broadcastMsg}`;
+
+      for (const target of targets) {
+        try {
+          await sendToUser(target, payload);
+          success += 1;
+        } catch (_error) {
+          failed += 1;
+        }
+
+        await delay(3000);
+      }
+
+      await notifyAdmin(`✅ Broadcast selesai!\nSukses: ${success}\nGagal: ${failed}`);
+      return '';
     }
 
     case '/monitor': {
