@@ -433,14 +433,6 @@ class WhatsAppHandler {
         const command = parts[0].toLowerCase();
         const args = parts.slice(1);
 
-        // Get sender ID for logging, prioritizing participant ID in groups, then fallback to remoteJid
-        const senderId = msg.key.participant || msg.key.remoteJid;
-
-        // Log command usage, but skip logging if senderId is not available or looks like a lid (to avoid logging internal system messages)
-        if (senderId && !senderId.includes('@lid')) {
-          await logCommand(senderId, 'whatsapp', command);
-        }
-
         // Ekstraktor Smart ID
         let realId = '';
         if (msg.key.remoteJid.endsWith('@g.us')) {
@@ -459,6 +451,15 @@ class WhatsAppHandler {
         // Log Command with Real ID
         if (command && realId && !realId.includes('@lid')) {
             await logCommand(realId, 'whatsapp', command);
+        }
+
+        // OPERASI BEDAH ID WHATSAPP
+        if (command === '/ping') {
+            console.log("=== X-RAY PESAN MASUK ===");
+            console.log("1. msg.key:", JSON.stringify(msg.key, null, 2));
+            console.log("2. participant di contextInfo:", msg.message?.extendedTextMessage?.contextInfo?.participant);
+            console.log("3. pushName:", msg.pushName);
+            console.log("=========================");
         }
 
         switch (command) {
