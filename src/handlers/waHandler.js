@@ -434,32 +434,21 @@ class WhatsAppHandler {
         const args = parts.slice(1);
 
         // Ekstraktor Smart ID
-        let realId = '';
-        if (msg.key.remoteJid.endsWith('@g.us')) {
-            // If group message, participant ID is the actual sender's WhatsApp ID
-            realId = msg.key.participant; 
-        } else {
-            // If private message, remoteJid is the actual sender's WhatsApp ID
-            realId = msg.key.remoteJid; 
+        let realId = msg.key.senderPn || msg.key.remoteJid;
+
+        if (msg.key.remoteJid?.endsWith('@g.us')) {
+            // If message is from a group, try to get the real sender ID from participant or context info
+            realId = msg.key.participant || realId;
         }
 
-        // Optional: Clean up multi-device extension (e.g., 628xxx:15@s.whatsapp.net becomes 628xxx@s.whatsapp.net)
+        // Optional: Clear multi-device extensions (eg: 628xxx:15@s.whatsapp.net)
         if (realId && realId.includes(':')) {
             realId = realId.split(':')[0] + '@s.whatsapp.net';
         }
 
-        // Log Command with Real ID
+        // Log Command with Real Sender ID
         if (command && realId && !realId.includes('@lid')) {
             await logCommand(realId, 'whatsapp', command);
-        }
-
-        // OPERASI BEDAH ID WHATSAPP
-        if (command === '/ping') {
-            console.log("=== X-RAY PESAN MASUK ===");
-            console.log("1. msg.key:", JSON.stringify(msg.key, null, 2));
-            console.log("2. participant di contextInfo:", msg.message?.extendedTextMessage?.contextInfo?.participant);
-            console.log("3. pushName:", msg.pushName);
-            console.log("=========================");
         }
 
         switch (command) {
