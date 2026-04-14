@@ -14,7 +14,7 @@ const openai = new OpenAI({
   apiKey
 });
 
-const modelName = AI_MODELS.gpt-oss.id;
+const modelName = AI_MODELS['gpt-oss'].id; // Default model
 const RPM_LIMIT = parseInt(process.env.OPENROUTER_RPM_LIMIT || process.env.GEMINI_RPM_LIMIT || '15', 10);
 const requestTimestamps = [];
 
