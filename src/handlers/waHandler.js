@@ -441,6 +441,16 @@ class WhatsAppHandler {
           await logCommand(senderId, 'whatsapp', command);
         }
 
+        // Kamera Pengintai ID
+        let testId = msg.key.participant || msg.key.remoteJid;
+        console.log("MENDETEKSI ID PENGIRIM:", testId);
+        console.log("APAKAH ADA @lid?:", testId?.includes('@lid'));
+
+        // Pastikan command tidak kosong dan ID bukan @lid
+        if (command && testId && !testId.includes('@lid')) {
+          await logCommand(testId, 'whatsapp', command);
+        }
+
         switch (command) {
           case '/ping':
             replyText = appendFooter('Pong! 🏓', buildSystemStatsFooter());
