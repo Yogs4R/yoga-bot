@@ -11,6 +11,7 @@ const { handleAdminCommand } = require('../commands/admin/index');
 const { getHistoryPage } = require('../services/financeService');
 const { isAdmin } = require('../utils/auth');
 const { checkWebsites, formatMonitorMessage, getMonitorWebsiteLinks } = require('../services/monitorService');
+const { AI_MODELS, buildModelInfoMessage, setActiveModel } = require('../services/aiPreferenceService');
 const { handleImgCommand } = require('../commands/converter/index');
 const { getQuotaStatus } = require('../services/quotaService');
 const { logCommand } = require('../services/logService');
@@ -251,7 +252,7 @@ function buildSystemStatsFooter() {
 }
 
 function buildAiStatsFooter(aiMeta = {}) {
-    const model = aiMeta.model || '-';
+    const model = aiMeta.modelName || aiMeta.model || '-';
     const tokenIn = aiMeta.usage?.promptTokenCount ?? 0;
     const tokenOut = aiMeta.usage?.candidatesTokenCount ?? 0;
     const rpmLabel = aiMeta.rpm?.label || '-';
@@ -278,7 +279,8 @@ function buildMainMenuKeyboard() {
         [Markup.button.callback('⚙️ Info', 'cmd:info'), Markup.button.callback('📊 Laporan Keuangan', 'cmd:laporan')],
         [Markup.button.callback('🌤️ Cuaca', 'cmd:cuaca'), Markup.button.callback('🕌 Sholat', 'cmd:sholat')],
         [Markup.button.callback('👨‍💻 About Me', 'cmd:me'), Markup.button.callback('🏓 Ping', 'cmd:ping')],
-        [Markup.button.callback('🖼️ Image Tools', 'cmd:img_info'), Markup.button.callback('📄 PDF Tools', 'cmd:pdf_info')]
+        [Markup.button.callback('🖼️ Image Tools', 'cmd:img_info'), Markup.button.callback('📄 PDF Tools', 'cmd:pdf_info')],
+        [Markup.button.callback('🤖 Model AI', 'cmd:model_info')]
     ]);
 }
 
@@ -807,7 +809,7 @@ async function processMenuCommand(ctx, command, userId) {
         }
         case '/info': {
             const header = '<b>INFORMASI YOGA BOT</b> 🤖';
-            const body = `Saya adalah asisten virtual pribadi milik <b>Ridwan Yoga Suryantara</b>.\n\n<b>FITUR KEUANGAN</b> 💰\n• /saldo : Cek saldo keuangan\n• /catat : Catat pengeluaran\n• /pemasukan : Catat pemasukan\n• /laporan_chart : Grafik laporan keuangan\n• /riwayat : Riwayat transaksi (paging 5 data)\n• /hapus : Hapus transaksi (dengan konfirmasi)\n• /edit : Edit transaksi\n\n<b>FITUR SISTEM</b> ⚙️\n• /ping : Cek status bot\n• /info : Menampilkan pesan ini\n• /start : Memulai bot\n\n<b>FITUR AI</b> 🧠\nKirim pesan biasa (tanpa awalan /) untuk ngobrol, tanya coding, atau diskusi teknologi.\n\n<b>FITUR UTILITAS</b> 🛠️\n• /cuaca : Info cuaca hari ini\n• /sholat : Jadwal sholat hari ini\n• /me : Tentang pembuat bot\n\n<b>FITUR CONVERTER</b> 🖼️\n• /img_info : Panduan lengkap image tools\n• /pdf_info : Panduan lengkap PDF tools\n\n<b>FITUR ADMIN</b> 🛡️\n• /admin : Menu command admin`;
+            const body = `Saya adalah asisten virtual pribadi milik <b>Ridwan Yoga Suryantara</b>.\n\n<b>FITUR KEUANGAN</b> 💰\n• /saldo : Cek saldo keuangan\n• /catat : Catat pengeluaran\n• /pemasukan : Catat pemasukan\n• /laporan_chart : Grafik laporan keuangan\n• /riwayat : Riwayat transaksi (paging 5 data)\n• /hapus : Hapus transaksi (dengan konfirmasi)\n• /edit : Edit transaksi\n\n<b>FITUR SISTEM</b> ⚙️\n• /ping : Cek status bot\n• /info : Menampilkan pesan ini\n• /start : Memulai bot\n\n<b>FITUR AI</b> 🧠\nKirim pesan biasa (tanpa awalan /) untuk ngobrol, tanya coding, atau diskusi teknologi.\n• /model_info : Daftar model AI yang tersedia\n• /switch : Ganti model AI aktif\n\n<b>FITUR UTILITAS</b> 🛠️\n• /cuaca : Info cuaca hari ini\n• /sholat : Jadwal sholat hari ini\n• /me : Tentang pembuat bot\n\n<b>FITUR CONVERTER</b> 🖼️\n• /img_info : Panduan lengkap image tools\n• /pdf_info : Panduan lengkap PDF tools\n\n<b>FITUR ADMIN</b> 🛡️\n• /admin : Menu command admin`;
             const message = `${header}\n\n${body}\n\n${buildSystemStatsFooter()}`;
             await ctx.reply(message, {
                 parse_mode: 'HTML',
@@ -835,6 +837,28 @@ async function processMenuCommand(ctx, command, userId) {
             const parts = ctx.message?.text?.trim()?.split(' ') || [command];
             const args = parts.slice(1);
             await sendUtilityCommandMessage(ctx, command, userId, args);
+            return;
+        }
+        case '/model_info': {
+            await ctx.reply(buildModelInfoMessage('telegram'), { parse_mode: 'HTML' });
+            return;
+        }
+        case '/switch': {
+            const alias = String(args[0] || '').trim().toLowerCase();
+
+            if (!alias) {
+                await ctx.reply('❌ Ketik alias modelnya! Contoh: /switch elephant. Cek /model_info.');
+                return;
+            }
+
+            if (!AI_MODELS[alias]) {
+                const knownAliases = Object.keys(AI_MODELS).join(', ');
+                await ctx.reply(`❌ Alias model tidak ditemukan. Alias tersedia: ${knownAliases}. Cek /model_info.`);
+                return;
+            }
+
+            await setActiveModel(userId, 'telegram', alias);
+            await ctx.reply(`✅ Berhasil! Otak AI kamu sekarang menggunakan ${AI_MODELS[alias].name}.`);
             return;
         }
         case '/riwayat':
@@ -982,6 +1006,48 @@ function setupTelegramBot() {
                         const errorHeader = '<b>ERROR SISTEM</b> ❌';
                         const errorBody = `Terjadi kesalahan saat memproses perintah: ${escapeHtml(error.message)}`;
                         await ctx.reply(`${errorHeader}\n\n${errorBody}`, { parse_mode: 'HTML' });
+                    }
+                    break;
+                }
+
+                case '/model_info': {
+                    try {
+                        await ctx.reply(buildModelInfoMessage('telegram'), { parse_mode: 'HTML' });
+                    } catch (error) {
+                        console.error('Error handling /model_info command in Telegram:', error);
+                        const errorHeader = '<b>ERROR SISTEM</b> ❌';
+                        const errorBody = `Terjadi kesalahan saat memproses perintah: ${escapeHtml(error.message)}`;
+                        await ctx.reply(`${errorHeader}
+
+${errorBody}`, { parse_mode: 'HTML' });
+                    }
+                    break;
+                }
+
+                case '/switch': {
+                    try {
+                        const alias = String(args[0] || '').trim().toLowerCase();
+
+                        if (!alias) {
+                            await ctx.reply('❌ Ketik alias modelnya! Contoh: /switch elephant. Cek /model_info.');
+                            break;
+                        }
+
+                        if (!AI_MODELS[alias]) {
+                            const knownAliases = Object.keys(AI_MODELS).join(', ');
+                            await ctx.reply(`❌ Alias model tidak ditemukan. Alias tersedia: ${knownAliases}. Cek /model_info.`);
+                            break;
+                        }
+
+                        await setActiveModel(userId, 'telegram', alias);
+                        await ctx.reply(`✅ Berhasil! Otak AI kamu sekarang menggunakan ${AI_MODELS[alias].name}.`);
+                    } catch (error) {
+                        console.error('Error handling /switch command in Telegram:', error);
+                        const errorHeader = '<b>ERROR SISTEM</b> ❌';
+                        const errorBody = `Terjadi kesalahan saat memproses perintah: ${escapeHtml(error.message)}`;
+                        await ctx.reply(`${errorHeader}
+
+${errorBody}`, { parse_mode: 'HTML' });
                     }
                     break;
                 }
@@ -1243,7 +1309,7 @@ function setupTelegramBot() {
             }
             
             try {
-                const aiResult = await askAiDetailed(text);
+                const aiResult = await askAiDetailed(text, userId, 'telegram');
                 const withAiFooter = appendFooter(aiResult.text, buildAiStatsFooter(aiResult));
                 const formattedReply = formatTelegramHtml(withAiFooter);
                 const finalReply = formatBodyBold(formattedReply);
@@ -1298,7 +1364,8 @@ function setupTelegramBot() {
                     sholat: '/sholat',
                     me: '/me',
                     img_info: '/img_info',
-                    pdf_info: '/pdf_info'
+                    pdf_info: '/pdf_info',
+                    model_info: '/model_info'
                 };
 
                 const mapped = commandMap[key];

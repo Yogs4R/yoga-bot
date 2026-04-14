@@ -1,5 +1,6 @@
 // AI client (OpenRouter via OpenAI SDK)
 const OpenAI = require('openai');
+const { AI_MODELS, getActiveModel, getModelById } = require('../services/aiPreferenceService');
 
 // Inisialisasi OpenRouter API
 const apiKey = process.env.OPENROUTER_API_KEY;
@@ -13,8 +14,7 @@ const openai = new OpenAI({
   apiKey
 });
 
-// Konfigurasi model - menggunakan model yang tersedia di tier gratis
-const modelName = "openai/gpt-oss-120b";
+const modelName = AI_MODELS.gpt-oss.id;
 const RPM_LIMIT = parseInt(process.env.OPENROUTER_RPM_LIMIT || process.env.GEMINI_RPM_LIMIT || '15', 10);
 const requestTimestamps = [];
 
@@ -57,8 +57,8 @@ function formatForWhatsApp(text) {
  * @param {string} message - Pesan dari pengguna
  * @returns {Promise<string>} - Jawaban dari AI
  */
-async function askGemini(message) {
-  const detailed = await askGeminiDetailed(message);
+async function askGemini(message, userId, platform) {
+  const detailed = await askGeminiDetailed(message, userId, platform);
   return detailed.text;
 }
 
@@ -99,18 +99,22 @@ function extractUsageMetadata(response) {
   };
 }
 
-async function askGeminiDetailed(message) {
+async function askGeminiDetailed(message, userId, platform) {
+  let modelId = modelName;
+
   try {
     // Validasi API key
     if (!apiKey) {
       throw new Error('API key OpenRouter tidak ditemukan. Periksa file .env Anda.');
     }
+
+    modelId = await getActiveModel(userId, platform);
     
     // Log untuk debugging
-    console.log(`Mengirim permintaan ke OpenRouter API dengan model: ${modelName}`);
+    console.log(`Mengirim permintaan ke OpenRouter API dengan model: ${modelId}`);
     
     const response = await openai.chat.completions.create({
-      model: modelName,
+      model: modelId,
       messages: [
         { role: 'system', content: systemInstruction },
         { role: 'user', content: String(message || '') }
@@ -132,10 +136,12 @@ async function askGeminiDetailed(message) {
     const finalMessageWA = formatForWhatsApp(rawText);
     const usage = extractUsageMetadata(response);
     const rpm = trackRequestAndGetRpmStatus();
+    const modelMeta = getModelById(modelId);
     
     return {
       text: finalMessageWA,
-      model: modelName,
+      model: modelId,
+      modelName: modelMeta?.name || modelId,
       usage,
       rpm
     };
@@ -155,7 +161,7 @@ async function askGeminiDetailed(message) {
     } else if (statusCode === 403 || lowerErrorMessage.includes('forbidden')) {
       throw new Error('403 Forbidden dari OpenRouter. API key valid tetapi akses model ditolak.');
     } else if (statusCode === 404 || lowerErrorMessage.includes('model not found')) {
-      throw new Error(`Model ${modelName} tidak ditemukan di OpenRouter.`);
+      throw new Error(`Model ${modelId || modelName} tidak ditemukan di OpenRouter.`);
     } else if (statusCode >= 500 && statusCode <= 599) {
       throw new Error(`Server OpenRouter sedang gangguan (${statusCode}). Coba lagi nanti.`);
     } else if (lowerErrorMessage.includes('api key')) {
@@ -166,12 +172,12 @@ async function askGeminiDetailed(message) {
   }
 }
 
-async function askAi(message) {
-  return askGemini(message);
+async function askAi(message, userId, platform) {
+  return askGemini(message, userId, platform);
 }
 
-async function askAiDetailed(message) {
-  return askGeminiDetailed(message);
+async function askAiDetailed(message, userId, platform) {
+  return askGeminiDetailed(message, userId, platform);
 }
 
 module.exports = { askGemini, askGeminiDetailed, askAi, askAiDetailed, modelName };

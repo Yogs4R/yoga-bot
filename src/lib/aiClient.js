@@ -1,3 +1,3 @@
-const { askAi, askAiDetailed, modelName } = require('./openrouterClient')
+const { askAi, askAiDetailed, modelName } = require('./openrouterClient');
 
 module.exports = { askAi, askAiDetailed, modelName };

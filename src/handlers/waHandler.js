@@ -8,6 +8,7 @@ const handleFinanceCommand = require('../commands/finance/index');
 const { handleAdminCommand } = require('../commands/admin/index');
 const { isAdmin } = require('../utils/auth');
 const { checkWebsites, formatMonitorMessage } = require('../services/monitorService');
+const { AI_MODELS, buildModelInfoMessage, setActiveModel } = require('../services/aiPreferenceService');
 const { handleImgCommand } = require('../commands/converter/index');
 const { getQuotaStatus } = require('../services/quotaService');
 const { logCommand } = require('../services/logService');
@@ -75,7 +76,7 @@ function buildSystemStatsFooter() {
 }
 
 function buildAiStatsFooter(aiMeta = {}) {
-  const model = aiMeta.model || '-';
+  const model = aiMeta.modelName || aiMeta.model || '-';
   const tokenIn = aiMeta.usage?.promptTokenCount ?? 0;
   const tokenOut = aiMeta.usage?.candidatesTokenCount ?? 0;
   const rpmLabel = aiMeta.rpm?.label || '-';
@@ -531,6 +532,29 @@ class WhatsAppHandler {
             break;
           }
 
+          case '/model_info': {
+            replyText = buildModelInfoMessage('whatsapp');
+            break;
+          }
+
+          case '/switch': {
+            const alias = String(args[0] || '').trim().toLowerCase();
+            if (!alias) {
+              replyText = '❌ Ketik alias modelnya! Contoh: /switch elephant. Cek /model_info.';
+              break;
+            }
+
+            if (!AI_MODELS[alias]) {
+              const knownAliases = Object.keys(AI_MODELS).join(', ');
+              replyText = `❌ Alias model tidak ditemukan. Alias tersedia: ${knownAliases}. Cek /model_info.`;
+              break;
+            }
+
+            await setActiveModel(userId, 'whatsapp', alias);
+            replyText = `✅ Berhasil! Otak AI kamu sekarang menggunakan ${AI_MODELS[alias].name}.`;
+            break;
+          }
+
           case '/stats':
           case '/cmd_usage': {
             if (!isAdmin(userId, 'whatsapp')) {
@@ -666,7 +690,7 @@ class WhatsAppHandler {
 
           case '/info': {
             const header = '> *INFORMASI YOGA BOT* 🤖';
-            const body = `Saya adalah asisten virtual pribadi milik Ridwan Yoga Suryantara.\n\n📋 *FITUR KEUANGAN* 💰\n- \`/saldo\`         : Cek saldo keuangan\n- \`/catat\`         : Catat pengeluaran\n- \`/pemasukan\`     : Catat pemasukan\n- \`/laporan_chart\` : Grafik laporan keuangan\n- \`/riwayat\`       : Riwayat transaksi terakhir\n- \`/hapus\`         : Hapus transaksi\n- \`/edit\`          : Edit transaksi\n\n📋 *FITUR SISTEM* ⚙️\n- \`/ping\`          : Cek status bot\n- \`/info\`          : Menampilkan pesan ini\n- \`/start\`         : Memulai bot\n\n💡 *FITUR AI* 🧠\nKirimkan pesan biasa (tanpa awalan '/') untuk ngobrol,\nbertanya seputar coding, teknologi, atau sekadar bertukar pikiran!\n\n🛠️ *FITUR UTILITAS*\n- \`/cuaca\`         : Info cuaca hari ini\n- \`/sholat\`        : Jadwal sholat hari ini\n- \`/me\`            : Tentang pembuat bot\n\n🖼️ *FITUR CONVERTER* 📄\n- \`/img_info\`      : Panduan lengkap image tools\n- \`/pdf_info\`      : Panduan lengkap PDF tools\n\n🛡️ *FITUR ADMIN*\n- \`/admin\`         : Menu command admin`;
+            const body = `Saya adalah asisten virtual pribadi milik Ridwan Yoga Suryantara.\n\n📋 *FITUR KEUANGAN* 💰\n- \`/saldo\`         : Cek saldo keuangan\n- \`/catat\`         : Catat pengeluaran\n- \`/pemasukan\`     : Catat pemasukan\n- \`/laporan_chart\` : Grafik laporan keuangan\n- \`/riwayat\`       : Riwayat transaksi terakhir\n- \`/hapus\`         : Hapus transaksi\n- \`/edit\`          : Edit transaksi\n\n📋 *FITUR SISTEM* ⚙️\n- \`/ping\`          : Cek status bot\n- \`/info\`          : Menampilkan pesan ini\n- \`/start\`         : Memulai bot\n\n💡 *FITUR AI* 🧠\nKirimkan pesan biasa (tanpa awalan '/') untuk ngobrol,\nbertanya seputar coding, teknologi, atau sekadar bertukar pikiran!\n- \`/model_info\`    : Daftar model AI yang tersedia\n- \`/switch\`        : Ganti model AI aktif\n\n🛠️ *FITUR UTILITAS*\n- \`/cuaca\`         : Info cuaca hari ini\n- \`/sholat\`        : Jadwal sholat hari ini\n- \`/me\`            : Tentang pembuat bot\n\n🖼️ *FITUR CONVERTER* 📄\n- \`/img_info\`      : Panduan lengkap image tools\n- \`/pdf_info\`      : Panduan lengkap PDF tools\n\n🛡️ *FITUR ADMIN*\n- \`/admin\`         : Menu command admin`;
             replyText = appendFooter(`${header}\n\n${body}`, buildSystemStatsFooter());
             break;
           }
@@ -1038,7 +1062,7 @@ class WhatsAppHandler {
           replyText = `${shortHeader}\n\n${shortBody}`;
         } else {
           try {
-            const aiResult = await askAiDetailed(cleanText);
+            const aiResult = await askAiDetailed(cleanText, userId, 'whatsapp');
             replyText = appendFooter(aiResult.text, buildAiStatsFooter(aiResult));
           } catch (error) {
             console.error('Error dari OpenRouter AI:', error);
