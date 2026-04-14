@@ -441,14 +441,24 @@ class WhatsAppHandler {
           await logCommand(senderId, 'whatsapp', command);
         }
 
-        // Kamera Pengintai ID
-        let testId = msg.key.participant || msg.key.remoteJid;
-        console.log("MENDETEKSI ID PENGIRIM:", testId);
-        console.log("APAKAH ADA @lid?:", testId?.includes('@lid'));
+        // Ekstraktor Smart ID
+        let realId = '';
+        if (msg.key.remoteJid.endsWith('@g.us')) {
+            // If group message, participant ID is the actual sender's WhatsApp ID
+            realId = msg.key.participant; 
+        } else {
+            // If private message, remoteJid is the actual sender's WhatsApp ID
+            realId = msg.key.remoteJid; 
+        }
 
-        // Pastikan command tidak kosong dan ID bukan @lid
-        if (command && testId && !testId.includes('@lid')) {
-          await logCommand(testId, 'whatsapp', command);
+        // Optional: Clean up multi-device extension (e.g., 628xxx:15@s.whatsapp.net becomes 628xxx@s.whatsapp.net)
+        if (realId && realId.includes(':')) {
+            realId = realId.split(':')[0] + '@s.whatsapp.net';
+        }
+
+        // Log Command with Real ID
+        if (command && realId && !realId.includes('@lid')) {
+            await logCommand(realId, 'whatsapp', command);
         }
 
         switch (command) {

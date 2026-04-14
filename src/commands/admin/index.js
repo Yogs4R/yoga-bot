@@ -61,6 +61,7 @@ async function getCommandUsageStats() {
 }
 
 async function handleAdminCommand(command, args, userId, platform, options = {}) {
+  void args;
   void userId;
 
   const cleanCommand = String(command || '').toLowerCase();
