@@ -1,5 +1,62 @@
 const { checkWebsites, formatMonitorMessage } = require('../../services/monitorService');
 const { getPlatformStats, formatStatsMessage } = require('../../services/statsService');
+const supabase = require('../../lib/supabaseClient');
+
+function formatNumber(value) {
+  return Number(value || 0).toLocaleString('en-US');
+}
+
+async function getCommandUsageStats() {
+  const { count: totalExecution, error: totalError } = await supabase
+    .from('command_logs')
+    .select('*', { count: 'exact', head: true });
+
+  if (totalError) {
+    throw totalError;
+  }
+
+  const { data: userRows, error: userError } = await supabase
+    .from('command_logs')
+    .select('user_id');
+
+  if (userError) {
+    throw userError;
+  }
+
+  const { data: commandRows, error: commandError } = await supabase
+    .from('command_logs')
+    .select('command');
+
+  if (commandError) {
+    throw commandError;
+  }
+
+  const uniqueUsers = new Set(
+    (userRows || [])
+      .map((row) => String(row.user_id || '').trim())
+      .filter(Boolean)
+  ).size;
+
+  const commandCounter = new Map();
+  for (const row of commandRows || []) {
+    const command = String(row.command || '').trim();
+    if (!command) {
+      continue;
+    }
+    commandCounter.set(command, (commandCounter.get(command) || 0) + 1);
+  }
+
+  const topCommands = Array.from(commandCounter.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([command, count]) => ({ command, count }));
+
+  return {
+    totalExecution: Number(totalExecution || 0),
+    uniqueUsers,
+    topCommands
+  };
+}
 
 async function handleAdminCommand(command, args, userId, platform) {
   void args;
@@ -17,7 +74,8 @@ async function handleAdminCommand(command, args, userId, platform) {
           '📋 *FITUR ADMIN* 🛡️',
           '- \`/admin\` : Tampilkan menu command admin',
           '- \`/monitor\` : Cek status website',
-          '- \`/stats\` : Statistik platform kreator'
+          '- \`/stats\` : Statistik platform kreator',
+          '- \`/cmd_usage\` : Statistik penggunaan bot'
         ].join('\n');
         const footer = ['—'.repeat(19), 'Gunakan command di atas untuk mengakses fitur admin.'].join('\n');
         return `${header}\n\n${body}\n\n${footer}`;
@@ -28,7 +86,8 @@ async function handleAdminCommand(command, args, userId, platform) {
         '<b>FITUR ADMIN</b> 🛡️',
         '• /admin : Tampilkan menu command admin',
         '• /monitor : Cek status website',
-        '• /stats : Statistik platform kreator'
+        '• /stats : Statistik platform kreator',
+        '• /cmd_usage : Statistik penggunaan bot'
       ].join('\n');
       return `${header}\n\n${body}`;
     }
@@ -48,6 +107,45 @@ async function handleAdminCommand(command, args, userId, platform) {
       }
 
       return formatStatsMessage(statsResult.data, platformName);
+    }
+
+    case '/cmd_usage': {
+      try {
+        const usageStats = await getCommandUsageStats();
+        const topLines = usageStats.topCommands.length > 0
+          ? usageStats.topCommands
+            .map((item, index) => `${index + 1}. ${item.command} (${formatNumber(item.count)})`)
+            .join('\n')
+          : 'Belum ada data command.';
+
+        if (isWhatsApp) {
+          const header = '> 📊 LAPORAN PENGGUNAAN BOT';
+          const body = [
+            `Total Eksekusi: ${formatNumber(usageStats.totalExecution)}`,
+            `Total Pengguna: ${formatNumber(usageStats.uniqueUsers)}`,
+            '',
+            'TOP 5 COMMANDS:',
+            topLines
+          ].join('\n');
+
+          return `${header}\n\n${body}`;
+        }
+
+        const header = '<b>📊 LAPORAN PENGGUNAAN BOT</b>';
+        const body = [
+          `Total Eksekusi: ${formatNumber(usageStats.totalExecution)}`,
+          `Total Pengguna: ${formatNumber(usageStats.uniqueUsers)}`,
+          '',
+          'TOP 5 COMMANDS:',
+          topLines
+        ].join('\n');
+
+        return `${header}\n\n${body}`;
+      } catch (error) {
+        const errorHeader = isWhatsApp ? '> *ERROR CMD USAGE* ❌' : '<b>ERROR CMD USAGE</b> ❌';
+        const errorBody = `Gagal mengambil data penggunaan command: ${error.message}`;
+        return `${errorHeader}\n\n${errorBody}`;
+      }
     }
 
     default: {

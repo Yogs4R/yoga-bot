@@ -13,6 +13,7 @@ const { isAdmin } = require('../utils/auth');
 const { checkWebsites, formatMonitorMessage, getMonitorWebsiteLinks } = require('../services/monitorService');
 const { handleImgCommand } = require('../commands/converter/index');
 const { getQuotaStatus } = require('../services/quotaService');
+const { logCommand } = require('../services/logService');
 const {
     MAX_FILE_SIZE,
     removeBackground,
@@ -283,7 +284,8 @@ function buildMainMenuKeyboard() {
 
 function buildAdminMenuKeyboard() {
     return Markup.inlineKeyboard([
-        [Markup.button.callback('📡 Monitor', 'admin:monitor'), Markup.button.callback(' 📊 Statistik', 'admin:stats')]
+        [Markup.button.callback('📡 Monitor', 'admin:monitor'), Markup.button.callback('📊 Statistik', 'admin:stats')],
+        [Markup.button.callback('🧾 Cmd Usage', 'admin:cmd_usage')]
     ]);
 }
 
@@ -928,6 +930,8 @@ function setupTelegramBot() {
             const parts = text.split(' ');
             const command = parts[0].toLowerCase();
             const args = parts.slice(1);
+
+            await logCommand(userId, 'telegram', command);
             
             switch (command) {
                 case '/start':
@@ -1020,14 +1024,15 @@ function setupTelegramBot() {
                     break;
                 }
 
-                case '/stats': {
+                case '/stats':
+                case '/cmd_usage': {
                     try {
                         if (!isAdmin(userId, 'telegram')) {
                             await ctx.reply('<b>AKSES DITOLAK</b> ❌\n\nCommand ini khusus admin.', { parse_mode: 'HTML' });
                             break;
                         }
 
-                        const replyText = await handleAdminCommand('/stats', args, userId, 'telegram');
+                        const replyText = await handleAdminCommand(command, args, userId, 'telegram');
                         await sendTelegramReply(ctx, replyText);
                     } catch (error) {
                         console.error(`Error handling ${command} command in Telegram:`, error);
@@ -1316,6 +1321,21 @@ function setupTelegramBot() {
                 const replyText = formatMonitorMessage(results, null, 'telegram');
                 const linksKeyboard = buildMonitorLinksKeyboard();
                 await sendTelegramReply(ctx, replyText, linksKeyboard || {});
+                return;
+            }
+
+            if (data === 'admin:stats' || data === 'admin:cmd_usage') {
+                await ctx.answerCbQuery();
+
+                if (!isAdmin(userId, 'telegram')) {
+                    await ctx.reply('<b>AKSES DITOLAK</b> ❌\n\nCommand ini khusus admin.', { parse_mode: 'HTML' });
+                    return;
+                }
+
+                const adminCommand = data === 'admin:stats' ? '/stats' : '/cmd_usage';
+                await logCommand(userId, 'telegram', adminCommand);
+                const replyText = await handleAdminCommand(adminCommand, [], userId, 'telegram');
+                await sendTelegramReply(ctx, replyText);
                 return;
             }
 

@@ -10,6 +10,7 @@ const { isAdmin } = require('../utils/auth');
 const { checkWebsites, formatMonitorMessage } = require('../services/monitorService');
 const { handleImgCommand } = require('../commands/converter/index');
 const { getQuotaStatus } = require('../services/quotaService');
+const { logCommand } = require('../services/logService');
 const {
   MAX_FILE_SIZE,
   removeBackground,
@@ -152,12 +153,12 @@ async function buildImageToolsQuotaFooter() {
   ]);
 
   const removeBgLimit = formatQuotaLimit(removeBgStatus.limit);
-  const ssLimit = formatQuotaLimit(htmlToImageStatus.limit);
+  const htmlToImageLimit = formatQuotaLimit(htmlToImageStatus.limit);
 
   return [
     '—'.repeat(19),
-    `*HAPUSBG:* Usage: ${formatQuotaUsageText(removeBgStatus)} | Limit: ${removeBgLimit}`,
-    `*SS:* Usage: ${formatQuotaUsageText(htmlToImageStatus)} | Limit: ${ssLimit}`
+    `*RemoveBG:* Usage: ${formatQuotaUsageText(removeBgStatus)} | Limit: ${removeBgLimit}`,
+    `*html2img:* Usage: ${formatQuotaUsageText(htmlToImageStatus)} | Limit: ${htmlToImageLimit}`
   ].join('\n');
 }
 
@@ -168,9 +169,7 @@ async function buildPdfToolsQuotaFooter() {
 
   return [
     '—'.repeat(19),
-    `*TOPDF:* Usage: ${cloudConvertUsage} | Limit: ${cloudConvertLimit}`,
-    `*PDF COMPRESS:* Usage: ${cloudConvertUsage} | Limit: ${cloudConvertLimit}`,
-    `*PDF TO FORMAT:* Usage: ${cloudConvertUsage} | Limit: ${cloudConvertLimit}`
+    `*CloudConvert:* Usage: ${cloudConvertUsage} | Limit: ${cloudConvertLimit}`
   ].join('\n');
 }
 
@@ -296,7 +295,7 @@ function cleanMentionFromGroupText(text, mentionIds = []) {
     cleanText = cleanText.replace(mentionRegex, ' ');
   }
 
-  // Tangani pola "@LID /command" agar command tetap terbaca.
+  // Handle case where mentions are at the beginning of the message followed by a command (e.g. "@bot /command")
   cleanText = cleanText.replace(/^(@\S+\s+)+(?=\/)/, '');
 
   return cleanText.replace(/\s{2,}/g, ' ').trim();
@@ -352,8 +351,8 @@ class WhatsAppHandler {
       });
       const isReplyToBot = normalizeWhatsAppId(contextInfo?.participant) === botNumber;
       
-      // Di dalam grup, bot WAJIB di-tag (mention biru) atau pesannya di-reply.
-      // Jika tidak memenuhi syarat tersebut, abaikan seluruh pesan.
+      // In group chats, bot only responds if bot is mentioned, or it's a reply to bot's message
+      // If it does not these requirements, ignore the entire message
       if (isGroup && !isBotMentioned && !isReplyToBot && !(hasActiveMergeSession && hasPdfDocument)) {
         return;
       }
@@ -419,6 +418,8 @@ class WhatsAppHandler {
         const parts = cleanText.split(' ');
         const command = parts[0].toLowerCase();
         const args = parts.slice(1);
+
+        await logCommand(userId, 'whatsapp', command);
 
         switch (command) {
           case '/ping':
@@ -500,13 +501,14 @@ class WhatsAppHandler {
             break;
           }
 
-          case '/stats': {
+          case '/stats':
+          case '/cmd_usage': {
             if (!isAdmin(userId, 'whatsapp')) {
               replyText = '> *AKSES DITOLAK* ❌\n\nCommand ini khusus admin.';
               break;
             }
 
-            const statsReply = await handleAdminCommand('/stats', args, userId, 'whatsapp');
+            const statsReply = await handleAdminCommand(command, args, userId, 'whatsapp');
             replyText = statsReply;
             break;
           }
@@ -583,7 +585,7 @@ class WhatsAppHandler {
 
           case '/img_info': {
             const header = '> *IMAGE TOOLS* 🖼️';
-            const body = `Konversi, edit, hapus background, dan screenshot web.\n\n*MODE 1 - BALAS FOTO:*\n1. Balas pesan dengan gambar/foto\n2. Kirim salah satu command berikut\n\n\`\`\`\n\`/img compress\`\n\`/img resize WxH\`\n\`/img to format\`\n\`/img rotate deg\`\n\`/hapusbg\`\n\`\`\`\n\n*MODE 2 - SCREENSHOT WEB:*\n\`\`\`\n/ss https://example.com\n\`\`\`\n\n*KETERANGAN:*\n- /img compress : Kompres ukuran gambar\n- /img resize WxH : Ubah ukuran (contoh: 500x500)\n- /img to format : Format didukung jpg, png, jpeg, webp\n- /img rotate deg : Sudut didukung 90, 180, 270\n- /hapusbg : Hapus background (kuota 50/bulan)\n- /ss <url> : Screenshot website (kuota 50/bulan)\n\n*CATATAN REMOVE BG:*\nGratis hanya preview rendah (maks 0,25 MP).\n\n*BATASAN FILE FOTO:* Maks 5MB`;
+            const body = `Konversi, edit, hapus background, dan screenshot web.\n\n*MODE 1 - BALAS FOTO:*\n1. Balas pesan dengan gambar/foto\n2. Kirim salah satu command berikut\n\n\`\`\`\n/img compress\n/img resize WxH\n/img to format\n/img rotate deg\n/hapusbg\n\`\`\`\n\n*MODE 2 - SCREENSHOT WEB:*\n\`\`\`\n/ss https://example.com\n\`\`\`\n\n*KETERANGAN:*\n- /img compress : Kompres ukuran gambar\n- /img resize WxH : Ubah ukuran (contoh: 500x500)\n- /img to format : Format didukung jpg, png, jpeg, webp\n- /img rotate deg : Sudut didukung 90, 180, 270\n- /hapusbg : Hapus background (kuota 50/bulan)\n- /ss <url> : Screenshot website (kuota 50/bulan)\n\n*CATATAN REMOVE BG:*\nGratis hanya preview rendah (maks 0,25 MP).\n\n*BATASAN FILE FOTO:* Maks 5MB`;
             const footer = await buildImageToolsQuotaFooter();
             replyText = appendFooter(`${header}\n\n${body}`, footer);
             break;
@@ -591,7 +593,7 @@ class WhatsAppHandler {
 
           case '/pdf_info': {
             const header = '> *PDF TOOLS* 📄';
-            const body = `Konversi, optimasi, rotasi, ekstrak, dan merge halaman PDF.\n\n*MODE 1 - KE PDF:*\nKirim dokumen/media dengan caption:\n\n\`\`\`\n/topdf\n\`\`\`\n\n*MODE 2 - DARI PDF:*\nKirim file PDF dengan caption:\n\n\`\`\`\n\`/pdf compress\`\n\`/pdf to format\`\n\`/pdf rotate deg\`\n\`/pdf extract 1-3,5\`\n\`\`\`\n\n*MODE 3 - MERGE BANYAK PDF:*\n\`\`\`\n/pdf merge start\n(kirim file PDF satu per satu)\n/pdf merge done\n/pdf merge cancel\n\`\`\`\n\n*KETERANGAN:*\n- /topdf : Konversi file ke PDF (CloudConvert)\n- /pdf compress : Kompres ukuran PDF (CloudConvert)\n- /pdf to format : Konversi PDF ke format lain (CloudConvert)\n- /pdf rotate deg : Rotasi semua halaman PDF (lokal)\n- /pdf extract pages : Ambil halaman tertentu (lokal)\n- /pdf merge start|done|cancel : Gabung banyak PDF (lokal)\n\n*CONTOH:*\n- /pdf to docx\n- /pdf rotate 90\n- /pdf extract 1-3,5\n- /pdf merge start\n\n*BATASAN:*\n- CloudConvert: max 10MB, kuota 10 request/hari\n- Proses lokal (rotate/extract/merge): max 15MB per file`;
+            const body = `Konversi, optimasi, rotasi, ekstrak, dan merge halaman PDF.\n\n*MODE 1 - KE PDF:*\nKirim dokumen/media dengan caption:\n\n\`\`\`\n/topdf\n\`\`\`\n\n*MODE 2 - DARI PDF:*\nKirim file PDF dengan caption:\n\n\`\`\`\n/pdf compress\n/pdf to format\n/pdf rotate deg\n/pdf extract 1-3,5\n\`\`\`\n\n*MODE 3 - MERGE BANYAK PDF:*\n\`\`\`\n/pdf merge start\n(kirim file PDF satu per satu)\n/pdf merge done\n/pdf merge cancel\n\`\`\`\n\n*KETERANGAN:*\n- /topdf : Konversi file ke PDF (CloudConvert)\n- /pdf compress : Kompres ukuran PDF (CloudConvert)\n- /pdf to format : Konversi PDF ke format lain (CloudConvert)\n- /pdf rotate deg : Rotasi semua halaman PDF (lokal)\n- /pdf extract pages : Ambil halaman tertentu (lokal)\n- /pdf merge start|done|cancel : Gabung banyak PDF (lokal)\n\n*CONTOH:*\n- /pdf to docx\n- /pdf rotate 90\n- /pdf extract 1-3,5\n- /pdf merge start\n\n*BATASAN:*\n- CloudConvert: max 10MB, kuota 10 request/hari\n- Proses lokal (rotate/extract/merge): max 15MB per file`;
             const footer = await buildPdfToolsQuotaFooter();
             replyText = appendFooter(`${header}\n\n${body}`, footer);
             break;
