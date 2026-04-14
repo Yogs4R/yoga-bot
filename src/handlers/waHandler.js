@@ -550,8 +550,13 @@ class WhatsAppHandler {
               break;
             }
 
-            await setActiveModel(userId, 'whatsapp', alias);
-            replyText = `✅ Berhasil! Otak AI kamu sekarang menggunakan ${AI_MODELS[alias].name}.`;
+            try {
+              await setActiveModel(userId, 'whatsapp', alias);
+              replyText = `✅ Berhasil! Otak AI kamu sekarang menggunakan ${AI_MODELS[alias].name}.`;
+            } catch (error) {
+              console.error('Error handling /switch command in WhatsApp:', error);
+              replyText = `❌ Gagal menyimpan model AI: ${error.message}`;
+            }
             break;
           }
 
