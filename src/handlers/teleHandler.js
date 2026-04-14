@@ -285,7 +285,7 @@ function buildMainMenuKeyboard() {
 function buildAdminMenuKeyboard() {
     return Markup.inlineKeyboard([
         [Markup.button.callback('📡 Monitor', 'admin:monitor'), Markup.button.callback('📊 Statistik', 'admin:stats')],
-        [Markup.button.callback('🧾 Cmd Usage', 'admin:cmd_usage'), Markup.button.callback('📢 Broadcast', 'admin:broadcast')]
+        [Markup.button.callback('🧾 Cmd Usage', 'admin:cmd_usage'), Markup.button.callback('📣 Broadcast', 'admin:broadcast')]
     ]);
 }
 
@@ -1369,6 +1369,21 @@ function setupTelegramBot() {
                 await logCommand(userId, 'telegram', adminCommand);
                 const replyText = await handleAdminCommand(adminCommand, [], userId, 'telegram');
                 await sendTelegramReply(ctx, replyText);
+                return;
+            }
+
+            if (data === 'admin:broadcast') {
+                await ctx.answerCbQuery();
+
+                if (!isAdmin(userId, 'telegram')) {
+                    await ctx.reply('<b>AKSES DITOLAK</b> ❌\n\nCommand ini khusus admin.', { parse_mode: 'HTML' });
+                    return;
+                }
+
+                await ctx.reply(
+                    '<b>BROADCAST ADMIN</b> 📣\n\nGunakan format:\n<code>/broadcast &lt;pesan&gt;</code>\n\nContoh:\n<code>/broadcast Halo semua, bot sedang maintenance.</code>',
+                    { parse_mode: 'HTML' }
+                );
                 return;
             }
 

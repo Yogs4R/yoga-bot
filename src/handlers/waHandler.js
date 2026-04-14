@@ -433,7 +433,13 @@ class WhatsAppHandler {
         const command = parts[0].toLowerCase();
         const args = parts.slice(1);
 
-        await logCommand(userId, 'whatsapp', command);
+        // Get sender ID for logging, prioritizing participant ID in groups, then fallback to remoteJid
+        const senderId = msg.key.participant || msg.key.remoteJid;
+
+        // Log command usage, but skip logging if senderId is not available or looks like a lid (to avoid logging internal system messages)
+        if (senderId && !senderId.includes('@lid')) {
+          await logCommand(senderId, 'whatsapp', command);
+        }
 
         switch (command) {
           case '/ping':
