@@ -15,7 +15,7 @@ const { checkWebsites, formatMonitorMessage, getMonitorWebsiteLinks } = require(
 const { AI_MODELS, buildModelInfoMessage, setActiveModel } = require('../services/aiPreferenceService');
 const { handleImgCommand } = require('../commands/converter/index');
 const { createSticker, isFfmpegMissingError } = require('../services/stickerService');
-const { generateBratImage, generateTtsImage } = require('../services/canvasService');
+const { generateBratImage, generateTtsImage } = require('../services/textToImageService');
 const { getQuotaStatus } = require('../services/quotaService');
 const { logCommand } = require('../services/logService');
 const {
