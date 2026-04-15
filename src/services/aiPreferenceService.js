@@ -162,14 +162,14 @@ function getModelById(modelId) {
 }
 
 function buildWhatsAppModelInfoMessage() {
-  const defaultModel = AI_MODELS['gpt-oss'];
+  const defaultModel = { alias: DEFAULT_AI_MODEL_ALIAS, ...AI_MODELS[DEFAULT_AI_MODEL_ALIAS] };
   const freeModels = getModelAliasList().filter((model) => model.type === 'free');
   const premiumModels = getModelAliasList().filter((model) => model.type === 'premium');
 
   const renderModel = (index, model, options = {}) => {
     const parts = [
       `${index}. *${model.name}*`,
-      `Ketik: /switch ${model.alias}`,
+      `Ketik: \`/switch ${model.alias}\``,
       `📝 ${model.description}`
     ];
 
@@ -190,22 +190,22 @@ function buildWhatsAppModelInfoMessage() {
     '',
     '*GRATIS (Training Models)*',
     '⚠️ Catatan: Chat mungkin dicatat untuk training.',
-    ...freeModels.map((model, index) => renderModel(index + 2, model, { freeOnly: true })),
+    freeModels.map((model, index) => renderModel(index + 1, model, { freeOnly: true })).join('\n\n'),
     '',
     '*PREMIUM (Berbayar)*',
-    ...premiumModels.map((model, index) => renderModel(index + 3, model))
+    premiumModels.map((model, index) => renderModel(index + 1, model)).join('\n\n')
   ].join('\n');
 }
 
 function buildTelegramModelInfoMessage() {
-  const defaultModel = AI_MODELS['gpt-oss'];
+  const defaultModel = { alias: DEFAULT_AI_MODEL_ALIAS, ...AI_MODELS[DEFAULT_AI_MODEL_ALIAS] };
   const freeModels = getModelAliasList().filter((model) => model.type === 'free');
   const premiumModels = getModelAliasList().filter((model) => model.type === 'premium');
 
   const renderModel = (index, model, options = {}) => {
     const parts = [
       `${index}. <b>${model.name}</b>`,
-      `Ketik: <code>/switch ${model.alias}</code>`,
+      `Ketik: <pre>/switch ${model.alias}</pre>`,
       `📝 ${model.description}`
     ];
 
@@ -226,10 +226,10 @@ function buildTelegramModelInfoMessage() {
     '',
     '<b>GRATIS (Training Models)</b>',
     '⚠️ Catatan: Chat mungkin dicatat untuk training.',
-    ...freeModels.map((model, index) => renderModel(index + 2, model, { freeOnly: true })),
+    freeModels.map((model, index) => renderModel(index + 1, model, { freeOnly: true })).join('\n\n'),
     '',
     '<b>PREMIUM (Berbayar)</b>',
-    ...premiumModels.map((model, index) => renderModel(index + 3, model))
+    premiumModels.map((model, index) => renderModel(index + 1, model)).join('\n\n')
   ].join('\n');
 }
 

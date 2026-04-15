@@ -3,6 +3,7 @@ const os = require('os');
 const fs = require('fs/promises');
 const fsSync = require('fs');
 const path = require('path');
+const axios = require('axios');
 const bot = require('../lib/telegramClient');
 const { Markup } = require('telegraf');
 const { askAiDetailed } = require('../lib/aiClient');
@@ -13,6 +14,8 @@ const { isAdmin } = require('../utils/auth');
 const { checkWebsites, formatMonitorMessage, getMonitorWebsiteLinks } = require('../services/monitorService');
 const { AI_MODELS, buildModelInfoMessage, setActiveModel } = require('../services/aiPreferenceService');
 const { handleImgCommand } = require('../commands/converter/index');
+const { createSticker, isFfmpegMissingError } = require('../services/stickerService');
+const { generateBratImage, generateTtsImage } = require('../services/canvasService');
 const { getQuotaStatus } = require('../services/quotaService');
 const { logCommand } = require('../services/logService');
 const {
@@ -275,12 +278,11 @@ function appendFooter(text, footer) {
 
 function buildMainMenuKeyboard() {
     return Markup.inlineKeyboard([
-        [Markup.button.callback('💰 Cek Saldo', 'cmd:saldo'), Markup.button.callback('📜 Riwayat', 'cmd:riwayat')],
-        [Markup.button.callback('⚙️ Info', 'cmd:info'), Markup.button.callback('📊 Laporan Keuangan', 'cmd:laporan')],
+        [Markup.button.callback('💰 Finance Info', 'cmd:finance_info'), Markup.button.callback('⚙️ Info', 'cmd:info')],
         [Markup.button.callback('🌤️ Cuaca', 'cmd:cuaca'), Markup.button.callback('🕌 Sholat', 'cmd:sholat')],
         [Markup.button.callback('👨‍💻 About Me', 'cmd:me'), Markup.button.callback('🏓 Ping', 'cmd:ping')],
         [Markup.button.callback('🖼️ Image Tools', 'cmd:img_info'), Markup.button.callback('📄 PDF Tools', 'cmd:pdf_info')],
-        [Markup.button.callback('🤖 Model AI', 'cmd:model_info')]
+        [Markup.button.callback('🤖 Model AI', 'cmd:model_info'), Markup.button.callback('🧩 Sticker Tools', 'cmd:sticker_info')]
     ]);
 }
 
@@ -809,12 +811,18 @@ async function processMenuCommand(ctx, command, userId) {
         }
         case '/info': {
             const header = '<b>INFORMASI YOGA BOT</b> 🤖';
-            const body = `Saya adalah asisten virtual pribadi milik <b>Ridwan Yoga Suryantara</b>.\n\n<b>FITUR KEUANGAN</b> 💰\n• /saldo : Cek saldo keuangan\n• /catat : Catat pengeluaran\n• /pemasukan : Catat pemasukan\n• /laporan_chart : Grafik laporan keuangan\n• /riwayat : Riwayat transaksi (paging 5 data)\n• /hapus : Hapus transaksi (dengan konfirmasi)\n• /edit : Edit transaksi\n\n<b>FITUR SISTEM</b> ⚙️\n• /ping : Cek status bot\n• /info : Menampilkan pesan ini\n• /start : Memulai bot\n\n<b>FITUR AI</b> 🧠\nKirim pesan biasa (tanpa awalan /) untuk ngobrol, tanya coding, atau diskusi teknologi.\n• /model_info : Daftar model AI yang tersedia\n• /switch : Ganti model AI aktif\n\n<b>FITUR UTILITAS</b> 🛠️\n• /cuaca : Info cuaca hari ini\n• /sholat : Jadwal sholat hari ini\n• /me : Tentang pembuat bot\n\n<b>FITUR CONVERTER</b> 🖼️\n• /img_info : Panduan lengkap image tools\n• /pdf_info : Panduan lengkap PDF tools\n\n<b>FITUR ADMIN</b> 🛡️\n• /admin : Menu command admin`;
+            const body = `Saya adalah asisten virtual pribadi milik <b>Ridwan Yoga Suryantara</b>.\n\n<b>FITUR KEUANGAN</b> 💰\n• /finance_info : Panduan lengkap command keuangan\n\n<b>FITUR SISTEM</b> ⚙️\n• /ping : Cek status bot\n• /info : Menampilkan pesan ini\n• /start : Memulai bot\n\n<b>FITUR AI</b> 🧠\nKirim pesan biasa (tanpa awalan /) untuk ngobrol, tanya coding, atau diskusi teknologi.\n• /model_info : Daftar model AI yang tersedia\n• /switch : Ganti model AI aktif\n\n<b>FITUR UTILITAS</b> 🛠️\n• /cuaca : Info cuaca hari ini\n• /sholat : Jadwal sholat hari ini\n• /me : Tentang pembuat bot\n\n<b>FITUR CONVERTER</b> 🖼️\n• /img_info : Panduan lengkap image tools\n• /pdf_info : Panduan lengkap PDF tools\n\n<b>FITUR STICKER</b> 🧩\n• /tosticker : Ubah foto jadi stiker (video/animasi Telegram belum didukung)\n• /brat &lt;teks&gt; : Text to sticker gaya Brat\n• /tts &lt;teks&gt; : Text to sticker dengan stroke\n• /sticker_info : Panduan sticker tools\n\n<b>FITUR ADMIN</b> 🛡️\n• /admin : Menu command admin`;
             const message = `${header}\n\n${body}\n\n${buildSystemStatsFooter()}`;
             await ctx.reply(message, {
                 parse_mode: 'HTML',
                 ...buildMainMenuKeyboard()
             });
+            return;
+        }
+        case '/finance_info': {
+            const header = '<b>FINANCE TOOLS</b> 💰';
+            const body = `Panduan lengkap fitur keuangan Yoga Bot.\n\n<b>COMMAND INTI:</b>\n• /saldo : Lihat ringkasan saldo terbaru\n• /catat &lt;nominal&gt; &lt;keterangan&gt; : Catat pengeluaran\n• /pemasukan &lt;nominal&gt; &lt;keterangan&gt; : Catat pemasukan\n• /laporan_chart : Tampilkan grafik laporan\n• /riwayat [halaman] : Riwayat transaksi (paging 5 data)\n• /edit &lt;id&gt; &lt;field&gt; &lt;nilai&gt; : Ubah transaksi\n• /hapus &lt;id&gt; : Hapus transaksi (dengan konfirmasi)\n\n<b>CONTOH CEPAT:</b>\n• <code>/catat 25000 makan siang</code>\n• <code>/pemasukan 150000 freelance logo</code>\n• <code>/riwayat 2</code>\n• <code>/edit 123e4567 nominal 30000</code>\n• <code>/hapus 123e4567</code>\n\n<b>TIPS:</b>\n• Gunakan /riwayat untuk ambil ID transaksi sebelum /edit atau /hapus\n• Tulisan nominal tanpa titik/koma agar lebih aman diproses`;
+            await ctx.reply(`${header}\n\n${body}`, { parse_mode: 'HTML' });
             return;
         }
         case '/ping':
@@ -878,6 +886,12 @@ async function processMenuCommand(ctx, command, userId) {
             const footer = await buildPdfToolsQuotaFooter();
             const message = appendFooter(`${header}\n\n${body}`, footer);
             await ctx.reply(message, { parse_mode: 'HTML' });
+            return;
+        }
+        case '/sticker_info': {
+            const header = '<b>STICKER TOOLS</b> 🧩';
+            const body = '/tosticker : Ubah gambar/video (max 5 detik) jadi stiker.\n/brat &lt;teks&gt; : Text to Sticker dengan gaya album Brat (Only text).\n/tts &lt;teks&gt; : Teks to stiker dengan emoji.';
+            await ctx.reply(`${header}\n\n${body}`, { parse_mode: 'HTML' });
             return;
         }
         default:
@@ -969,6 +983,10 @@ function setupTelegramBot() {
                 case '/info':
                     await processMenuCommand(ctx, '/info', userId);
                     break;
+
+                case '/finance_info':
+                    await processMenuCommand(ctx, '/finance_info', userId);
+                    break;
                     
                 case '/saldo':
                 case '/catat':
@@ -1017,9 +1035,7 @@ function setupTelegramBot() {
                         console.error('Error handling /model_info command in Telegram:', error);
                         const errorHeader = '<b>ERROR SISTEM</b> ❌';
                         const errorBody = `Terjadi kesalahan saat memproses perintah: ${escapeHtml(error.message)}`;
-                        await ctx.reply(`${errorHeader}
-
-${errorBody}`, { parse_mode: 'HTML' });
+                        await ctx.reply(`${errorHeader}\n\n${errorBody}`, { parse_mode: 'HTML' });
                     }
                     break;
                 }
@@ -1045,9 +1061,7 @@ ${errorBody}`, { parse_mode: 'HTML' });
                         console.error('Error handling /switch command in Telegram:', error);
                         const errorHeader = '<b>ERROR SISTEM</b> ❌';
                         const errorBody = `Terjadi kesalahan saat memproses perintah: ${escapeHtml(error.message)}`;
-                        await ctx.reply(`${errorHeader}
-
-${errorBody}`, { parse_mode: 'HTML' });
+                        await ctx.reply(`${errorHeader}\n\n${errorBody}`, { parse_mode: 'HTML' });
                     }
                     break;
                 }
@@ -1161,6 +1175,93 @@ ${errorBody}`, { parse_mode: 'HTML' });
 
                 case '/pdf_info': {
                     await processMenuCommand(ctx, '/pdf_info', userId);
+                    break;
+                }
+
+                case '/sticker_info': {
+                    await processMenuCommand(ctx, '/sticker_info', userId);
+                    break;
+                }
+
+                case '/tosticker': {
+                    try {
+                        if (ctx.message?.video || ctx.message?.animation) {
+                            await ctx.reply('❌ Maaf, stiker video saat ini hanya disupport di WhatsApp. Silakan kirim gambar biasa ya!');
+                            break;
+                        }
+
+                        const photoCandidates = [ctx.message?.photo, ctx.message?.reply_to_message?.photo]
+                            .filter((item) => Array.isArray(item) && item.length > 0);
+
+                        if (photoCandidates.length === 0) {
+                            await ctx.reply('<b>❌ Format Salah</b>\n\nKirim foto atau balas foto dengan command <code>/tosticker</code>.', { parse_mode: 'HTML' });
+                            break;
+                        }
+
+                        const selectedPhotoArray = photoCandidates[0];
+                        const largestPhoto = selectedPhotoArray[selectedPhotoArray.length - 1];
+                        const fileId = largestPhoto.file_id;
+
+                        const fileLink = await ctx.telegram.getFileLink(fileId);
+                        const response = await axios.get(String(fileLink), { responseType: 'arraybuffer' });
+                        const buffer = Buffer.from(response.data);
+
+                        await ctx.replyWithSticker({ source: buffer });
+                    } catch (error) {
+                        console.error('Error handling /tosticker command in Telegram:', error);
+                        if (isFfmpegMissingError(error)) {
+                            await ctx.reply('<b>❌ ERROR STICKER</b>\n\nFFmpeg belum terpasang di server. Hubungi admin untuk install FFmpeg agar fitur stiker berjalan normal.', { parse_mode: 'HTML' });
+                            break;
+                        }
+
+                        await ctx.reply(`<b>❌ ERROR STICKER</b>\n\nGagal membuat stiker: ${escapeHtml(error.message)}`, { parse_mode: 'HTML' });
+                    }
+                    break;
+                }
+
+                case '/brat': {
+                    try {
+                        const textInput = args.join(' ').trim();
+                        if (!textInput) {
+                            await ctx.reply('<b>❌ Format Salah</b>\n\nGunakan: <code>/brat &lt;teks&gt;</code>', { parse_mode: 'HTML' });
+                            break;
+                        }
+
+                        const imageBuffer = await generateBratImage(textInput);
+                        const stickerBuffer = await createSticker(imageBuffer);
+                        await ctx.replyWithSticker({ source: stickerBuffer });
+                    } catch (error) {
+                        console.error('Error handling /brat command in Telegram:', error);
+                        if (isFfmpegMissingError(error)) {
+                            await ctx.reply('<b>❌ ERROR STICKER</b>\n\nFFmpeg belum terpasang di server. Hubungi admin untuk install FFmpeg agar fitur stiker berjalan normal.', { parse_mode: 'HTML' });
+                            break;
+                        }
+
+                        await ctx.reply(`<b>❌ ERROR STICKER</b>\n\nGagal membuat stiker brat: ${escapeHtml(error.message)}`, { parse_mode: 'HTML' });
+                    }
+                    break;
+                }
+
+                case '/tts': {
+                    try {
+                        const textInput = args.join(' ').trim();
+                        if (!textInput) {
+                            await ctx.reply('<b>❌ Format Salah</b>\n\nGunakan: <code>/tts &lt;teks&gt;</code>', { parse_mode: 'HTML' });
+                            break;
+                        }
+
+                        const imageBuffer = await generateTtsImage(textInput);
+                        const stickerBuffer = await createSticker(imageBuffer);
+                        await ctx.replyWithSticker({ source: stickerBuffer });
+                    } catch (error) {
+                        console.error('Error handling /tts command in Telegram:', error);
+                        if (isFfmpegMissingError(error)) {
+                            await ctx.reply('<b>❌ ERROR STICKER</b>\n\nFFmpeg belum terpasang di server. Hubungi admin untuk install FFmpeg agar fitur stiker berjalan normal.', { parse_mode: 'HTML' });
+                            break;
+                        }
+
+                        await ctx.reply(`<b>❌ ERROR STICKER</b>\n\nGagal membuat stiker tts: ${escapeHtml(error.message)}`, { parse_mode: 'HTML' });
+                    }
                     break;
                 }
 
@@ -1357,32 +1458,20 @@ ${errorBody}`, { parse_mode: 'HTML' });
                     start: '/start',
                     info: '/info',
                     ping: '/ping',
-                    saldo: '/saldo',
-                    riwayat: '/riwayat',
-                    laporan: '/laporan_chart',
+                    finance_info: '/finance_info',
                     cuaca: '/cuaca',
                     sholat: '/sholat',
                     me: '/me',
                     img_info: '/img_info',
                     pdf_info: '/pdf_info',
-                    model_info: '/model_info'
+                    model_info: '/model_info',
+                    sticker_info: '/sticker_info'
                 };
 
                 const mapped = commandMap[key];
                 if (mapped) {
                     await ctx.answerCbQuery();
 
-                    if (mapped === '/riwayat') {
-                        await sendHistoryPageMessage(ctx, userId, 1, false);
-                        return;
-                    }
-
-                    if (mapped === '/laporan_chart') {
-                        const result = await handleFinanceCommand('/laporan_chart', [], userId, 'telegram');
-                        await sendTelegramReply(ctx, result);
-                        return;
-                    }
-                    
                     if (mapped === '/cuaca') {
                         await ctx.answerCbQuery();
                         await ctx.reply('Untuk melihat cuaca, ketik command beserta nama kota.\nContoh: <code>/cuaca semarang</code>', { parse_mode: 'HTML' });

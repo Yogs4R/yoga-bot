@@ -10,6 +10,8 @@ const { isAdmin } = require('../utils/auth');
 const { checkWebsites, formatMonitorMessage } = require('../services/monitorService');
 const { AI_MODELS, buildModelInfoMessage, setActiveModel } = require('../services/aiPreferenceService');
 const { handleImgCommand } = require('../commands/converter/index');
+const { createSticker, isFfmpegMissingError } = require('../services/stickerService');
+const { generateBratImage, generateTtsImage } = require('../services/canvasService');
 const { getQuotaStatus } = require('../services/quotaService');
 const { logCommand } = require('../services/logService');
 const {
@@ -299,6 +301,85 @@ function getMessageContextInfo(msg) {
     || null;
 }
 
+function unwrapMessageContent(message) {
+  let current = message || {};
+
+  while (true) {
+    if (current?.ephemeralMessage?.message) {
+      current = current.ephemeralMessage.message;
+      continue;
+    }
+
+    if (current?.viewOnceMessage?.message) {
+      current = current.viewOnceMessage.message;
+      continue;
+    }
+
+    if (current?.viewOnceMessageV2?.message) {
+      current = current.viewOnceMessageV2.message;
+      continue;
+    }
+
+    if (current?.viewOnceMessageV2Extension?.message) {
+      current = current.viewOnceMessageV2Extension.message;
+      continue;
+    }
+
+    break;
+  }
+
+  return current;
+}
+
+function getStickerMediaSource(msg, contextInfo) {
+  const directMessage = unwrapMessageContent(msg.message);
+  const directImage = directMessage?.imageMessage;
+  const directVideo = directMessage?.videoMessage;
+
+  if (directImage) {
+    return {
+      mediaType: 'image',
+      mediaMessage: msg,
+      seconds: 0
+    };
+  }
+
+  if (directVideo) {
+    return {
+      mediaType: 'video',
+      mediaMessage: msg,
+      seconds: Number(directVideo.seconds || 0)
+    };
+  }
+
+  const quotedRaw = contextInfo?.quotedMessage;
+  if (!quotedRaw) {
+    return null;
+  }
+
+  const quotedMessage = unwrapMessageContent(quotedRaw);
+  const quotedImage = quotedMessage?.imageMessage;
+  const quotedVideo = quotedMessage?.videoMessage;
+
+  if (!quotedImage && !quotedVideo) {
+    return null;
+  }
+
+  return {
+    mediaType: quotedVideo ? 'video' : 'image',
+    mediaMessage: {
+      key: {
+        remoteJid: msg.key.remoteJid,
+        id: contextInfo?.stanzaId || msg.key.id,
+        participant: contextInfo?.participant || msg.key.participant,
+        fromMe: false
+      },
+      message: quotedMessage
+    },
+    seconds: Number(quotedVideo?.seconds || 0)
+  };
+}
+
 function cleanMentionFromGroupText(text, mentionIds = []) {
   let cleanText = String(text || '').trim();
   const normalizedMentionIds = mentionIds
@@ -484,6 +565,13 @@ class WhatsAppHandler {
               }
               return;
             }
+            break;
+          }
+
+          case '/finance_info': {
+            const header = '> *FINANCE TOOLS* 💰';
+            const body = `Panduan lengkap fitur keuangan Yoga Bot.\n\n*COMMAND INTI:*\n- /saldo : Lihat ringkasan saldo terbaru\n- /catat <nominal> <keterangan> : Catat pengeluaran\n- /pemasukan <nominal> <keterangan> : Catat pemasukan\n- /laporan_chart : Tampilkan grafik laporan\n- /riwayat [halaman] : Riwayat transaksi (paging 5 data)\n- /edit <id> <field> <nilai> : Ubah transaksi\n- /hapus <id> : Hapus transaksi (dengan konfirmasi)\n\n*CONTOH CEPAT:*\n- /catat 25000 makan siang\n- /pemasukan 150000 freelance logo\n- /riwayat 2\n- /edit 123e4567 nominal 30000\n- /hapus 123e4567\n\n*TIPS:*\n- Gunakan /riwayat untuk ambil ID transaksi sebelum /edit atau /hapus\n- Tulisan nominal tanpa titik/koma agar lebih aman diproses`;
+            replyText = `${header}\n\n${body}`;
             break;
           }
           
@@ -686,6 +774,103 @@ class WhatsAppHandler {
             break;
           }
 
+          case '/sticker_info': {
+            replyText = '> *STICKER TOOLS* 🧩\n\n\`/tosticker\` : Ubah gambar/video (max 5 detik) jadi stiker.\n\`/brat <teks>\` : Text to Sticker dengan gaya album Brat (Only text).\n\`/tts <teks>\` : Teks to stiker dengan emoji.';
+            break;
+          }
+
+          case '/tosticker': {
+            try {
+              const mediaSource = getStickerMediaSource(msg, contextInfo);
+              if (!mediaSource) {
+                replyText = '> *❌ FORMAT SALAH*\n\nKirim gambar/video atau balas gambar/video dengan command `/tosticker`.';
+                break;
+              }
+
+              if (mediaSource.mediaType === 'video' && mediaSource.seconds > 5) {
+                replyText = '❌ Gagal: Durasi video maksimal 5 detik!';
+                break;
+              }
+
+              const mediaBuffer = await downloadMediaMessage(
+                mediaSource.mediaMessage,
+                'buffer',
+                {},
+                { reuploadRequest: this.sock.updateMediaMessage }
+              );
+
+              const stickerBuffer = await createSticker(mediaBuffer, mediaSource.mediaType);
+              await this.sock.sendMessage(
+                msg.key.remoteJid,
+                { sticker: stickerBuffer },
+                { quoted: msg }
+              );
+            } catch (error) {
+              console.error('Error in /tosticker handler for WhatsApp:', error);
+              if (isFfmpegMissingError(error)) {
+                replyText = '> *❌ ERROR STICKER*\n\nFFmpeg belum terpasang di server. Hubungi admin untuk install FFmpeg agar fitur stiker berjalan normal.';
+                break;
+              }
+
+              replyText = `> *❌ ERROR STICKER*\n\nGagal membuat stiker: ${error.message}`;
+            }
+            break;
+          }
+
+          case '/brat': {
+            try {
+              const textInput = args.join(' ').trim();
+              if (!textInput) {
+                replyText = '> *❌ FORMAT SALAH*\n\nGunakan: `/brat <teks>`';
+                break;
+              }
+
+              const imageBuffer = await generateBratImage(textInput);
+              const stickerBuffer = await createSticker(imageBuffer);
+              await this.sock.sendMessage(
+                msg.key.remoteJid,
+                { sticker: stickerBuffer },
+                { quoted: msg }
+              );
+            } catch (error) {
+              console.error('Error in /brat handler for WhatsApp:', error);
+              if (isFfmpegMissingError(error)) {
+                replyText = '> *❌ ERROR STICKER*\n\nFFmpeg belum terpasang di server. Hubungi admin untuk install FFmpeg agar fitur stiker berjalan normal.';
+                break;
+              }
+
+              replyText = `> *❌ ERROR STICKER*\n\nGagal membuat stiker brat: ${error.message}`;
+            }
+            break;
+          }
+
+          case '/tts': {
+            try {
+              const textInput = args.join(' ').trim();
+              if (!textInput) {
+                replyText = '> *❌ FORMAT SALAH*\n\nGunakan: `/tts <teks>`';
+                break;
+              }
+
+              const imageBuffer = await generateTtsImage(textInput);
+              const stickerBuffer = await createSticker(imageBuffer);
+              await this.sock.sendMessage(
+                msg.key.remoteJid,
+                { sticker: stickerBuffer },
+                { quoted: msg }
+              );
+            } catch (error) {
+              console.error('Error in /tts handler for WhatsApp:', error);
+              if (isFfmpegMissingError(error)) {
+                replyText = '> *❌ ERROR STICKER*\n\nFFmpeg belum terpasang di server. Hubungi admin untuk install FFmpeg agar fitur stiker berjalan normal.';
+                break;
+              }
+
+              replyText = `> *❌ ERROR STICKER*\n\nGagal membuat stiker tts: ${error.message}`;
+            }
+            break;
+          }
+
           case '/start': {
             const startHeader = '> *SELAMAT DATANG DI YOGA BOT* 🤖';
             const startBody = `Halo! Saya adalah asisten virtual pribadi.\n\nGunakan /info untuk melihat daftar perintah lengkap.\n\nBot ini dapat membantu Anda dengan:\n• Manajemen keuangan (/saldo, /catat, dll)\n• Percakapan AI (langsung ketik pesan)\n• Dan berbagai fitur lainnya!`;
@@ -695,7 +880,7 @@ class WhatsAppHandler {
 
           case '/info': {
             const header = '> *INFORMASI YOGA BOT* 🤖';
-            const body = `Saya adalah asisten virtual pribadi milik Ridwan Yoga Suryantara.\n\n📋 *FITUR KEUANGAN* 💰\n- \`/saldo\`         : Cek saldo keuangan\n- \`/catat\`         : Catat pengeluaran\n- \`/pemasukan\`     : Catat pemasukan\n- \`/laporan_chart\` : Grafik laporan keuangan\n- \`/riwayat\`       : Riwayat transaksi terakhir\n- \`/hapus\`         : Hapus transaksi\n- \`/edit\`          : Edit transaksi\n\n📋 *FITUR SISTEM* ⚙️\n- \`/ping\`          : Cek status bot\n- \`/info\`          : Menampilkan pesan ini\n- \`/start\`         : Memulai bot\n\n💡 *FITUR AI* 🧠\nKirimkan pesan biasa (tanpa awalan '/') untuk ngobrol,\nbertanya seputar coding, teknologi, atau sekadar bertukar pikiran!\n- \`/model_info\`    : Daftar model AI yang tersedia\n- \`/switch\`        : Ganti model AI aktif\n\n🛠️ *FITUR UTILITAS*\n- \`/cuaca\`         : Info cuaca hari ini\n- \`/sholat\`        : Jadwal sholat hari ini\n- \`/me\`            : Tentang pembuat bot\n\n🖼️ *FITUR CONVERTER* 📄\n- \`/img_info\`      : Panduan lengkap image tools\n- \`/pdf_info\`      : Panduan lengkap PDF tools\n\n🛡️ *FITUR ADMIN*\n- \`/admin\`         : Menu command admin`;
+            const body = `Saya adalah asisten virtual pribadi milik Ridwan Yoga Suryantara.\n\n📋 *FITUR KEUANGAN* 💰\n- \`/finance_info\`  : Panduan lengkap command keuangan\n\n📋 *FITUR SISTEM* ⚙️\n- \`/ping\`          : Cek status bot\n- \`/info\`          : Menampilkan pesan ini\n- \`/start\`         : Memulai bot\n\n💡 *FITUR AI* 🧠\nKirimkan pesan biasa (tanpa awalan '/') untuk ngobrol,\nbertanya seputar coding, teknologi, atau sekadar bertukar pikiran!\n- \`/model_info\`    : Daftar model AI yang tersedia\n- \`/switch\`        : Ganti model AI aktif\n\n🛠️ *FITUR UTILITAS*\n- \`/cuaca\`         : Info cuaca hari ini\n- \`/sholat\`        : Jadwal sholat hari ini\n- \`/me\`            : Tentang pembuat bot\n\n🖼️ *FITUR CONVERTER* 📄\n- \`/img_info\`      : Panduan lengkap image tools\n- \`/pdf_info\`      : Panduan lengkap PDF tools\n\n🧩 *FITUR STICKER*\n- \`/tosticker\`     : Ubah gambar/video (max 5 detik) jadi stiker\n- \`/brat\`          : Text to sticker gaya Brat\n- \`/tts\`           : Text to sticker dengan stroke\n- \`/sticker_info\`  : Panduan sticker tools\n\n🛡️ *FITUR ADMIN*\n- \`/admin\`         : Menu command admin`;
             replyText = appendFooter(`${header}\n\n${body}`, buildSystemStatsFooter());
             break;
           }
