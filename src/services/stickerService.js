@@ -35,7 +35,6 @@ function isFfmpegMissingError(error) {
 }
 
 async function createSticker(buffer, type = 'image') {
-  const isVideo = type === true || String(type || '').toLowerCase() === 'video';
   const tempDir = '/tmp';
   const randomId = crypto.randomBytes(6).toString('hex');
   const inputPath = path.join(tempDir, `in_${randomId}.tmp`);
@@ -47,20 +46,13 @@ async function createSticker(buffer, type = 'image') {
   try {
     await new Promise((resolve, reject) => {
       const outputOptions = [
-        '-vcodec', 'libwebp',
-        '-vf', "scale='min(320,iw)':min(320,ih):force_original_aspect_ratio=decrease,fps=15,pad=320:320:-1:-1:color=white@0.0,split[a][b];[a]palettegen=reserve_transparent=on:transparency_color=ffffff[p];[b][p]paletteuse"
+        '-vcodec libwebp',
+        '-vf scale=512:512:force_original_aspect_ratio=decrease,format=rgba,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=#00000000',
+        '-loop 0',
+        '-preset default',
+        '-an',
+        '-vsync 0'
       ];
-
-      if (isVideo) {
-        outputOptions.push(
-          '-loop', '0',
-          '-ss', '00:00:00.0',
-          '-t', '00:00:05.0',
-          '-preset', 'default',
-          '-an',
-          '-vsync', '0'
-        );
-      }
 
       ffmpeg(inputPath)
         .outputOptions(outputOptions)
