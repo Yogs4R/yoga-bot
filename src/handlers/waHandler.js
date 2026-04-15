@@ -799,7 +799,7 @@ class WhatsAppHandler {
                 { reuploadRequest: this.sock.updateMediaMessage }
               );
 
-              const stickerBuffer = await createSticker(mediaBuffer, mediaSource.mediaType);
+              const stickerBuffer = await createSticker(mediaBuffer, mediaSource.mediaType === 'video');
               await this.sock.sendMessage(
                 msg.key.remoteJid,
                 { sticker: stickerBuffer },

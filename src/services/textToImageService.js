@@ -1,60 +1,72 @@
-const sharp = require('sharp');
+const jimp = require('jimp');
+const jimpFonts = require('jimp/fonts');
 
-function escapeXml(value) {
-  return String(value || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
+const Jimp = jimp.Jimp || jimp;
+const H_ALIGN = jimp.HorizontalAlign || {};
+const V_ALIGN = jimp.VerticalAlign || {};
+const MIME_PNG = jimp.MIME_PNG || 'image/png';
+
+function normalizeText(text, commandLabel) {
+  const value = String(text || '').trim();
+  if (!value) {
+    throw new Error(`Teks tidak boleh kosong untuk ${commandLabel}.`);
+  }
+
+  return value;
+}
+
+async function createImage(width, height, colorHex) {
+  try {
+    return await new Jimp(width, height, colorHex);
+  } catch (_error) {
+    return await new Jimp({ width, height, background: colorHex });
+  }
+}
+
+async function getPngBuffer(image) {
+  if (typeof image.getBufferAsync === 'function') {
+    return await image.getBufferAsync(MIME_PNG);
+  }
+
+  return await image.getBuffer(MIME_PNG);
+}
+
+async function renderCenteredText({ text, backgroundColor, fontPath }) {
+  const image = await createImage(512, 512, backgroundColor);
+  const font = await jimp.loadFont(fontPath);
+
+  if (typeof image.print === 'function') {
+    image.print({
+      font,
+      x: 0,
+      y: 0,
+      text,
+      maxWidth: 512,
+      maxHeight: 512,
+      alignmentX: H_ALIGN.CENTER,
+      alignmentY: V_ALIGN.MIDDLE
+    });
+  }
+
+  return await getPngBuffer(image);
 }
 
 async function generateBratImage(text) {
-  const safeText = escapeXml(String(text || '').trim());
-  if (!safeText) {
-    throw new Error('Teks tidak boleh kosong untuk /brat.');
-  }
-
-  const svgString = `
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#FFFFFF" />
-  <text
-    x="50%"
-    y="50%"
-    fill="#000000"
-    font-family="Arial, Helvetica, sans-serif"
-    font-size="46"
-    font-weight="700"
-    text-anchor="middle"
-    dominant-baseline="middle"
-  >${safeText}</text>
-</svg>`;
-
-  return await sharp(Buffer.from(svgString)).png().toBuffer();
+  const safeText = normalizeText(text, '/brat');
+  return await renderCenteredText({
+    text: safeText,
+    backgroundColor: '#FFFFFF',
+    fontPath: jimpFonts.SANS_64_BLACK
+  });
 }
 
 async function generateTtsImage(text) {
-  const safeText = escapeXml(String(text || '').trim());
-  if (!safeText) {
-    throw new Error('Teks tidak boleh kosong untuk /tts.');
-  }
-
-  const svgString = `
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#2C3E50" />
-  <text
-    x="50%"
-    y="50%"
-    fill="#FFFFFF"
-    font-family="Arial, Helvetica, sans-serif"
-    font-size="46"
-    font-weight="700"
-    text-anchor="middle"
-    dominant-baseline="middle"
-  >${safeText}</text>
-</svg>`;
-
-  return await sharp(Buffer.from(svgString)).png().toBuffer();
+  const safeText = normalizeText(text, '/tts');
+  return await renderCenteredText({
+    text: safeText,
+    backgroundColor: '#000000',
+    fontPath: jimpFonts.SANS_64_WHITE
+  });
 }
 
 module.exports = {
