@@ -13,6 +13,8 @@ const { handleImgCommand } = require('../commands/converter/index');
 const { createSticker, isFfmpegMissingError } = require('../services/stickerService');
 const { getQuotaStatus } = require('../services/quotaService');
 const { logCommand } = require('../services/logService');
+const { shortenUrl } = require('../services/shortenerService');
+const { buildDonateMessage, getDonateQrImagePaths } = require('../services/donateService');
 const {
   MAX_FILE_SIZE,
   removeBackground,
@@ -838,9 +840,50 @@ class WhatsAppHandler {
 
           case '/info': {
             const header = '> *INFORMASI YOGA BOT* 🤖';
-            const body = `Saya adalah asisten virtual pribadi milik Ridwan Yoga Suryantara.\n\n📋 *FITUR KEUANGAN* 💰\n- \`/finance_info\`  : Panduan lengkap command keuangan\n\n📋 *FITUR SISTEM* ⚙️\n- \`/ping\`          : Cek status bot\n- \`/info\`          : Menampilkan pesan ini\n- \`/start\`         : Memulai bot\n\n💡 *FITUR AI* 🧠\nKirimkan pesan biasa (tanpa awalan '/') untuk ngobrol,\nbertanya seputar coding, teknologi, atau sekadar bertukar pikiran!\n- \`/model_info\`    : Daftar model AI yang tersedia\n- \`/switch\`        : Ganti model AI aktif\n\n🛠️ *FITUR UTILITAS*\n- \`/cuaca\`         : Info cuaca hari ini\n- \`/sholat\`        : Jadwal sholat hari ini\n- \`/me\`            : Tentang pembuat bot\n\n🖼️ *FITUR CONVERTER* 📄\n- \`/img_info\`      : Panduan lengkap image tools\n- \`/pdf_info\`      : Panduan lengkap PDF tools\n\n🧩 *FITUR STICKER*\n- \`/sticker_info\`  : Panduan sticker tools\n\n🛡️ *FITUR ADMIN*\n- \`/admin\`         : Menu command admin`;
+            const body = `Saya adalah asisten virtual pribadi milik Ridwan Yoga Suryantara.\n\n☕ *DUKUNGAN BOT*\n- \`/donate\`        : Link dukungan + QR donasi\n\n📋 *FITUR KEUANGAN* 💰\n- \`/finance_info\`  : Panduan lengkap command keuangan\n\n📋 *FITUR SISTEM* ⚙️\n- \`/ping\`          : Cek status bot\n- \`/info\`          : Menampilkan pesan ini\n- \`/start\`         : Memulai bot\n\n💡 *FITUR AI* 🧠\nKirimkan pesan biasa (tanpa awalan '/') untuk ngobrol,\nbertanya seputar coding, teknologi, atau sekadar bertukar pikiran!\n- \`/model_info\`    : Daftar model AI yang tersedia\n- \`/switch\`        : Ganti model AI aktif\n\n🛠️ *FITUR UTILITAS*\n- \`/short\`         : Pendekkan URL dengan is.gd\n- \`/cuaca\`         : Info cuaca hari ini\n- \`/sholat\`        : Jadwal sholat hari ini\n- \`/me\`            : Tentang pembuat bot\n\n🖼️ *FITUR CONVERTER* 📄\n- \`/img_info\`      : Panduan lengkap image tools\n- \`/pdf_info\`      : Panduan lengkap PDF tools\n\n🧩 *FITUR STICKER*\n- \`/sticker_info\`  : Panduan sticker tools\n\n🛡️ *FITUR ADMIN*\n- \`/admin\`         : Menu command admin`;
             replyText = appendFooter(`${header}\n\n${body}`, buildSystemStatsFooter());
             break;
+          }
+
+          case '/donate': {
+            try {
+              const donateText = buildDonateMessage('whatsapp');
+              const { koFi, saweria } = getDonateQrImagePaths();
+
+              await this.sock.sendMessage(
+                msg.key.remoteJid,
+                { text: formatWhatsAppReply(donateText) },
+                { quoted: msg }
+              );
+
+              const koFiBuffer = await fs.readFile(koFi);
+              await this.sock.sendMessage(
+                msg.key.remoteJid,
+                {
+                  image: koFiBuffer,
+                  mimetype: 'image/png',
+                  caption: '🌍 QR Donasi Ko-fi'
+                },
+                { quoted: msg }
+              );
+
+              const saweriaBuffer = await fs.readFile(saweria);
+              await this.sock.sendMessage(
+                msg.key.remoteJid,
+                {
+                  image: saweriaBuffer,
+                  mimetype: 'image/png',
+                  caption: '🇮🇩 QR Donasi Saweria'
+                },
+                { quoted: msg }
+              );
+            } catch (error) {
+              console.error('Error in /donate handler for WhatsApp:', error);
+              replyText = `❌ Gagal menampilkan info donasi: ${error.message}`;
+              break;
+            }
+
+            return;
           }
 
           case '/hapusbg': {
@@ -1193,6 +1236,29 @@ class WhatsAppHandler {
             } finally {
               safeUnlinkSync(inputPath);
               safeUnlinkSync(outputPath);
+            }
+            break;
+          }
+
+          case '/short': {
+            try {
+              const originalUrl = String(args.join(' ') || '').trim();
+
+              if (!originalUrl) {
+                replyText = '❌ Masukkan link yang ingin dipendekkan! Contoh: /short https://fuenzerstudio.com';
+                break;
+              }
+
+              if (!(originalUrl.startsWith('http://') || originalUrl.startsWith('https://'))) {
+                replyText = '❌ URL tidak valid! URL harus diawali http:// atau https://';
+                break;
+              }
+
+              const shortUrl = await shortenUrl(originalUrl);
+              replyText = `✅ Berhasil dipendekkan!\n🔗 URL Asli: ${originalUrl}\n✨ URL Pendek: ${shortUrl}`;
+            } catch (error) {
+              console.error('Error in /short handler for WhatsApp:', error);
+              replyText = `❌ Gagal memendekkan URL: ${error.message}`;
             }
             break;
           }

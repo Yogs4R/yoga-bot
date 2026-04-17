@@ -16,6 +16,15 @@
     <a href="README.md">English</a> | <a href="README.id.md">Indonesia</a>
 </h4>
 
+<p align="center">
+  <a href="https://ko-fi.com/fuenzer">
+    <img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="Support via Ko-fi" />
+  </a>
+  <a href="https://saweria.co/fuenzer">
+    <img src="https://img.shields.io/badge/Saweria-Dukung%20Yoga%20Bot-FF6B00?style=for-the-badge&logo=buymeacoffee&logoColor=white" alt="Support via Saweria" />
+  </a>
+</p>
+
 Yoga Bot is a standalone virtual assistant that runs in parallel on WhatsApp and Telegram. Designed to increase daily productivity by combining financial management, artificial intelligence, media file processing, and personal server monitoring.
 
 ## Features

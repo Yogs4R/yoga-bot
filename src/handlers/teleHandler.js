@@ -17,6 +17,8 @@ const { handleImgCommand } = require('../commands/converter/index');
 const { createSticker, isFfmpegMissingError } = require('../services/stickerService');
 const { getQuotaStatus } = require('../services/quotaService');
 const { logCommand } = require('../services/logService');
+const { shortenUrl } = require('../services/shortenerService');
+const { buildDonateMessage, getDonateQrImagePaths } = require('../services/donateService');
 const {
     MAX_FILE_SIZE,
     removeBackground,
@@ -278,6 +280,7 @@ function appendFooter(text, footer) {
 function buildMainMenuKeyboard() {
     return Markup.inlineKeyboard([
         [Markup.button.callback('💰 Finance Info', 'cmd:finance_info'), Markup.button.callback('⚙️ Info', 'cmd:info')],
+        [Markup.button.callback('☕ Donate', 'cmd:donate')],
         [Markup.button.callback('🌤️ Cuaca', 'cmd:cuaca'), Markup.button.callback('🕌 Sholat', 'cmd:sholat')],
         [Markup.button.callback('👨‍💻 About Me', 'cmd:me'), Markup.button.callback('🏓 Ping', 'cmd:ping')],
         [Markup.button.callback('🖼️ Image Tools', 'cmd:img_info'), Markup.button.callback('📄 PDF Tools', 'cmd:pdf_info')],
@@ -811,12 +814,21 @@ async function processMenuCommand(ctx, command, userId) {
         }
         case '/info': {
             const header = '<b>INFORMASI YOGA BOT</b> 🤖';
-            const body = `Saya adalah asisten virtual pribadi milik <b>Ridwan Yoga Suryantara</b>.\n\n<b>FITUR KEUANGAN</b> 💰\n• /finance_info : Panduan lengkap command keuangan\n\n<b>FITUR SISTEM</b> ⚙️\n• /ping : Cek status bot\n• /info : Menampilkan pesan ini\n• /start : Memulai bot\n\n<b>FITUR AI</b> 🧠\nKirim pesan biasa (tanpa awalan /) untuk ngobrol, tanya coding, atau diskusi teknologi.\n• /model_info : Daftar model AI yang tersedia\n• /switch : Ganti model AI aktif\n\n<b>FITUR UTILITAS</b> 🛠️\n• /cuaca : Info cuaca hari ini\n• /sholat : Jadwal sholat hari ini\n• /me : Tentang pembuat bot\n\n<b>FITUR CONVERTER</b> 🖼️\n• /img_info : Panduan lengkap image tools\n• /pdf_info : Panduan lengkap PDF tools\n\n<b>FITUR STICKER</b> 🧩\n• /sticker_info : Panduan sticker tools\n\n<b>FITUR ADMIN</b> 🛡️\n• /admin : Menu command admin`;
+            const body = `Saya adalah asisten virtual pribadi milik <b>Ridwan Yoga Suryantara</b>.\n\n<b>DUKUNGAN BOT</b> ☕\n• /donate : Link dukungan + QR donasi\n\n<b>FITUR KEUANGAN</b> 💰\n• /finance_info : Panduan lengkap command keuangan\n\n<b>FITUR SISTEM</b> ⚙️\n• /ping : Cek status bot\n• /info : Menampilkan pesan ini\n• /start : Memulai bot\n\n<b>FITUR AI</b> 🧠\nKirim pesan biasa (tanpa awalan /) untuk ngobrol, tanya coding, atau diskusi teknologi.\n• /model_info : Daftar model AI yang tersedia\n• /switch : Ganti model AI aktif\n\n<b>FITUR UTILITAS</b> 🛠️\n• /short : Pendekkan URL dengan is.gd\n• /cuaca : Info cuaca hari ini\n• /sholat : Jadwal sholat hari ini\n• /me : Tentang pembuat bot\n\n<b>FITUR CONVERTER</b> 🖼️\n• /img_info : Panduan lengkap image tools\n• /pdf_info : Panduan lengkap PDF tools\n\n<b>FITUR STICKER</b> 🧩\n• /sticker_info : Panduan sticker tools\n\n<b>FITUR ADMIN</b> 🛡️\n• /admin : Menu command admin`;
             const message = `${header}\n\n${body}\n\n${buildSystemStatsFooter()}`;
             await ctx.reply(message, {
                 parse_mode: 'HTML',
                 ...buildMainMenuKeyboard()
             });
+            return;
+        }
+        case '/donate': {
+            const donateText = buildDonateMessage('telegram');
+            const { koFi, saweria } = getDonateQrImagePaths();
+
+            await ctx.reply(donateText, { parse_mode: 'HTML' });
+            await ctx.replyWithPhoto({ source: koFi }, { caption: '🌍 QR Donasi Ko-fi' });
+            await ctx.replyWithPhoto({ source: saweria }, { caption: '🇮🇩 QR Donasi Saweria' });
             return;
         }
         case '/finance_info': {
@@ -982,6 +994,15 @@ function setupTelegramBot() {
                     
                 case '/info':
                     await processMenuCommand(ctx, '/info', userId);
+                    break;
+
+                case '/donate':
+                    try {
+                        await processMenuCommand(ctx, '/donate', userId);
+                    } catch (error) {
+                        console.error('Error handling /donate command in Telegram:', error);
+                        await ctx.reply(`<b>ERROR DONATE</b> ❌\n\n${escapeHtml(error.message)}`, { parse_mode: 'HTML' });
+                    }
                     break;
 
                 case '/finance_info':
@@ -1335,6 +1356,32 @@ function setupTelegramBot() {
                     break;
                 }
 
+                case '/short': {
+                    try {
+                        const originalUrl = String(args.join(' ') || '').trim();
+
+                        if (!originalUrl) {
+                            await ctx.reply('❌ Masukkan link yang ingin dipendekkan! Contoh: /short https://fuenzerstudio.com');
+                            break;
+                        }
+
+                        if (!(originalUrl.startsWith('http://') || originalUrl.startsWith('https://'))) {
+                            await ctx.reply('❌ URL tidak valid! URL harus diawali http:// atau https://');
+                            break;
+                        }
+
+                        const shortUrl = await shortenUrl(originalUrl);
+                        await ctx.reply(
+                            `✅ Berhasil dipendekkan!\n🔗 URL Asli: ${escapeHtml(originalUrl)}\n✨ URL Pendek: ${escapeHtml(shortUrl)}`,
+                            { parse_mode: 'HTML' }
+                        );
+                    } catch (error) {
+                        console.error('Error handling /short command in Telegram:', error);
+                        await ctx.reply(`❌ Gagal memendekkan URL: ${escapeHtml(error.message)}`, { parse_mode: 'HTML' });
+                    }
+                    break;
+                }
+
                 case '/hapus':
                     if (args.length < 1) {
                         await ctx.reply('Format: <code>/hapus &lt;id_transaksi&gt;</code>\nContoh: <code>/hapus 123e4567</code>\nGunakan /riwayat untuk melihat ID transaksi.', { parse_mode: 'HTML' });
@@ -1412,6 +1459,7 @@ function setupTelegramBot() {
                 const commandMap = {
                     start: '/start',
                     info: '/info',
+                    donate: '/donate',
                     ping: '/ping',
                     finance_info: '/finance_info',
                     cuaca: '/cuaca',
