@@ -15,7 +15,7 @@ const { checkWebsites, formatMonitorMessage, getMonitorWebsiteLinks } = require(
 const { AI_MODELS, buildModelInfoMessage, setActiveModel } = require('../services/aiPreferenceService');
 const { handleImgCommand } = require('../commands/converter/index');
 const { createSticker, isFfmpegMissingError } = require('../services/stickerService');
-const { generateBratImage, generateTtsImage } = require('../services/textToImageService');
+const { generateBratImage } = require('../services/textToImageService');
 const { getQuotaStatus } = require('../services/quotaService');
 const { logCommand } = require('../services/logService');
 const {
@@ -811,7 +811,7 @@ async function processMenuCommand(ctx, command, userId) {
         }
         case '/info': {
             const header = '<b>INFORMASI YOGA BOT</b> 🤖';
-            const body = `Saya adalah asisten virtual pribadi milik <b>Ridwan Yoga Suryantara</b>.\n\n<b>FITUR KEUANGAN</b> 💰\n• /finance_info : Panduan lengkap command keuangan\n\n<b>FITUR SISTEM</b> ⚙️\n• /ping : Cek status bot\n• /info : Menampilkan pesan ini\n• /start : Memulai bot\n\n<b>FITUR AI</b> 🧠\nKirim pesan biasa (tanpa awalan /) untuk ngobrol, tanya coding, atau diskusi teknologi.\n• /model_info : Daftar model AI yang tersedia\n• /switch : Ganti model AI aktif\n\n<b>FITUR UTILITAS</b> 🛠️\n• /cuaca : Info cuaca hari ini\n• /sholat : Jadwal sholat hari ini\n• /me : Tentang pembuat bot\n\n<b>FITUR CONVERTER</b> 🖼️\n• /img_info : Panduan lengkap image tools\n• /pdf_info : Panduan lengkap PDF tools\n\n<b>FITUR STICKER</b> 🧩\n• /tosticker : Ubah foto jadi stiker (video/animasi Telegram belum didukung)\n• /brat &lt;teks&gt; : Text to sticker gaya Brat\n• /tts &lt;teks&gt; : Text to sticker dengan stroke\n• /sticker_info : Panduan sticker tools\n\n<b>FITUR ADMIN</b> 🛡️\n• /admin : Menu command admin`;
+            const body = `Saya adalah asisten virtual pribadi milik <b>Ridwan Yoga Suryantara</b>.\n\n<b>FITUR KEUANGAN</b> 💰\n• /finance_info : Panduan lengkap command keuangan\n\n<b>FITUR SISTEM</b> ⚙️\n• /ping : Cek status bot\n• /info : Menampilkan pesan ini\n• /start : Memulai bot\n\n<b>FITUR AI</b> 🧠\nKirim pesan biasa (tanpa awalan /) untuk ngobrol, tanya coding, atau diskusi teknologi.\n• /model_info : Daftar model AI yang tersedia\n• /switch : Ganti model AI aktif\n\n<b>FITUR UTILITAS</b> 🛠️\n• /cuaca : Info cuaca hari ini\n• /sholat : Jadwal sholat hari ini\n• /me : Tentang pembuat bot\n\n<b>FITUR CONVERTER</b> 🖼️\n• /img_info : Panduan lengkap image tools\n• /pdf_info : Panduan lengkap PDF tools\n\n<b>FITUR STICKER</b> 🧩\n• /sticker_info : Panduan sticker tools\n\n<b>FITUR ADMIN</b> 🛡️\n• /admin : Menu command admin`;
             const message = `${header}\n\n${body}\n\n${buildSystemStatsFooter()}`;
             await ctx.reply(message, {
                 parse_mode: 'HTML',
@@ -890,7 +890,7 @@ async function processMenuCommand(ctx, command, userId) {
         }
         case '/sticker_info': {
             const header = '<b>STICKER TOOLS</b> 🧩';
-            const body = '/tosticker : Ubah gambar/video (max 5 detik) jadi stiker.\n/brat &lt;teks&gt; : Text to Sticker dengan gaya album Brat (Only text).\n/tts &lt;teks&gt; : Teks to stiker dengan emoji.';
+            const body = '/tosticker : Ubah gambar/video (max 5 dtk) jadi stiker.\n/brat &lt;teks&gt; : Buat stiker teks gaya album Brat (Otomatis tanpa emoji).';
             await ctx.reply(`${header}\n\n${body}`, { parse_mode: 'HTML' });
             return;
         }
@@ -1238,29 +1238,6 @@ function setupTelegramBot() {
                         }
 
                         await ctx.reply(`<b>❌ ERROR STICKER</b>\n\nGagal membuat stiker brat: ${escapeHtml(error.message)}`, { parse_mode: 'HTML' });
-                    }
-                    break;
-                }
-
-                case '/tts': {
-                    try {
-                        const textInput = args.join(' ').trim();
-                        if (!textInput) {
-                            await ctx.reply('<b>❌ Format Salah</b>\n\nGunakan: <code>/tts &lt;teks&gt;</code>', { parse_mode: 'HTML' });
-                            break;
-                        }
-
-                        const imageBuffer = await generateTtsImage(textInput);
-                        const stickerBuffer = await createSticker(imageBuffer);
-                        await ctx.replyWithSticker({ source: stickerBuffer });
-                    } catch (error) {
-                        console.error('Error handling /tts command in Telegram:', error);
-                        if (isFfmpegMissingError(error)) {
-                            await ctx.reply('<b>❌ ERROR STICKER</b>\n\nFFmpeg belum terpasang di server. Hubungi admin untuk install FFmpeg agar fitur stiker berjalan normal.', { parse_mode: 'HTML' });
-                            break;
-                        }
-
-                        await ctx.reply(`<b>❌ ERROR STICKER</b>\n\nGagal membuat stiker tts: ${escapeHtml(error.message)}`, { parse_mode: 'HTML' });
                     }
                     break;
                 }

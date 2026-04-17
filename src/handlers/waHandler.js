@@ -11,7 +11,7 @@ const { checkWebsites, formatMonitorMessage } = require('../services/monitorServ
 const { AI_MODELS, buildModelInfoMessage, setActiveModel } = require('../services/aiPreferenceService');
 const { handleImgCommand } = require('../commands/converter/index');
 const { createSticker, isFfmpegMissingError } = require('../services/stickerService');
-const { generateBratImage, generateTtsImage } = require('../services/textToImageService');
+const { generateBratImage } = require('../services/textToImageService');
 const { getQuotaStatus } = require('../services/quotaService');
 const { logCommand } = require('../services/logService');
 const {
@@ -775,7 +775,7 @@ class WhatsAppHandler {
           }
 
           case '/sticker_info': {
-            replyText = '> *STICKER TOOLS* 🧩\n\n\`/tosticker\` : Ubah gambar/video (max 5 detik) jadi stiker.\n\`/brat <teks>\` : Text to Sticker dengan gaya album Brat (Only text).\n\`/tts <teks>\` : Teks to stiker dengan emoji.';
+            replyText = '> *STICKER TOOLS* 🧩\n\n\`/tosticker\` : Ubah gambar/video (max 5 dtk) jadi stiker.\n\`/brat <teks>\` : Buat stiker teks gaya album Brat (Otomatis tanpa emoji).';
             break;
           }
 
@@ -844,33 +844,6 @@ class WhatsAppHandler {
             break;
           }
 
-          case '/tts': {
-            try {
-              const textInput = args.join(' ').trim();
-              if (!textInput) {
-                replyText = '> *❌ FORMAT SALAH*\n\nGunakan: `/tts <teks>`';
-                break;
-              }
-
-              const imageBuffer = await generateTtsImage(textInput);
-              const stickerBuffer = await createSticker(imageBuffer);
-              await this.sock.sendMessage(
-                msg.key.remoteJid,
-                { sticker: stickerBuffer },
-                { quoted: msg }
-              );
-            } catch (error) {
-              console.error('Error in /tts handler for WhatsApp:', error);
-              if (isFfmpegMissingError(error)) {
-                replyText = '> *❌ ERROR STICKER*\n\nFFmpeg belum terpasang di server. Hubungi admin untuk install FFmpeg agar fitur stiker berjalan normal.';
-                break;
-              }
-
-              replyText = `> *❌ ERROR STICKER*\n\nGagal membuat stiker tts: ${error.message}`;
-            }
-            break;
-          }
-
           case '/start': {
             const startHeader = '> *SELAMAT DATANG DI YOGA BOT* 🤖';
             const startBody = `Halo! Saya adalah asisten virtual pribadi.\n\nGunakan /info untuk melihat daftar perintah lengkap.\n\nBot ini dapat membantu Anda dengan:\n• Manajemen keuangan (/saldo, /catat, dll)\n• Percakapan AI (langsung ketik pesan)\n• Dan berbagai fitur lainnya!`;
@@ -880,7 +853,7 @@ class WhatsAppHandler {
 
           case '/info': {
             const header = '> *INFORMASI YOGA BOT* 🤖';
-            const body = `Saya adalah asisten virtual pribadi milik Ridwan Yoga Suryantara.\n\n📋 *FITUR KEUANGAN* 💰\n- \`/finance_info\`  : Panduan lengkap command keuangan\n\n📋 *FITUR SISTEM* ⚙️\n- \`/ping\`          : Cek status bot\n- \`/info\`          : Menampilkan pesan ini\n- \`/start\`         : Memulai bot\n\n💡 *FITUR AI* 🧠\nKirimkan pesan biasa (tanpa awalan '/') untuk ngobrol,\nbertanya seputar coding, teknologi, atau sekadar bertukar pikiran!\n- \`/model_info\`    : Daftar model AI yang tersedia\n- \`/switch\`        : Ganti model AI aktif\n\n🛠️ *FITUR UTILITAS*\n- \`/cuaca\`         : Info cuaca hari ini\n- \`/sholat\`        : Jadwal sholat hari ini\n- \`/me\`            : Tentang pembuat bot\n\n🖼️ *FITUR CONVERTER* 📄\n- \`/img_info\`      : Panduan lengkap image tools\n- \`/pdf_info\`      : Panduan lengkap PDF tools\n\n🧩 *FITUR STICKER*\n- \`/tosticker\`     : Ubah gambar/video (max 5 detik) jadi stiker\n- \`/brat\`          : Text to sticker gaya Brat\n- \`/tts\`           : Text to sticker dengan stroke\n- \`/sticker_info\`  : Panduan sticker tools\n\n🛡️ *FITUR ADMIN*\n- \`/admin\`         : Menu command admin`;
+            const body = `Saya adalah asisten virtual pribadi milik Ridwan Yoga Suryantara.\n\n📋 *FITUR KEUANGAN* 💰\n- \`/finance_info\`  : Panduan lengkap command keuangan\n\n📋 *FITUR SISTEM* ⚙️\n- \`/ping\`          : Cek status bot\n- \`/info\`          : Menampilkan pesan ini\n- \`/start\`         : Memulai bot\n\n💡 *FITUR AI* 🧠\nKirimkan pesan biasa (tanpa awalan '/') untuk ngobrol,\nbertanya seputar coding, teknologi, atau sekadar bertukar pikiran!\n- \`/model_info\`    : Daftar model AI yang tersedia\n- \`/switch\`        : Ganti model AI aktif\n\n🛠️ *FITUR UTILITAS*\n- \`/cuaca\`         : Info cuaca hari ini\n- \`/sholat\`        : Jadwal sholat hari ini\n- \`/me\`            : Tentang pembuat bot\n\n🖼️ *FITUR CONVERTER* 📄\n- \`/img_info\`      : Panduan lengkap image tools\n- \`/pdf_info\`      : Panduan lengkap PDF tools\n\n🧩 *FITUR STICKER*\n- \`/sticker_info\`  : Panduan sticker tools\n\n🛡️ *FITUR ADMIN*\n- \`/admin\`         : Menu command admin`;
             replyText = appendFooter(`${header}\n\n${body}`, buildSystemStatsFooter());
             break;
           }

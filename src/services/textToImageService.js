@@ -31,45 +31,29 @@ async function getPngBuffer(image) {
   return await image.getBuffer(MIME_PNG);
 }
 
-async function renderCenteredText({ text, backgroundColor, fontPath }) {
-  const image = await createImage(512, 512, backgroundColor);
-  const font = await jimp.loadFont(fontPath);
+async function generateBratImage(text) {
+  const safeText = normalizeText(text, '/brat');
+  const bratText = safeText.toLowerCase();
+  const cleanText = bratText.replace(/[\u1000-\uFFFF]+/g, '').trim();
+  const image = await createImage(512, 512, 0xFFFFFFFF);
+  const font = await jimp.loadFont(Jimp.FONT_SANS_64_BLACK || jimpFonts.SANS_64_BLACK);
 
-  if (typeof image.print === 'function') {
-    image.print({
-      font,
-      x: 0,
-      y: 0,
-      text,
-      maxWidth: 512,
-      maxHeight: 512,
-      alignmentX: H_ALIGN.CENTER,
-      alignmentY: V_ALIGN.MIDDLE
-    });
-  }
+  image.print(
+    font,
+    0,
+    0,
+    {
+      text: cleanText,
+      alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER || H_ALIGN.CENTER,
+      alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE || V_ALIGN.MIDDLE
+    },
+    512,
+    512
+  );
 
   return await getPngBuffer(image);
 }
 
-async function generateBratImage(text) {
-  const safeText = normalizeText(text, '/brat');
-  return await renderCenteredText({
-    text: safeText,
-    backgroundColor: '#FFFFFF',
-    fontPath: jimpFonts.SANS_64_BLACK
-  });
-}
-
-async function generateTtsImage(text) {
-  const safeText = normalizeText(text, '/tts');
-  return await renderCenteredText({
-    text: safeText,
-    backgroundColor: '#000000',
-    fontPath: jimpFonts.SANS_64_WHITE
-  });
-}
-
 module.exports = {
-  generateBratImage,
-  generateTtsImage
+  generateBratImage
 };
