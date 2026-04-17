@@ -196,6 +196,29 @@ function toWhatsAppJid(value) {
   return normalized ? `${normalized}@s.whatsapp.net` : '';
 }
 
+function resolveWhatsAppSenderJid(msg, fallbackUserId = '') {
+  const candidates = [
+    msg?.key?.senderPn,
+    msg?.key?.participant,
+    fallbackUserId,
+    msg?.key?.remoteJid
+  ];
+
+  for (const candidate of candidates) {
+    const raw = String(candidate || '').trim();
+    if (!raw || raw.endsWith('@g.us') || raw.includes('@lid')) {
+      continue;
+    }
+
+    const jid = toWhatsAppJid(raw);
+    if (jid) {
+      return jid;
+    }
+  }
+
+  return '';
+}
+
 function escapeRegex(value) {
   return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -514,21 +537,10 @@ class WhatsAppHandler {
         const command = parts[0].toLowerCase();
         const args = parts.slice(1);
 
-        // Ekstraktor Smart ID
-        let realId = msg.key.senderPn || msg.key.remoteJid;
-
-        if (msg.key.remoteJid?.endsWith('@g.us')) {
-            // If message is from a group, try to get the real sender ID from participant or context info
-            realId = msg.key.participant || realId;
-        }
-
-        // Optional: Clear multi-device extensions (eg: 628xxx:15@s.whatsapp.net)
-        if (realId && realId.includes(':')) {
-            realId = realId.split(':')[0] + '@s.whatsapp.net';
-        }
+        const realId = resolveWhatsAppSenderJid(msg, userId);
 
         // Log Command with Real Sender ID
-        if (command && realId && !realId.includes('@lid')) {
+        if (command && realId) {
             await logCommand(realId, 'whatsapp', command);
         }
 
@@ -1198,7 +1210,8 @@ class WhatsAppHandler {
           replyText = `${shortHeader}\n\n${shortBody}`;
         } else {
           try {
-            const aiResult = await askAiDetailed(cleanText, userId, 'whatsapp');
+            const realId = resolveWhatsAppSenderJid(msg, userId);
+            const aiResult = await askAiDetailed(cleanText, userId, 'whatsapp', realId);
             replyText = appendFooter(aiResult.text, buildAiStatsFooter(aiResult));
           } catch (error) {
             console.error('Error dari OpenRouter AI:', error);

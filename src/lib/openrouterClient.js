@@ -58,8 +58,8 @@ function formatForWhatsApp(text) {
  * @param {string} message - Pesan dari pengguna
  * @returns {Promise<string>} - Jawaban dari AI
  */
-async function askGemini(message, userId, platform) {
-  const detailed = await askGeminiDetailed(message, userId, platform);
+async function askGemini(message, userId, platform, logUserId) {
+  const detailed = await askGeminiDetailed(message, userId, platform, logUserId);
   return detailed.text;
 }
 
@@ -100,7 +100,7 @@ function extractUsageMetadata(response) {
   };
 }
 
-async function askGeminiDetailed(message, userId, platform) {
+async function askGeminiDetailed(message, userId, platform, logUserId) {
   let modelId = modelName;
 
   try {
@@ -139,8 +139,10 @@ async function askGeminiDetailed(message, userId, platform) {
     const rpm = trackRequestAndGetRpmStatus();
     const modelMeta = getModelById(modelId);
 
+    const aiLogUserId = typeof logUserId === 'string' ? logUserId : userId;
+
     await logAIUsage(
-      userId,
+      aiLogUserId,
       platform,
       modelId,
       String(message || ''),
@@ -182,12 +184,12 @@ async function askGeminiDetailed(message, userId, platform) {
   }
 }
 
-async function askAi(message, userId, platform) {
-  return askGemini(message, userId, platform);
+async function askAi(message, userId, platform, logUserId) {
+  return askGemini(message, userId, platform, logUserId);
 }
 
-async function askAiDetailed(message, userId, platform) {
-  return askGeminiDetailed(message, userId, platform);
+async function askAiDetailed(message, userId, platform, logUserId) {
+  return askGeminiDetailed(message, userId, platform, logUserId);
 }
 
 module.exports = { askGemini, askGeminiDetailed, askAi, askAiDetailed, modelName };
