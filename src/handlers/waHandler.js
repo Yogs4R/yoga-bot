@@ -11,7 +11,6 @@ const { checkWebsites, formatMonitorMessage } = require('../services/monitorServ
 const { AI_MODELS, buildModelInfoMessage, setActiveModel } = require('../services/aiPreferenceService');
 const { handleImgCommand } = require('../commands/converter/index');
 const { createSticker, isFfmpegMissingError } = require('../services/stickerService');
-const { generateBratImage } = require('../services/textToImageService');
 const { getQuotaStatus } = require('../services/quotaService');
 const { logCommand } = require('../services/logService');
 const {
@@ -775,7 +774,7 @@ class WhatsAppHandler {
           }
 
           case '/sticker_info': {
-            replyText = '> *STICKER TOOLS* 🧩\n\n\`/tosticker\` : Ubah gambar/video (max 5 dtk) jadi stiker.\n\`/brat <teks>\` : Buat stiker teks gaya album Brat (Otomatis tanpa emoji).';
+            replyText = '> *STICKER TOOLS* 🧩\n\n\`/tosticker\` : Ubah gambar/video (max 5 dtk) jadi stiker.';
             break;
           }
 
@@ -813,33 +812,6 @@ class WhatsAppHandler {
               }
 
               replyText = `> *❌ ERROR STICKER*\n\nGagal membuat stiker: ${error.message}`;
-            }
-            break;
-          }
-
-          case '/brat': {
-            try {
-              const textInput = args.join(' ').trim();
-              if (!textInput) {
-                replyText = '> *❌ FORMAT SALAH*\n\nGunakan: `/brat <teks>`';
-                break;
-              }
-
-              const imageBuffer = await generateBratImage(textInput);
-              const stickerBuffer = await createSticker(imageBuffer);
-              await this.sock.sendMessage(
-                msg.key.remoteJid,
-                { sticker: stickerBuffer },
-                { quoted: msg }
-              );
-            } catch (error) {
-              console.error('Error in /brat handler for WhatsApp:', error);
-              if (isFfmpegMissingError(error)) {
-                replyText = '> *❌ ERROR STICKER*\n\nFFmpeg belum terpasang di server. Hubungi admin untuk install FFmpeg agar fitur stiker berjalan normal.';
-                break;
-              }
-
-              replyText = `> *❌ ERROR STICKER*\n\nGagal membuat stiker brat: ${error.message}`;
             }
             break;
           }

@@ -15,7 +15,6 @@ const { checkWebsites, formatMonitorMessage, getMonitorWebsiteLinks } = require(
 const { AI_MODELS, buildModelInfoMessage, setActiveModel } = require('../services/aiPreferenceService');
 const { handleImgCommand } = require('../commands/converter/index');
 const { createSticker, isFfmpegMissingError } = require('../services/stickerService');
-const { generateBratImage } = require('../services/textToImageService');
 const { getQuotaStatus } = require('../services/quotaService');
 const { logCommand } = require('../services/logService');
 const {
@@ -890,7 +889,7 @@ async function processMenuCommand(ctx, command, userId) {
         }
         case '/sticker_info': {
             const header = '<b>STICKER TOOLS</b> 🧩';
-            const body = '/tosticker : Ubah gambar/video (max 5 dtk) jadi stiker.\n/brat &lt;teks&gt; : Buat stiker teks gaya album Brat (Otomatis tanpa emoji).';
+            const body = '/tosticker : Ubah gambar/video (max 5 dtk) jadi stiker.';
             await ctx.reply(`${header}\n\n${body}`, { parse_mode: 'HTML' });
             return;
         }
@@ -1215,29 +1214,6 @@ function setupTelegramBot() {
                         }
 
                         await ctx.reply(`<b>❌ ERROR STICKER</b>\n\nGagal membuat stiker: ${escapeHtml(error.message)}`, { parse_mode: 'HTML' });
-                    }
-                    break;
-                }
-
-                case '/brat': {
-                    try {
-                        const textInput = args.join(' ').trim();
-                        if (!textInput) {
-                            await ctx.reply('<b>❌ Format Salah</b>\n\nGunakan: <code>/brat &lt;teks&gt;</code>', { parse_mode: 'HTML' });
-                            break;
-                        }
-
-                        const imageBuffer = await generateBratImage(textInput);
-                        const stickerBuffer = await createSticker(imageBuffer);
-                        await ctx.replyWithSticker({ source: stickerBuffer });
-                    } catch (error) {
-                        console.error('Error handling /brat command in Telegram:', error);
-                        if (isFfmpegMissingError(error)) {
-                            await ctx.reply('<b>❌ ERROR STICKER</b>\n\nFFmpeg belum terpasang di server. Hubungi admin untuk install FFmpeg agar fitur stiker berjalan normal.', { parse_mode: 'HTML' });
-                            break;
-                        }
-
-                        await ctx.reply(`<b>❌ ERROR STICKER</b>\n\nGagal membuat stiker brat: ${escapeHtml(error.message)}`, { parse_mode: 'HTML' });
                     }
                     break;
                 }
