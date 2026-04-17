@@ -8,6 +8,12 @@ function formatNumber(value) {
   return Number(value || 0).toLocaleString('en-US');
 }
 
+function formatPercent(value) {
+  const normalized = Number(value || 0);
+  const rounded = Math.round(normalized * 10) / 10;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+}
+
 async function getCommandUsageStats() {
   const { count: totalExecution, error: totalError } = await supabase
     .from('command_logs')
@@ -60,6 +66,51 @@ async function getCommandUsageStats() {
   };
 }
 
+async function getAIUsageStats() {
+  const { data: aiRows, error } = await supabase
+    .from('ai_logs')
+    .select('model, input_tokens, output_tokens');
+
+  if (error) {
+    throw error;
+  }
+
+  const rows = aiRows || [];
+  const totalChat = rows.length;
+
+  let totalInputTokens = 0;
+  let totalOutputTokens = 0;
+  const modelCounter = new Map();
+
+  for (const row of rows) {
+    totalInputTokens += Number(row.input_tokens || 0);
+    totalOutputTokens += Number(row.output_tokens || 0);
+
+    const model = String(row.model || '').trim();
+    if (!model) {
+      continue;
+    }
+
+    modelCounter.set(model, (modelCounter.get(model) || 0) + 1);
+  }
+
+  const topModels = Array.from(modelCounter.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([model, count]) => ({
+      model,
+      count,
+      percentage: totalChat > 0 ? (count / totalChat) * 100 : 0
+    }));
+
+  return {
+    totalChat,
+    totalInputTokens,
+    totalOutputTokens,
+    topModels
+  };
+}
+
 async function handleAdminCommand(command, args, userId, platform, options = {}) {
   void args;
   void userId;
@@ -78,6 +129,7 @@ async function handleAdminCommand(command, args, userId, platform, options = {})
           '- \`/monitor\` : Cek status website',
           '- \`/stats\` : Statistik platform kreator',
           '- \`/cmd_usage\` : Statistik penggunaan bot',
+          '- \`/ai_usage\` : Statistik penggunaan token AI',
           '- \`/broadcast\` : Kirim pesan ke semua pengguna'
         ].join('\n');
         const footer = ['—'.repeat(19), 'Gunakan command di atas untuk mengakses fitur admin.'].join('\n');
@@ -91,6 +143,7 @@ async function handleAdminCommand(command, args, userId, platform, options = {})
         '• /monitor : Cek status website',
         '• /stats : Statistik platform kreator',
         '• /cmd_usage : Statistik penggunaan bot',
+        '• /ai_usage : Statistik penggunaan token AI',
         '• /broadcast : Kirim pesan ke semua pengguna'
       ].join('\n');
       return `${header}\n\n${body}`;
@@ -189,6 +242,47 @@ async function handleAdminCommand(command, args, userId, platform, options = {})
       } catch (error) {
         const errorHeader = isWhatsApp ? '> *ERROR CMD USAGE* ❌' : '<b>ERROR CMD USAGE</b> ❌';
         const errorBody = `Gagal mengambil data penggunaan command: ${error.message}`;
+        return `${errorHeader}\n\n${errorBody}`;
+      }
+    }
+
+    case '/ai_usage': {
+      try {
+        const aiUsageStats = await getAIUsageStats();
+        const topLines = aiUsageStats.topModels.length > 0
+          ? aiUsageStats.topModels
+            .map((item, index) => `${index + 1}. ${item.model} (${formatPercent(item.percentage)}%)`)
+            .join('\n')
+          : 'Belum ada data model.';
+
+        if (isWhatsApp) {
+          const header = '> 🤖 LAPORAN PENGGUNAAN AI';
+          const body = [
+            `Total Chat: ${formatNumber(aiUsageStats.totalChat)}`,
+            `Total Input Tokens: ${formatNumber(aiUsageStats.totalInputTokens)}`,
+            `Total Output Tokens: ${formatNumber(aiUsageStats.totalOutputTokens)}`,
+            '',
+            'TOP MODELS:',
+            topLines
+          ].join('\n');
+
+          return `${header}\n\n${body}`;
+        }
+
+        const header = '<b>🤖 LAPORAN PENGGUNAAN AI</b>';
+        const body = [
+          `Total Chat: ${formatNumber(aiUsageStats.totalChat)}`,
+          `Total Input Tokens: ${formatNumber(aiUsageStats.totalInputTokens)}`,
+          `Total Output Tokens: ${formatNumber(aiUsageStats.totalOutputTokens)}`,
+          '',
+          'TOP MODELS:',
+          topLines
+        ].join('\n');
+
+        return `${header}\n\n${body}`;
+      } catch (error) {
+        const errorHeader = isWhatsApp ? '> *ERROR AI USAGE* ❌' : '<b>ERROR AI USAGE</b> ❌';
+        const errorBody = `Gagal mengambil data penggunaan AI: ${error.message}`;
         return `${errorHeader}\n\n${errorBody}`;
       }
     }

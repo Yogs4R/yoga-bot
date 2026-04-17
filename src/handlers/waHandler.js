@@ -648,7 +648,8 @@ class WhatsAppHandler {
           }
 
           case '/stats':
-          case '/cmd_usage': {
+          case '/cmd_usage':
+          case '/ai_usage': {
             if (!isAdmin(userId, 'whatsapp')) {
               replyText = '> *AKSES DITOLAK* ❌\n\nCommand ini khusus admin.';
               break;

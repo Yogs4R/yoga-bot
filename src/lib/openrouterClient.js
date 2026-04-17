@@ -1,6 +1,7 @@
 // AI client (OpenRouter via OpenAI SDK)
 const OpenAI = require('openai');
 const { AI_MODELS, getActiveModel, getModelById } = require('../services/aiPreferenceService');
+const { logAIUsage } = require('../services/logService');
 
 // Inisialisasi OpenRouter API
 const apiKey = process.env.OPENROUTER_API_KEY;
@@ -137,6 +138,15 @@ async function askGeminiDetailed(message, userId, platform) {
     const usage = extractUsageMetadata(response);
     const rpm = trackRequestAndGetRpmStatus();
     const modelMeta = getModelById(modelId);
+
+    await logAIUsage(
+      userId,
+      platform,
+      modelId,
+      String(message || ''),
+      usage.promptTokenCount,
+      usage.candidatesTokenCount
+    );
     
     return {
       text: finalMessageWA,
