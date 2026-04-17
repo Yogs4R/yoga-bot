@@ -38,18 +38,18 @@ async function generateBratImage(text) {
   const image = await createImage(512, 512, 0xFFFFFFFF);
   const font = await jimp.loadFont(Jimp.FONT_SANS_64_BLACK || jimpFonts.SANS_64_BLACK);
 
-  image.print(
-    font,
-    0,
-    0,
-    {
+  image.print({
+    font: font,
+    x: 0,
+    y: 0,
+    text: {
       text: cleanText,
-      alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER || H_ALIGN.CENTER,
-      alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE || V_ALIGN.MIDDLE
+      alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER,
+      alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE
     },
-    512,
-    512
-  );
+    maxWidth: 512,
+    maxHeight: 512
+  });
 
   return await getPngBuffer(image);
 }
