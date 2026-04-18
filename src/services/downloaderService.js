@@ -88,30 +88,33 @@ async function getDownloadUrl(url) {
 }
 
 async function getMediaBuffer(url) {
-  const urlObj = new URL(url);
-  const dynamicHeaders = {
+  const fakeHeaders = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-    Accept: '*/*',
-    Referer: `${urlObj.origin}/`
+    Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+    'Accept-Encoding': 'gzip, deflate, br',
+    'Accept-Language': 'en-US,en;q=0.9',
+    Connection: 'keep-alive'
   };
 
-  const headRes = await axios.head(url, { headers: dynamicHeaders });
-  const size = headRes?.headers?.['content-length'];
-  if (size && parseInt(size, 10) > MAX_FILE_SIZE_BYTES) {
-    throw new Error('FILE_TOO_LARGE');
+  try {
+    const res = await axios.get(url, {
+      responseType: 'arraybuffer',
+      headers: fakeHeaders,
+      maxContentLength: MAX_FILE_SIZE_BYTES,
+      maxBodyLength: MAX_FILE_SIZE_BYTES
+    });
+
+    const type = res?.headers?.['content-type'];
+    return {
+      buffer: res.data,
+      type: type && type.includes('video') ? 'video' : 'image'
+    };
+  } catch (err) {
+    if (String(err?.message || '').includes('maxContentLength')) {
+      throw new Error('FILE_TOO_LARGE');
+    }
+    throw err;
   }
-
-  const mediaRes = await axios.get(url, {
-    responseType: 'arraybuffer',
-    headers: dynamicHeaders
-  });
-  const type = String(mediaRes?.headers?.['content-type'] || '').toLowerCase();
-  const buffer = Buffer.from(mediaRes.data);
-
-  return {
-    buffer,
-    type: type.includes('video') ? 'video' : 'image'
-  };
 }
 
 module.exports = {
