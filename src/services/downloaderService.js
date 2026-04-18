@@ -1,55 +1,7 @@
 const axios = require('axios');
 const btch = require('btch-downloader');
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
-const crypto = require('crypto');
-const ffmpeg = require('fluent-ffmpeg');
 
 const MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024;
-
-function isFfmpegMissingError(error) {
-  const message = String(error?.message || '').toLowerCase();
-  return message.includes('ffmpeg') && (message.includes('not found') || message.includes('enoent') || message.includes('spawn'));
-}
-
-function safeUnlinkSync(filePath) {
-  try {
-    if (filePath && fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-    }
-  } catch (_error) {
-    // Ignore cleanup errors for temp files.
-  }
-}
-
-async function convertVideoBufferToMp3(videoBuffer) {
-  const tempDir = os.tmpdir();
-  const randomId = crypto.randomBytes(6).toString('hex');
-  const inputPath = path.join(tempDir, `audio_in_${randomId}.mp4`);
-  const outputPath = path.join(tempDir, `audio_out_${randomId}.mp3`);
-
-  await fs.promises.mkdir(tempDir, { recursive: true });
-  await fs.promises.writeFile(inputPath, videoBuffer);
-
-  try {
-    await new Promise((resolve, reject) => {
-      ffmpeg(inputPath)
-        .noVideo()
-        .audioCodec('libmp3lame')
-        .audioBitrate('128k')
-        .format('mp3')
-        .on('end', resolve)
-        .on('error', reject)
-        .save(outputPath);
-    });
-
-    return await fs.promises.readFile(outputPath);
-  } finally {
-    safeUnlinkSync(inputPath);
-    safeUnlinkSync(outputPath);
-  }
-}
 
 async function getDownloadUrl(url) {
   const normalizedUrl = String(url || '').trim();
@@ -209,130 +161,27 @@ async function getAudioUrl(url) {
   }
 
   const isHttpUrl = (value) => typeof value === 'string' && /^https?:\/\//i.test(String(value).trim());
-  const isAudioUrl = (value) => /(^|[/?&_.-])(mp3|m4a|aac|wav)([/?&_.-]|$)|sf=\.mp3|audio_mpeg|mime_type=audio/i.test(String(value || ''));
-  const isImageLikeUrl = (value) => /\.(jpg|jpeg|png|webp)(\?|$)|thumbnail|cover|origin_cover|dynamic_cover/i.test(String(value || ''));
-  const isVideoLikeUrl = (value) => /\.(mp4|m3u8)(\?|$)|mime_type=video|video_mp4|\/video\//i.test(String(value || ''));
-  const audioUrlSet = new Set();
-  const mediaFallbackSet = new Set();
-  const visitedNodes = new WeakSet();
-
-  const collectAudioCandidates = (node) => {
-    if (!node) return;
-
-    if (typeof node === 'string') {
-      const clean = node.trim();
-      if (!isHttpUrl(clean)) return;
-
-      if (isAudioUrl(clean)) {
-        audioUrlSet.add(clean);
-      } else if (isVideoLikeUrl(clean)) {
-        mediaFallbackSet.add(clean);
-      }
-      return;
-    }
-
-    if (Array.isArray(node)) {
-      for (const item of node) {
-        collectAudioCandidates(item);
-      }
-      return;
-    }
-
-    if (typeof node !== 'object') return;
-
-    if (visitedNodes.has(node)) return;
-    visitedNodes.add(node);
-
-    const candidateKeys = [
-      'mp3',
-      'audio',
-      'music',
-      'audioUrl',
-      'musicUrl',
-      'play',
-      'wmplay',
-      'hdplay',
-      'video',
-      'url',
-      'downloadLink',
-      'media',
-      'data',
-      'result',
-      'results',
-      'music_info'
-    ];
-
-    for (const key of candidateKeys) {
-      if (Object.prototype.hasOwnProperty.call(node, key)) {
-        collectAudioCandidates(node[key]);
-      }
-    }
-
-    for (const value of Object.values(node)) {
-      collectAudioCandidates(value);
-    }
-  };
+  const isYoutubeUrl =
+    normalizedUrl.includes('youtube.com') ||
+    normalizedUrl.includes('youtu.be') ||
+    normalizedUrl.includes('music.youtube.com');
 
   try {
-    if (normalizedUrl.includes('youtube.com') || normalizedUrl.includes('youtu.be')) {
-      const result = await btch.youtube(normalizedUrl);
-      console.log('btch-downloader result:', result);
-      collectAudioCandidates(result?.mp3);
-      collectAudioCandidates(result?.data?.mp3);
-      collectAudioCandidates(result);
-    } else if (normalizedUrl.includes('tiktok.com')) {
-      const result = await btch.ttdl(normalizedUrl);
-      console.log('btch-downloader result:', result);
-      collectAudioCandidates(result?.music);
-      collectAudioCandidates(result?.audio);
-      collectAudioCandidates(result);
-
-      try {
-        const sipuRes = await axios.get(`https://api.siputzx.my.id/api/d/tiktok?url=${encodeURIComponent(normalizedUrl)}`);
-        console.log('siputzx tiktok result:', sipuRes?.data);
-        collectAudioCandidates(sipuRes?.data?.data?.music);
-        collectAudioCandidates(sipuRes?.data?.data?.audio);
-        collectAudioCandidates(sipuRes?.data?.data?.media);
-      } catch (sipuErr) {
-        console.error('Siputzx TikTok fallback failed:', sipuErr.message);
-      }
-
-      try {
-        const tikwmRes = await axios.get(`https://www.tikwm.com/api/?url=${encodeURIComponent(normalizedUrl)}`);
-        console.log('tikwm result:', tikwmRes?.data);
-        collectAudioCandidates(tikwmRes?.data?.data?.music);
-        collectAudioCandidates(tikwmRes?.data?.data?.music_info?.play);
-        collectAudioCandidates(tikwmRes?.data?.data?.play);
-      } catch (tikwmErr) {
-        console.error('TikWM fallback failed:', tikwmErr.message);
-      }
-    } else if (normalizedUrl.includes('instagram.com') || normalizedUrl.includes('twitter.com') || normalizedUrl.includes('x.com')) {
-      const mediaUrls = await getDownloadUrl(normalizedUrl);
-      for (const mediaUrl of mediaUrls) {
-        collectAudioCandidates(mediaUrl);
-      }
-    } else if (normalizedUrl.includes('facebook.com') || normalizedUrl.includes('fb.watch')) {
-      throw new Error('FB_NOT_SUPPORTED');
-    } else {
-      throw new Error('MEDIA_NOT_FOUND');
+    if (!isYoutubeUrl) {
+      throw new Error('AUDIO_PLATFORM_NOT_SUPPORTED');
     }
 
-    const directAudioUrls = Array.from(audioUrlSet).filter((item) => !isImageLikeUrl(item));
-    if (directAudioUrls.length > 0) {
-      return directAudioUrls[0];
-    }
+    const result = await btch.youtube(normalizedUrl);
+    console.log('btch-downloader result:', result);
 
-    const mediaFallbackUrls = Array.from(mediaFallbackSet).filter((item) => !isImageLikeUrl(item));
-    if (mediaFallbackUrls.length > 0) {
-      return mediaFallbackUrls[0];
+    const directMp3 = String(result?.mp3 || result?.data?.mp3 || '').trim();
+    if (isHttpUrl(directMp3)) {
+      return directMp3;
     }
 
     throw new Error('AUDIO_NOT_FOUND');
   } catch (_error) {
-    if (_error?.message === 'FB_NOT_SUPPORTED') {
-      throw _error;
-    }
-    if (_error?.message === 'AUDIO_NOT_FOUND') {
+    if (_error?.message === 'AUDIO_NOT_FOUND' || _error?.message === 'AUDIO_PLATFORM_NOT_SUPPORTED') {
       throw _error;
     }
     throw new Error('MEDIA_NOT_FOUND');
@@ -417,46 +266,44 @@ async function getMediaBuffer(url) {
 }
 
 async function getAudioBuffer(url) {
-  const media = await getMediaBuffer(url);
-
-  if (media?.type === 'audio') {
-    if (Buffer.byteLength(media.buffer) > MAX_FILE_SIZE_BYTES) {
-      throw new Error('FILE_TOO_LARGE');
-    }
-
-    return {
-      buffer: media.buffer,
-      type: 'audio',
-      mimetype: media.mimetype || 'audio/mpeg'
-    };
-  }
-
-  if (media?.type !== 'video') {
+  const normalizedUrl = String(url || '').trim();
+  if (!/^https?:\/\//i.test(normalizedUrl)) {
     throw new Error('AUDIO_NOT_FOUND');
   }
 
   try {
-    const audioBuffer = await convertVideoBufferToMp3(media.buffer);
+    const res = await axios.get(normalizedUrl, {
+      responseType: 'arraybuffer',
+      maxContentLength: MAX_FILE_SIZE_BYTES,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        Referer: normalizedUrl.includes('savenow') ? 'https://savenow.to/' : undefined
+      }
+    });
 
+    const audioBuffer = res.data;
     if (Buffer.byteLength(audioBuffer) > MAX_FILE_SIZE_BYTES) {
       throw new Error('FILE_TOO_LARGE');
     }
 
+    const contentType = String(res?.headers?.['content-type'] || '').toLowerCase();
+    const mimeType = contentType && contentType !== 'application/octet-stream' ? contentType : 'audio/mpeg';
+
     return {
       buffer: audioBuffer,
       type: 'audio',
-      mimetype: 'audio/mpeg'
+      mimetype: mimeType
     };
   } catch (error) {
     if (error?.message === 'FILE_TOO_LARGE') {
       throw error;
     }
 
-    if (isFfmpegMissingError(error)) {
-      throw new Error('FFMPEG_NOT_FOUND');
+    if (Number(error?.response?.status || 0) === 403) {
+      throw new Error('DOWNLOAD_BUFFER_FAILED');
     }
 
-    throw new Error('AUDIO_CONVERT_FAILED');
+    throw new Error('AUDIO_NOT_FOUND');
   }
 }
 
