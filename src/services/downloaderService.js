@@ -38,6 +38,10 @@ async function getDownloadUrl(url) {
     throw new Error('DOWNLOAD_API_FAILED');
   }
 
+  console.log("=== DEBUG API RYZENDESU ===");
+  console.log(JSON.stringify(res.data, null, 2));
+  console.log("=========================");
+
   const isHttpUrl = (value) => typeof value === 'string' && /^https?:\/\//i.test(value.trim());
   const toUrl = (value) => (typeof value === 'string' ? value.trim() : '');
 
