@@ -1323,6 +1323,8 @@ class WhatsAppHandler {
             } catch (err) {
               if (err.message === 'FILE_TOO_LARGE') {
                 replyText = '❌ Gagal: Ukuran file terlalu besar (Maksimal 25MB demi stabilitas bot).';
+              } else if (err.message === 'FB_NOT_SUPPORTED') {
+                replyText = '❌ Mohon maaf, fitur download Facebook sedang dalam perbaikan.';
               } else {
                 replyText = '❌ Gagal mengunduh. Pastikan link valid dan akun tidak di-private!';
               }
