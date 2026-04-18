@@ -11,6 +11,8 @@ async function getDownloadUrl(url) {
 
   const isHttpUrl = (value) => typeof value === 'string' && /^https?:\/\//i.test(String(value).trim());
   const isAudioUrl = (value) => /(^|[/?&_.-])(mp3|m4a|aac|wav)([/?&_.-]|$)|sf=\.mp3/i.test(String(value || ''));
+  const isImageLikeUrl = (value) => /\.(jpg|jpeg|png|webp)(\?|$)|thumbnail|cover|origin_cover|dynamic_cover/i.test(String(value || ''));
+  const isVideoLikeUrl = (value) => /\.(mp4|m3u8)(\?|$)|mime_type=video|video_mp4|\/video\//i.test(String(value || ''));
   const mediaUrlSet = new Set();
   const visitedNodes = new WeakSet();
 
@@ -87,9 +89,9 @@ async function getDownloadUrl(url) {
       try {
         const sipuRes = await axios.get(`https://api.siputzx.my.id/api/d/tiktok?url=${encodeURIComponent(normalizedUrl)}`);
         console.log('siputzx tiktok result:', sipuRes?.data);
-        collectUrls(sipuRes?.data?.data);
-        collectUrls(sipuRes?.data?.url);
-        collectUrls(sipuRes?.data);
+        collectUrls(sipuRes?.data?.data?.media);
+        collectUrls(sipuRes?.data?.data?.url);
+        collectUrls(sipuRes?.data?.data?.downloadLink);
       } catch (sipuErr) {
         console.error('Siputzx TikTok fallback failed:', sipuErr.message);
       }
@@ -125,8 +127,17 @@ async function getDownloadUrl(url) {
     let mediaUrls = Array.from(mediaUrlSet).filter((item) => !isAudioUrl(item));
 
     if (normalizedUrl.includes('tiktok.com')) {
-      const nonTiktokioUrls = mediaUrls.filter((item) => !item.includes('tiktokio.com') && !item.includes('dl.tiktokio.com'));
-      mediaUrls = nonTiktokioUrls.length > 0 ? nonTiktokioUrls : mediaUrls;
+      const videoCandidateUrls = mediaUrls.filter((item) => isVideoLikeUrl(item) && !isImageLikeUrl(item));
+      const nonTiktokioVideoUrls = videoCandidateUrls.filter((item) => !item.includes('tiktokio.com') && !item.includes('dl.tiktokio.com'));
+
+      if (nonTiktokioVideoUrls.length > 0) {
+        mediaUrls = nonTiktokioVideoUrls;
+      } else if (videoCandidateUrls.length > 0) {
+        mediaUrls = videoCandidateUrls;
+      } else {
+        const nonTiktokioUrls = mediaUrls.filter((item) => !item.includes('tiktokio.com') && !item.includes('dl.tiktokio.com') && !isImageLikeUrl(item));
+        mediaUrls = nonTiktokioUrls.length > 0 ? nonTiktokioUrls : mediaUrls.filter((item) => !isImageLikeUrl(item));
+      }
 
       if (mediaUrls.length > 1) {
         mediaUrls = [mediaUrls[0]];
