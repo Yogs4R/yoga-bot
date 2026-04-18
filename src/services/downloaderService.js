@@ -1,5 +1,5 @@
 const axios = require('axios');
-const { ndown, ytdown } = require('nayan-media-downloader');
+const btch = require('btch-downloader');
 
 const MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024;
 
@@ -10,80 +10,76 @@ async function getDownloadUrl(url) {
   }
 
   const isHttpUrl = (value) => typeof value === 'string' && /^https?:\/\//i.test(value.trim());
-  const toUrl = (value) => (typeof value === 'string' ? value.trim() : '');
-  const urlSet = new Set();
+  const mediaUrlSet = new Set();
 
-  const addUrl = (value) => {
-    if (!isHttpUrl(value)) {
-      return;
-    }
-
-    const cleanUrl = toUrl(value);
-    if (cleanUrl) {
-      urlSet.add(cleanUrl);
-    }
-  };
-
-  const collectFromNode = (node) => {
-    if (!node) {
-      return;
-    }
+  const collectMediaUrls = (node) => {
+    if (!node) return;
 
     if (typeof node === 'string') {
-      addUrl(node);
+      const clean = node.trim();
+      if (isHttpUrl(clean)) {
+        mediaUrlSet.add(clean);
+      }
       return;
     }
 
     if (Array.isArray(node)) {
       for (const item of node) {
-        collectFromNode(item);
+        collectMediaUrls(item);
       }
       return;
     }
 
-    if (typeof node !== 'object') {
-      return;
-    }
+    if (typeof node !== 'object') return;
 
-    const keys = [
+    const preferredKeys = [
       'url',
       'video',
       'videoUrl',
+      'download',
       'downloadUrl',
       'directUrl',
       'src',
-      'link'
+      'link',
+      'image',
+      'images',
+      'media',
+      'result',
+      'results',
+      'data'
     ];
 
-    for (const key of keys) {
+    for (const key of preferredKeys) {
       if (Object.prototype.hasOwnProperty.call(node, key)) {
-        collectFromNode(node[key]);
+        collectMediaUrls(node[key]);
       }
     }
   };
 
   try {
-    if (normalizedUrl.includes('youtube.com') || normalizedUrl.includes('youtu.be')) {
-      const result = await ytdown(normalizedUrl);
-      collectFromNode(result?.data?.video);
-      collectFromNode(result?.data?.videos);
-    } else {
-      const result = await ndown(normalizedUrl);
-      collectFromNode(result?.data);
-      collectFromNode(result?.data?.result);
-      collectFromNode(result?.data?.results);
-    }
+    let result;
 
-    if (urlSet.size === 0) {
+    if (normalizedUrl.includes('youtube.com') || normalizedUrl.includes('youtu.be')) {
+      result = await btch.youtube(normalizedUrl);
+    } else if (normalizedUrl.includes('instagram.com')) {
+      result = await btch.igdl(normalizedUrl);
+    } else if (normalizedUrl.includes('tiktok.com')) {
+      result = await btch.ttdl(normalizedUrl);
+    } else if (normalizedUrl.includes('twitter.com') || normalizedUrl.includes('x.com')) {
+      result = await btch.twitter(normalizedUrl);
+    } else if (normalizedUrl.includes('facebook.com')) {
+      result = await btch.fbdown(normalizedUrl);
+    } else {
       throw new Error('MEDIA_NOT_FOUND');
     }
 
-    return Array.from(urlSet);
-  } catch (_error) {
-    if (_error?.message === 'MEDIA_NOT_FOUND') {
-      throw _error;
-    }
+    console.log('btch-downloader result:', result);
+    collectMediaUrls(result);
 
+    const mediaUrls = Array.from(mediaUrlSet);
+    if (mediaUrls.length === 0) throw new Error('MEDIA_NOT_FOUND');
+    return mediaUrls;
+  } catch (_error) {
     throw new Error('MEDIA_NOT_FOUND');
   }
 }

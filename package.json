@@ -20,6 +20,7 @@
     "@supabase/supabase-js": "^2.97.0",
     "@whiskeysockets/baileys": "^6.7.21",
     "axios": "^1.7.2",
+    "btch-downloader": "^6.0.27",
     "cloudconvert": "^3.0.0",
     "dotenv": "^16.4.5",
     "fluent-ffmpeg": "^2.1.3",
