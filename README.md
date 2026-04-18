@@ -40,10 +40,12 @@ Advanced smart assistant powered by large language models (LLM) via OpenRouter A
 - Built-in model usage metadata in replies (token usage and RPM label).
 
 ### 📚 Research Tools
-Book discovery powered by Open Library API (no API key required):
-- Search top 5 book recommendations by keyword.
-- Returns title, author, first publish year, and direct Open Library link.
-- Better fallback messages when Open Library is timeout/down.
+Research references powered by multiple public APIs (no API key required):
+- `/buku` via Open Library API for top 5 book recommendations.
+- `/jurnal` via Crossref API for top 5 journal references with DOI links.
+- `/artikel` via Semantic Scholar API for top 5 scientific article references.
+- Returns title, authors, year, and source link (DOI/Open Access PDF when available).
+- Better fallback messages for timeout/down/network errors per provider.
 
 ### ⬇️ Downloader Tools
 Unified downloader commands for social media and music:

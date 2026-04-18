@@ -40,10 +40,12 @@ Asisten cerdas tingkat lanjut yang ditenagai oleh model bahasa besar (LLM) melal
 - Metadata penggunaan model di balasan (token usage dan label RPM).
 
 ### 📚 Research Tools
-Fitur riset buku berbasis Open Library API (tanpa API key):
-- Pencarian 5 rekomendasi buku teratas berdasarkan keyword.
-- Menampilkan judul, penulis, tahun terbit pertama, dan link Open Library.
-- Fallback pesan yang lebih jelas saat Open Library timeout/down.
+Fitur riset referensi berbasis beberapa API publik (tanpa API key):
+- `/buku` via Open Library API untuk 5 rekomendasi buku teratas.
+- `/jurnal` via Crossref API untuk 5 referensi jurnal teratas dengan link DOI.
+- `/artikel` via Semantic Scholar API untuk 5 referensi artikel ilmiah teratas.
+- Menampilkan judul, penulis, tahun, dan link sumber (DOI/PDF open access jika tersedia).
+- Fallback pesan lebih jelas saat timeout/down/network error sesuai provider.
 
 ### ⬇️ Downloader Tools
 Kumpulan command downloader media dan audio:

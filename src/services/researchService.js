@@ -119,7 +119,46 @@ async function searchJournals(query) {
   }
 }
 
+async function searchArticles(query) {
+  const keyword = String(query || '').trim();
+  if (!keyword) {
+    return [];
+  }
+
+  try {
+    const fields = 'title,authors,year,url,openAccessPdf';
+    const url = `https://api.semanticscholar.org/graph/v1/paper/search?query=${encodeURIComponent(keyword)}&limit=5&fields=${encodeURIComponent(fields)}`;
+    const response = await axios.get(url, { timeout: 15000 });
+    const items = Array.isArray(response?.data?.data) ? response.data.data : [];
+
+    return items.slice(0, 5).map((item) => {
+      const title = String(item?.title || '-').trim() || '-';
+      const authors = Array.isArray(item?.authors)
+        ? item.authors
+          .map((author) => String(author?.name || '').trim())
+          .filter(Boolean)
+          .slice(0, 3)
+          .join(', ')
+        : '';
+      const year = Number(item?.year);
+      const openAccessPdfUrl = String(item?.openAccessPdf?.url || '').trim();
+      const paperUrl = String(item?.url || '').trim();
+      const link = openAccessPdfUrl || paperUrl || '-';
+
+      return {
+        title,
+        author: authors || '-',
+        year: Number.isFinite(year) ? String(year) : '-',
+        link
+      };
+    });
+  } catch (error) {
+    throw buildResearchError('Semantic Scholar', error);
+  }
+}
+
 module.exports = {
   searchBooks,
-  searchJournals
+  searchJournals,
+  searchArticles
 };

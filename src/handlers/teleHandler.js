@@ -19,7 +19,7 @@ const { getQuotaStatus } = require('../services/quotaService');
 const { logCommand } = require('../services/logService');
 const { shortenUrl } = require('../services/shortenerService');
 const { getDownloadUrl, getAudioUrl, getMediaBuffer, getAudioBuffer } = require('../services/downloaderService');
-const { searchBooks, searchJournals } = require('../services/researchService');
+const { searchBooks, searchJournals, searchArticles } = require('../services/researchService');
 const { buildDonateMessage, getDonateQrImagePaths } = require('../services/donateService');
 const {
     MAX_FILE_SIZE,
@@ -435,6 +435,21 @@ function buildJournalRecommendationMessage(keyword, journals = []) {
         lines.push(`   📚 Jurnal: ${escapeHtml(String(item?.journal || '-'))}`);
         lines.push(`   📅 Tahun: ${escapeHtml(String(item?.year || '-'))}`);
         lines.push(`   🔗 DOI: ${escapeHtml(String(item?.doiUrl || '-'))}`);
+    });
+
+    return lines.join('\n');
+}
+
+function buildArticleRecommendationMessage(keyword, articles = []) {
+    const safeKeyword = escapeHtml(String(keyword || '').trim());
+    const lines = [`📰 REFERENSI ARTIKEL: ${safeKeyword}`];
+
+    articles.slice(0, 5).forEach((item, index) => {
+        lines.push('');
+        lines.push(`${index + 1}. ${escapeHtml(String(item?.title || '-'))}`);
+        lines.push(`   👤 Penulis: ${escapeHtml(String(item?.author || '-'))}`);
+        lines.push(`   📅 Tahun: ${escapeHtml(String(item?.year || '-'))}`);
+        lines.push(`   🔗 Link: ${escapeHtml(String(item?.link || '-'))}`);
     });
 
     return lines.join('\n');
@@ -858,7 +873,7 @@ async function processMenuCommand(ctx, command, userId) {
         }
         case '/research_info': {
             const header = '<b>RESEARCH TOOLS</b> 📚';
-            const body = `Panduan fitur riset referensi buku dan jurnal.\n\n<b>COMMAND INTI:</b>\n• /buku &lt;keyword&gt; : Cari rekomendasi buku dari Open Library\n• /jurnal &lt;keyword&gt; : Cari referensi jurnal dari Crossref\n\n<b>CONTOH CEPAT:</b>\n• <code>/buku atomic habits</code>\n• <code>/buku clean code</code>\n• <code>/jurnal machine learning</code>\n• <code>/jurnal renewable energy</code>\n\n<b>OUTPUT /buku:</b>\n• Judul buku\n• Nama penulis\n• Tahun terbit pertama\n• Link Open Library\n\n<b>OUTPUT /jurnal:</b>\n• Judul artikel\n• Nama penulis\n• Nama jurnal\n• Tahun terbit\n• Link DOI\n\n<b>TIPS:</b>\n• Pakai kata kunci spesifik agar hasil lebih relevan\n• Jika hasil kurang pas, coba variasi bahasa Inggris/Indonesia`;
+            const body = `Panduan fitur riset referensi buku, jurnal, dan artikel ilmiah.\n\n<b>COMMAND INTI:</b>\n• /buku &lt;keyword&gt; : Cari rekomendasi buku dari Open Library\n• /jurnal &lt;keyword&gt; : Cari referensi jurnal dari Crossref\n• /artikel &lt;keyword&gt; : Cari artikel ilmiah dari Semantic Scholar\n\n<b>CONTOH CEPAT:</b>\n• <code>/buku atomic habits</code>\n• <code>/jurnal machine learning</code>\n• <code>/artikel deep learning healthcare</code>\n\n<b>OUTPUT /buku:</b>\n• Judul buku\n• Nama penulis\n• Tahun terbit pertama\n• Link Open Library\n\n<b>OUTPUT /jurnal:</b>\n• Judul artikel\n• Nama penulis\n• Nama jurnal\n• Tahun terbit\n• Link DOI\n\n<b>OUTPUT /artikel:</b>\n• Judul artikel\n• Penulis (maks. 3 nama)\n• Tahun\n• Link PDF open access (jika tersedia) atau halaman artikel\n\n<b>TIPS:</b>\n• Pakai kata kunci spesifik agar hasil lebih relevan\n• Jika hasil kurang pas, coba variasi bahasa Inggris/Indonesia`;
             await ctx.reply(`${header}\n\n${body}`, { parse_mode: 'HTML' });
             return;
         }
@@ -1486,6 +1501,33 @@ function setupTelegramBot() {
                         console.error('Error handling /jurnal command in Telegram:', error);
                         const detailedMessage = String(error?.message || '').trim();
                         await ctx.reply(detailedMessage || '❌ Gagal mencari jurnal. Coba lagi beberapa saat.');
+                    }
+                    break;
+                }
+
+                case '/artikel': {
+                    const keyword = String(args.join(' ') || '').trim();
+
+                    if (!keyword) {
+                        await ctx.reply('❌ Masukkan kata kunci artikel! Contoh: /artikel machine learning');
+                        break;
+                    }
+
+                    try {
+                        await ctx.reply('⏳ Sedang mencari artikel ilmiah...');
+
+                        const articles = await searchArticles(keyword);
+                        if (!Array.isArray(articles) || articles.length === 0) {
+                            await ctx.reply(`📰 REFERENSI ARTIKEL: ${escapeHtml(keyword)}\n\nTidak ada hasil ditemukan. Coba keyword lain.`, { parse_mode: 'HTML' });
+                            break;
+                        }
+
+                        const message = buildArticleRecommendationMessage(keyword, articles);
+                        await ctx.reply(message, { parse_mode: 'HTML' });
+                    } catch (error) {
+                        console.error('Error handling /artikel command in Telegram:', error);
+                        const detailedMessage = String(error?.message || '').trim();
+                        await ctx.reply(detailedMessage || '❌ Gagal mencari artikel ilmiah. Coba lagi beberapa saat.');
                     }
                     break;
                 }

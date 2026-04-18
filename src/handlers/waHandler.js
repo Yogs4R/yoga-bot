@@ -15,7 +15,7 @@ const { getQuotaStatus } = require('../services/quotaService');
 const { logCommand } = require('../services/logService');
 const { shortenUrl } = require('../services/shortenerService');
 const { getDownloadUrl, getAudioUrl, getMediaBuffer, getAudioBuffer } = require('../services/downloaderService');
-const { searchBooks, searchJournals } = require('../services/researchService');
+const { searchBooks, searchJournals, searchArticles } = require('../services/researchService');
 const { buildDonateMessage, getDonateQrImagePaths } = require('../services/donateService');
 const {
   MAX_FILE_SIZE,
@@ -205,6 +205,21 @@ function buildJournalRecommendationText(keyword, journals = []) {
     lines.push(`   📚 Jurnal: ${String(item?.journal || '-')}`);
     lines.push(`   📅 Tahun: ${String(item?.year || '-')}`);
     lines.push(`   🔗 DOI: ${String(item?.doiUrl || '-')}`);
+  });
+
+  return lines.join('\n');
+}
+
+function buildArticleRecommendationText(keyword, articles = []) {
+  const safeKeyword = String(keyword || '').trim();
+  const lines = [`📰 REFERENSI ARTIKEL: ${safeKeyword}`];
+
+  articles.slice(0, 5).forEach((item, index) => {
+    lines.push('');
+    lines.push(`${index + 1}. ${String(item?.title || '-')}`);
+    lines.push(`   👤 Penulis: ${String(item?.author || '-')}`);
+    lines.push(`   📅 Tahun: ${String(item?.year || '-')}`);
+    lines.push(`   🔗 Link: ${String(item?.link || '-')}`);
   });
 
   return lines.join('\n');
@@ -623,7 +638,7 @@ class WhatsAppHandler {
 
           case '/research_info': {
             const header = '> *RESEARCH TOOLS* 📚';
-            const body = `Panduan fitur riset referensi buku dan jurnal.\n\n*COMMAND INTI:*\n- /buku <keyword> : Cari rekomendasi buku dari Open Library\n- /jurnal <keyword> : Cari referensi jurnal dari Crossref\n\n*CONTOH CEPAT:*\n- /buku atomic habits\n- /buku clean code\n- /jurnal machine learning\n- /jurnal renewable energy\n\n*OUTPUT /buku:*\n- Judul buku\n- Nama penulis\n- Tahun terbit pertama\n- Link Open Library\n\n*OUTPUT /jurnal:*\n- Judul artikel\n- Nama penulis\n- Nama jurnal\n- Tahun terbit\n- Link DOI\n\n*TIPS:*\n- Pakai kata kunci spesifik agar hasil lebih relevan\n- Jika hasil kurang pas, coba variasi bahasa Inggris/Indonesia`;
+            const body = `Panduan fitur riset referensi buku, jurnal, dan artikel ilmiah.\n\n*COMMAND INTI:*\n- /buku <keyword> : Cari rekomendasi buku dari Open Library\n- /jurnal <keyword> : Cari referensi jurnal dari Crossref\n- /artikel <keyword> : Cari artikel ilmiah dari Semantic Scholar\n\n*CONTOH CEPAT:*\n- /buku atomic habits\n- /jurnal machine learning\n- /artikel deep learning healthcare\n\n*OUTPUT /buku:*\n- Judul buku\n- Nama penulis\n- Tahun terbit pertama\n- Link Open Library\n\n*OUTPUT /jurnal:*\n- Judul artikel\n- Nama penulis\n- Nama jurnal\n- Tahun terbit\n- Link DOI\n\n*OUTPUT /artikel:*\n- Judul artikel\n- Penulis (maks. 3 nama)\n- Tahun\n- Link PDF open access (jika tersedia) atau halaman artikel\n\n*TIPS:*\n- Pakai kata kunci spesifik agar hasil lebih relevan\n- Jika hasil kurang pas, coba variasi bahasa Inggris/Indonesia`;
             replyText = `${header}\n\n${body}`;
             break;
           }
@@ -736,6 +751,36 @@ class WhatsAppHandler {
               console.error('Error in /jurnal handler for WhatsApp:', error);
               const detailedMessage = String(error?.message || '').trim();
               replyText = detailedMessage || '❌ Gagal mencari jurnal. Coba lagi beberapa saat.';
+            }
+            break;
+          }
+
+          case '/artikel': {
+            const keyword = String(args.join(' ') || '').trim();
+
+            if (!keyword) {
+              replyText = '❌ Masukkan kata kunci artikel! Contoh: /artikel machine learning';
+              break;
+            }
+
+            try {
+              await this.sock.sendMessage(
+                msg.key.remoteJid,
+                { text: '⏳ Sedang mencari artikel ilmiah...' },
+                { quoted: msg }
+              );
+
+              const articles = await searchArticles(keyword);
+              if (!Array.isArray(articles) || articles.length === 0) {
+                replyText = `📰 REFERENSI ARTIKEL: ${keyword}\n\nTidak ada hasil ditemukan. Coba keyword lain.`;
+                break;
+              }
+
+              replyText = buildArticleRecommendationText(keyword, articles);
+            } catch (error) {
+              console.error('Error in /artikel handler for WhatsApp:', error);
+              const detailedMessage = String(error?.message || '').trim();
+              replyText = detailedMessage || '❌ Gagal mencari artikel ilmiah. Coba lagi beberapa saat.';
             }
             break;
           }
