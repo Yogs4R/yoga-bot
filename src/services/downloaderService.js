@@ -88,29 +88,20 @@ async function getDownloadUrl(url) {
 }
 
 async function getMediaBuffer(url) {
-  let customReferer = '';
-  if (url.includes('rapidcdn')) {
-    customReferer = 'https://snapinsta.app/';
-  } else if (url.includes('tiktokio')) {
-    customReferer = 'https://tiktokio.com/';
-  } else if (url.includes('savenow')) {
-    customReferer = 'https://savenow.to/';
-  } else {
-    customReferer = `${new URL(url).origin}/`;
-  }
-
-  const fakeHeaders = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-    Accept: '*/*',
-    Referer: customReferer
+  let axiosConfig = {
+    responseType: 'arraybuffer',
+    maxContentLength: MAX_FILE_SIZE_BYTES
   };
 
+  if (url.includes('tiktokio')) {
+    axiosConfig.headers = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+      Referer: 'https://tiktokio.com/'
+    };
+  }
+
   try {
-    const res = await axios.get(url, {
-      responseType: 'arraybuffer',
-      headers: fakeHeaders,
-      maxContentLength: MAX_FILE_SIZE_BYTES
-    });
+    const res = await axios.get(url, axiosConfig);
 
     const type = res?.headers?.['content-type'] || '';
     return {
@@ -118,8 +109,9 @@ async function getMediaBuffer(url) {
       type: type && type.includes('video') ? 'video' : 'image'
     };
   } catch (err) {
-    console.error('Axios Download Error:', err.message);
-    throw new Error('DOWNLOAD_FAILED');
+    console.error('Gagal mendownload buffer dari:', url);
+    console.error('Alasan:', err.message);
+    throw new Error('DOWNLOAD_BUFFER_FAILED');
   }
 }
 
