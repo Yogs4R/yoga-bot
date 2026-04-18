@@ -1,79 +1,42 @@
 const axios = require('axios');
+const { ndown, ytdown } = require('nayan-media-downloader');
 
 const MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024;
 
 async function getDownloadUrl(url) {
   const normalizedUrl = String(url || '').trim();
   if (!normalizedUrl) {
-    throw new Error('URL_REQUIRED');
+    throw new Error('MEDIA_NOT_FOUND');
   }
 
-  let endpointPath = '';
-  const encodedUrl = encodeURIComponent(normalizedUrl);
-
-  if (normalizedUrl.includes('instagram.com') || normalizedUrl.includes('instagr.am')) {
-    endpointPath = 'igdl';
-  } else if (normalizedUrl.includes('tiktok.com') || normalizedUrl.includes('vt.tiktok.com')) {
-    endpointPath = 'tiktok';
-  } else if (normalizedUrl.includes('twitter.com') || normalizedUrl.includes('x.com')) {
-    endpointPath = 'twitter';
-  } else if (normalizedUrl.includes('facebook.com') || normalizedUrl.includes('fb.watch')) {
-    endpointPath = 'facebook';
-  } else if (normalizedUrl.includes('threads.net')) {
-    endpointPath = 'threads';
-  } else if (normalizedUrl.includes('pinterest.com') || normalizedUrl.includes('pin.it')) {
-    endpointPath = 'pinterest';
-  } else if (normalizedUrl.includes('youtube.com') || normalizedUrl.includes('youtu.be')) {
-    endpointPath = 'youtube';
-  } else if (normalizedUrl.includes('snapchat.com')) {
-    endpointPath = 'snapchat';
-  } else {
-    throw new Error('URL_NOT_SUPPORTED');
-  }
-
-  const endpoint = `https://api.siputzx.my.id/api/d/${endpointPath}?url=${encodedUrl}`;
-
-  let res;
-  try {
-    res = await axios.get(endpoint, {
-      headers: {
-        Accept: 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-      }
-    });
-  } catch (_error) {
-    throw new Error('DOWNLOAD_API_FAILED');
-  }
-  
   const isHttpUrl = (value) => typeof value === 'string' && /^https?:\/\//i.test(value.trim());
   const toUrl = (value) => (typeof value === 'string' ? value.trim() : '');
+  const urlSet = new Set();
 
-  const addUrl = (setRef, value) => {
+  const addUrl = (value) => {
     if (!isHttpUrl(value)) {
       return;
     }
 
-    const urlValue = toUrl(value);
-    if (!urlValue) {
-      return;
+    const cleanUrl = toUrl(value);
+    if (cleanUrl) {
+      urlSet.add(cleanUrl);
     }
-
-    setRef.add(urlValue);
   };
 
-  const collectFromAny = (node, setRef) => {
+  const collectFromNode = (node) => {
     if (!node) {
       return;
     }
 
     if (typeof node === 'string') {
-      addUrl(setRef, node);
+      addUrl(node);
       return;
     }
 
     if (Array.isArray(node)) {
       for (const item of node) {
-        collectFromAny(item, setRef);
+        collectFromNode(item);
       }
       return;
     }
@@ -82,53 +45,47 @@ async function getDownloadUrl(url) {
       return;
     }
 
-    const preferredKeys = [
+    const keys = [
       'url',
+      'video',
+      'videoUrl',
       'downloadUrl',
       'directUrl',
       'src',
-      'image',
-      'images',
-      'video',
-      'videos',
-      'media',
-      'medias',
-      'slides',
-      'result',
-      'results'
+      'link'
     ];
 
-    for (const key of preferredKeys) {
+    for (const key of keys) {
       if (Object.prototype.hasOwnProperty.call(node, key)) {
-        collectFromAny(node[key], setRef);
+        collectFromNode(node[key]);
       }
-    }
-
-    for (const value of Object.values(node)) {
-      collectFromAny(value, setRef);
     }
   };
 
-  const urlSet = new Set();
-  const payload = res?.data;
-  const dataNode = payload?.data;
-
-  if (Array.isArray(dataNode)) {
-    for (const item of dataNode) {
-      collectFromAny(item?.url, urlSet);
-      collectFromAny(item, urlSet);
+  try {
+    if (normalizedUrl.includes('youtube.com') || normalizedUrl.includes('youtu.be')) {
+      const result = await ytdown(normalizedUrl);
+      collectFromNode(result?.data?.video);
+      collectFromNode(result?.data?.videos);
+    } else {
+      const result = await ndown(normalizedUrl);
+      collectFromNode(result?.data);
+      collectFromNode(result?.data?.result);
+      collectFromNode(result?.data?.results);
     }
-  } else {
-    collectFromAny(dataNode, urlSet);
+
+    if (urlSet.size === 0) {
+      throw new Error('MEDIA_NOT_FOUND');
+    }
+
+    return Array.from(urlSet);
+  } catch (_error) {
+    if (_error?.message === 'MEDIA_NOT_FOUND') {
+      throw _error;
+    }
+
+    throw new Error('MEDIA_NOT_FOUND');
   }
-
-  collectFromAny(payload?.url, urlSet);
-
-  if (urlSet.size === 0) {
-    throw new Error('DOWNLOAD_URL_NOT_FOUND');
-  }
-
-  return Array.from(urlSet);
 }
 
 async function getMediaBuffer(url) {
