@@ -14,7 +14,7 @@ const { createSticker, isFfmpegMissingError } = require('../services/stickerServ
 const { getQuotaStatus } = require('../services/quotaService');
 const { logCommand } = require('../services/logService');
 const { shortenUrl } = require('../services/shortenerService');
-const { getDownloadUrl, getMediaBuffer } = require('../services/downloaderService');
+const { getDownloadUrl, getAudioUrl, getMediaBuffer, getAudioBuffer } = require('../services/downloaderService');
 const { buildDonateMessage, getDonateQrImagePaths } = require('../services/donateService');
 const {
   MAX_FILE_SIZE,
@@ -841,7 +841,7 @@ class WhatsAppHandler {
 
           case '/info': {
             const header = '> *INFORMASI YOGA BOT* 🤖';
-            const body = `Saya adalah asisten virtual pribadi milik Ridwan Yoga Suryantara.\n\n☕ *DUKUNGAN BOT*\n- \`/donate\`        : Link dukungan + QR donasi\n\n📋 *FITUR KEUANGAN* 💰\n- \`/finance_info\`  : Panduan lengkap command keuangan\n\n📋 *FITUR SISTEM* ⚙️\n- \`/ping\`          : Cek status bot\n- \`/info\`          : Menampilkan pesan ini\n- \`/start\`         : Memulai bot\n\n💡 *FITUR AI* 🧠\nKirimkan pesan biasa (tanpa awalan '/') untuk ngobrol,\nbertanya seputar coding, teknologi, atau sekadar bertukar pikiran!\n- \`/model_info\`    : Daftar model AI yang tersedia\n- \`/switch\`        : Ganti model AI aktif\n\n🛠️ *FITUR UTILITAS*\n- \`/short\`         : Pendekkan URL dengan is.gd\n- \`/download\`      : Download media sosial via Cobalt Tools\n- \`/cuaca\`         : Info cuaca hari ini\n- \`/sholat\`        : Jadwal sholat hari ini\n- \`/me\`            : Tentang pembuat bot\n\n🖼️ *FITUR CONVERTER* 📄\n- \`/img_info\`      : Panduan lengkap image tools\n- \`/pdf_info\`      : Panduan lengkap PDF tools\n\n🧩 *FITUR STICKER*\n- \`/sticker_info\`  : Panduan sticker tools\n\n🛡️ *FITUR ADMIN*\n- \`/admin\`         : Menu command admin`;
+            const body = `Saya adalah asisten virtual pribadi milik Ridwan Yoga Suryantara.\n\n☕ *DUKUNGAN BOT*\n- \`/donate\`        : Link dukungan + QR donasi\n\n📋 *FITUR KEUANGAN* 💰\n- \`/finance_info\`  : Panduan lengkap command keuangan\n\n📋 *FITUR SISTEM* ⚙️\n- \`/ping\`          : Cek status bot\n- \`/info\`          : Menampilkan pesan ini\n- \`/start\`         : Memulai bot\n\n💡 *FITUR AI* 🧠\nKirimkan pesan biasa (tanpa awalan '/') untuk ngobrol,\nbertanya seputar coding, teknologi, atau sekadar bertukar pikiran!\n- \`/model_info\`    : Daftar model AI yang tersedia\n- \`/switch\`        : Ganti model AI aktif\n\n🛠️ *FITUR UTILITAS*\n- \`/short\`         : Pendekkan URL dengan is.gd\n- \`/download\`      : Download media sosial (video/foto)\n- \`/audio\`         : Download audio saja dari media sosial\n- \`/cuaca\`         : Info cuaca hari ini\n- \`/sholat\`        : Jadwal sholat hari ini\n- \`/me\`            : Tentang pembuat bot\n\n🖼️ *FITUR CONVERTER* 📄\n- \`/img_info\`      : Panduan lengkap image tools\n- \`/pdf_info\`      : Panduan lengkap PDF tools\n\n🧩 *FITUR STICKER*\n- \`/sticker_info\`  : Panduan sticker tools\n\n🛡️ *FITUR ADMIN*\n- \`/admin\`         : Menu command admin`;
             replyText = appendFooter(`${header}\n\n${body}`, buildSystemStatsFooter());
             break;
           }
@@ -1336,6 +1336,53 @@ class WhatsAppHandler {
                 replyText = '❌ Media ditemukan, tapi server sumber menolak koneksi (proxy/anti-hotlink). Coba ulang beberapa saat lagi.';
               } else {
                 replyText = '❌ Gagal mengunduh. Pastikan link valid dan akun tidak di-private!';
+              }
+            }
+            break;
+          }
+
+          case '/audio': {
+            const targetUrl = String(args.join(' ') || '').trim();
+
+            if (!targetUrl) {
+              replyText = '❌ Masukkan link media! Contoh: /audio https://www.youtube.com/watch?v=xxxx';
+              break;
+            }
+
+            try {
+              await this.sock.sendMessage(
+                msg.key.remoteJid,
+                { text: '⏳ Sedang memproses audio, mohon tunggu sebentar...' },
+                { quoted: msg }
+              );
+
+              const audioUrl = await getAudioUrl(targetUrl);
+              const audio = await getAudioBuffer(audioUrl);
+
+              await this.sock.sendMessage(
+                msg.key.remoteJid,
+                {
+                  audio: audio.buffer,
+                  mimetype: audio.mimetype || 'audio/mpeg',
+                  ptt: false
+                },
+                { quoted: msg }
+              );
+            } catch (err) {
+              if (err.message === 'FILE_TOO_LARGE') {
+                replyText = '❌ Gagal: Ukuran file audio terlalu besar (Maksimal 25MB demi stabilitas bot).';
+              } else if (err.message === 'FB_NOT_SUPPORTED') {
+                replyText = '❌ Mohon maaf, fitur audio Facebook sedang dalam perbaikan.';
+              } else if (err.message === 'FFMPEG_NOT_FOUND') {
+                replyText = '❌ Konversi audio membutuhkan FFmpeg, tapi FFmpeg belum terpasang di server.';
+              } else if (err.message === 'DOWNLOAD_BUFFER_FAILED') {
+                replyText = '❌ Audio ditemukan, tapi server sumber menolak koneksi (proxy/anti-hotlink). Coba ulang beberapa saat lagi.';
+              } else if (err.message === 'AUDIO_NOT_FOUND') {
+                replyText = '❌ Audio tidak ditemukan dari link tersebut.';
+              } else if (err.message === 'AUDIO_CONVERT_FAILED') {
+                replyText = '❌ Gagal mengonversi video ke audio. Coba link lain.';
+              } else {
+                replyText = '❌ Gagal mengunduh audio. Pastikan link valid dan akun tidak di-private!';
               }
             }
             break;
