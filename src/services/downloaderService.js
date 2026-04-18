@@ -88,32 +88,38 @@ async function getDownloadUrl(url) {
 }
 
 async function getMediaBuffer(url) {
+  let customReferer = '';
+  if (url.includes('rapidcdn')) {
+    customReferer = 'https://snapinsta.app/';
+  } else if (url.includes('tiktokio')) {
+    customReferer = 'https://tiktokio.com/';
+  } else if (url.includes('savenow')) {
+    customReferer = 'https://savenow.to/';
+  } else {
+    customReferer = `${new URL(url).origin}/`;
+  }
+
   const fakeHeaders = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-    Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-    'Accept-Encoding': 'gzip, deflate, br',
-    'Accept-Language': 'en-US,en;q=0.9',
-    Connection: 'keep-alive'
+    Accept: '*/*',
+    Referer: customReferer
   };
 
   try {
     const res = await axios.get(url, {
       responseType: 'arraybuffer',
       headers: fakeHeaders,
-      maxContentLength: MAX_FILE_SIZE_BYTES,
-      maxBodyLength: MAX_FILE_SIZE_BYTES
+      maxContentLength: MAX_FILE_SIZE_BYTES
     });
 
-    const type = res?.headers?.['content-type'];
+    const type = res?.headers?.['content-type'] || '';
     return {
       buffer: res.data,
       type: type && type.includes('video') ? 'video' : 'image'
     };
   } catch (err) {
-    if (String(err?.message || '').includes('maxContentLength')) {
-      throw new Error('FILE_TOO_LARGE');
-    }
-    throw err;
+    console.error('Axios Download Error:', err.message);
+    throw new Error('DOWNLOAD_FAILED');
   }
 }
 
