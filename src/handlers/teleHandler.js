@@ -18,6 +18,7 @@ const { createSticker, isFfmpegMissingError } = require('../services/stickerServ
 const { getQuotaStatus } = require('../services/quotaService');
 const { logCommand } = require('../services/logService');
 const { shortenUrl } = require('../services/shortenerService');
+const { getDownloadUrl, getMediaBuffer } = require('../services/downloaderService');
 const { buildDonateMessage, getDonateQrImagePaths } = require('../services/donateService');
 const {
     MAX_FILE_SIZE,
@@ -814,7 +815,7 @@ async function processMenuCommand(ctx, command, userId) {
         }
         case '/info': {
             const header = '<b>INFORMASI YOGA BOT</b> 🤖';
-            const body = `Saya adalah asisten virtual pribadi milik <b>Ridwan Yoga Suryantara</b>.\n\n<b>DUKUNGAN BOT</b> ☕\n• /donate : Link dukungan + QR donasi\n\n<b>FITUR KEUANGAN</b> 💰\n• /finance_info : Panduan lengkap command keuangan\n\n<b>FITUR SISTEM</b> ⚙️\n• /ping : Cek status bot\n• /info : Menampilkan pesan ini\n• /start : Memulai bot\n\n<b>FITUR AI</b> 🧠\nKirim pesan biasa (tanpa awalan /) untuk ngobrol, tanya coding, atau diskusi teknologi.\n• /model_info : Daftar model AI yang tersedia\n• /switch : Ganti model AI aktif\n\n<b>FITUR UTILITAS</b> 🛠️\n• /short : Pendekkan URL dengan is.gd\n• /cuaca : Info cuaca hari ini\n• /sholat : Jadwal sholat hari ini\n• /me : Tentang pembuat bot\n\n<b>FITUR CONVERTER</b> 🖼️\n• /img_info : Panduan lengkap image tools\n• /pdf_info : Panduan lengkap PDF tools\n\n<b>FITUR STICKER</b> 🧩\n• /sticker_info : Panduan sticker tools\n\n<b>FITUR ADMIN</b> 🛡️\n• /admin : Menu command admin`;
+            const body = `Saya adalah asisten virtual pribadi milik <b>Ridwan Yoga Suryantara</b>.\n\n<b>DUKUNGAN BOT</b> ☕\n• /donate : Link dukungan + QR donasi\n\n<b>FITUR KEUANGAN</b> 💰\n• /finance_info : Panduan lengkap command keuangan\n\n<b>FITUR SISTEM</b> ⚙️\n• /ping : Cek status bot\n• /info : Menampilkan pesan ini\n• /start : Memulai bot\n\n<b>FITUR AI</b> 🧠\nKirim pesan biasa (tanpa awalan /) untuk ngobrol, tanya coding, atau diskusi teknologi.\n• /model_info : Daftar model AI yang tersedia\n• /switch : Ganti model AI aktif\n\n<b>FITUR UTILITAS</b> 🛠️\n• /short : Pendekkan URL dengan is.gd\n• /download : Download media sosial via Cobalt Tools\n• /cuaca : Info cuaca hari ini\n• /sholat : Jadwal sholat hari ini\n• /me : Tentang pembuat bot\n\n<b>FITUR CONVERTER</b> 🖼️\n• /img_info : Panduan lengkap image tools\n• /pdf_info : Panduan lengkap PDF tools\n\n<b>FITUR STICKER</b> 🧩\n• /sticker_info : Panduan sticker tools\n\n<b>FITUR ADMIN</b> 🛡️\n• /admin : Menu command admin`;
             const message = `${header}\n\n${body}\n\n${buildSystemStatsFooter()}`;
             await ctx.reply(message, {
                 parse_mode: 'HTML',
@@ -1378,6 +1379,60 @@ function setupTelegramBot() {
                     } catch (error) {
                         console.error('Error handling /short command in Telegram:', error);
                         await ctx.reply(`❌ Gagal memendekkan URL: ${escapeHtml(error.message)}`, { parse_mode: 'HTML' });
+                    }
+                    break;
+                }
+
+                case '/download': {
+                    const targetUrl = String(args.join(' ') || '').trim();
+
+                    if (!targetUrl) {
+                        await ctx.reply('❌ Masukkan link media! Contoh: /download https://www.instagram.com/reel/xxxx');
+                        break;
+                    }
+
+                    try {
+                        await ctx.reply('⏳ Sedang memproses media, mohon tunggu sebentar...');
+
+                        const mediaUrls = await getDownloadUrl(targetUrl);
+                        if (!Array.isArray(mediaUrls) || mediaUrls.length === 0) {
+                            throw new Error('DOWNLOAD_FAILED');
+                        }
+
+                        let successCount = 0;
+                        let hasFileTooLarge = false;
+
+                        for (const mediaUrl of mediaUrls) {
+                            try {
+                                const media = await getMediaBuffer(mediaUrl);
+                                if (media.type === 'video') {
+                                    await ctx.replyWithVideo({ source: media.buffer });
+                                } else {
+                                    await ctx.replyWithPhoto({ source: media.buffer });
+                                }
+
+                                successCount += 1;
+                                await new Promise((resolve) => setTimeout(resolve, 1500));
+                            } catch (itemErr) {
+                                console.error('Failed to download one slide on Telegram:', itemErr.message);
+                                if (itemErr.message === 'FILE_TOO_LARGE') {
+                                    hasFileTooLarge = true;
+                                }
+                            }
+                        }
+
+                        if (successCount === 0) {
+                            if (hasFileTooLarge) {
+                                throw new Error('FILE_TOO_LARGE');
+                            }
+                            throw new Error('DOWNLOAD_FAILED');
+                        }
+                    } catch (err) {
+                        if (err.message === 'FILE_TOO_LARGE') {
+                            await ctx.reply('❌ Gagal: Ukuran file terlalu besar (Maksimal 25MB demi stabilitas bot).');
+                        } else {
+                            await ctx.reply('❌ Gagal mengunduh. Pastikan link valid dan akun tidak di-private!');
+                        }
                     }
                     break;
                 }

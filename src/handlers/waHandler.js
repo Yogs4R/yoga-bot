@@ -14,6 +14,7 @@ const { createSticker, isFfmpegMissingError } = require('../services/stickerServ
 const { getQuotaStatus } = require('../services/quotaService');
 const { logCommand } = require('../services/logService');
 const { shortenUrl } = require('../services/shortenerService');
+const { getDownloadUrl, getMediaBuffer } = require('../services/downloaderService');
 const { buildDonateMessage, getDonateQrImagePaths } = require('../services/donateService');
 const {
   MAX_FILE_SIZE,
@@ -840,7 +841,7 @@ class WhatsAppHandler {
 
           case '/info': {
             const header = '> *INFORMASI YOGA BOT* 🤖';
-            const body = `Saya adalah asisten virtual pribadi milik Ridwan Yoga Suryantara.\n\n☕ *DUKUNGAN BOT*\n- \`/donate\`        : Link dukungan + QR donasi\n\n📋 *FITUR KEUANGAN* 💰\n- \`/finance_info\`  : Panduan lengkap command keuangan\n\n📋 *FITUR SISTEM* ⚙️\n- \`/ping\`          : Cek status bot\n- \`/info\`          : Menampilkan pesan ini\n- \`/start\`         : Memulai bot\n\n💡 *FITUR AI* 🧠\nKirimkan pesan biasa (tanpa awalan '/') untuk ngobrol,\nbertanya seputar coding, teknologi, atau sekadar bertukar pikiran!\n- \`/model_info\`    : Daftar model AI yang tersedia\n- \`/switch\`        : Ganti model AI aktif\n\n🛠️ *FITUR UTILITAS*\n- \`/short\`         : Pendekkan URL dengan is.gd\n- \`/cuaca\`         : Info cuaca hari ini\n- \`/sholat\`        : Jadwal sholat hari ini\n- \`/me\`            : Tentang pembuat bot\n\n🖼️ *FITUR CONVERTER* 📄\n- \`/img_info\`      : Panduan lengkap image tools\n- \`/pdf_info\`      : Panduan lengkap PDF tools\n\n🧩 *FITUR STICKER*\n- \`/sticker_info\`  : Panduan sticker tools\n\n🛡️ *FITUR ADMIN*\n- \`/admin\`         : Menu command admin`;
+            const body = `Saya adalah asisten virtual pribadi milik Ridwan Yoga Suryantara.\n\n☕ *DUKUNGAN BOT*\n- \`/donate\`        : Link dukungan + QR donasi\n\n📋 *FITUR KEUANGAN* 💰\n- \`/finance_info\`  : Panduan lengkap command keuangan\n\n📋 *FITUR SISTEM* ⚙️\n- \`/ping\`          : Cek status bot\n- \`/info\`          : Menampilkan pesan ini\n- \`/start\`         : Memulai bot\n\n💡 *FITUR AI* 🧠\nKirimkan pesan biasa (tanpa awalan '/') untuk ngobrol,\nbertanya seputar coding, teknologi, atau sekadar bertukar pikiran!\n- \`/model_info\`    : Daftar model AI yang tersedia\n- \`/switch\`        : Ganti model AI aktif\n\n🛠️ *FITUR UTILITAS*\n- \`/short\`         : Pendekkan URL dengan is.gd\n- \`/download\`      : Download media sosial via Cobalt Tools\n- \`/cuaca\`         : Info cuaca hari ini\n- \`/sholat\`        : Jadwal sholat hari ini\n- \`/me\`            : Tentang pembuat bot\n\n🖼️ *FITUR CONVERTER* 📄\n- \`/img_info\`      : Panduan lengkap image tools\n- \`/pdf_info\`      : Panduan lengkap PDF tools\n\n🧩 *FITUR STICKER*\n- \`/sticker_info\`  : Panduan sticker tools\n\n🛡️ *FITUR ADMIN*\n- \`/admin\`         : Menu command admin`;
             replyText = appendFooter(`${header}\n\n${body}`, buildSystemStatsFooter());
             break;
           }
@@ -1259,6 +1260,72 @@ class WhatsAppHandler {
             } catch (error) {
               console.error('Error in /short handler for WhatsApp:', error);
               replyText = `❌ Gagal memendekkan URL: ${error.message}`;
+            }
+            break;
+          }
+
+          case '/download': {
+            const targetUrl = String(args.join(' ') || '').trim();
+
+            if (!targetUrl) {
+              replyText = '❌ Masukkan link media! Contoh: /download https://www.instagram.com/reel/xxxx';
+              break;
+            }
+
+            try {
+              await this.sock.sendMessage(
+                msg.key.remoteJid,
+                { text: '⏳ Sedang memproses media, mohon tunggu sebentar...' },
+                { quoted: msg }
+              );
+
+              const mediaUrls = await getDownloadUrl(targetUrl);
+              if (!Array.isArray(mediaUrls) || mediaUrls.length === 0) {
+                throw new Error('DOWNLOAD_FAILED');
+              }
+
+              let successCount = 0;
+              let hasFileTooLarge = false;
+
+              for (const mediaUrl of mediaUrls) {
+                try {
+                  const media = await getMediaBuffer(mediaUrl);
+                  if (media.type === 'video') {
+                    await this.sock.sendMessage(
+                      msg.key.remoteJid,
+                      { video: media.buffer, mimetype: 'video/mp4' },
+                      { quoted: msg }
+                    );
+                  } else {
+                    await this.sock.sendMessage(
+                      msg.key.remoteJid,
+                      { image: media.buffer, mimetype: 'image/jpeg' },
+                      { quoted: msg }
+                    );
+                  }
+
+                  successCount += 1;
+                  await new Promise((resolve) => setTimeout(resolve, 1500));
+                } catch (itemErr) {
+                  console.error('Failed to download one slide on WhatsApp:', itemErr.message);
+                  if (itemErr.message === 'FILE_TOO_LARGE') {
+                    hasFileTooLarge = true;
+                  }
+                }
+              }
+
+              if (successCount === 0) {
+                if (hasFileTooLarge) {
+                  throw new Error('FILE_TOO_LARGE');
+                }
+                throw new Error('DOWNLOAD_FAILED');
+              }
+            } catch (err) {
+              if (err.message === 'FILE_TOO_LARGE') {
+                replyText = '❌ Gagal: Ukuran file terlalu besar (Maksimal 25MB demi stabilitas bot).';
+              } else {
+                replyText = '❌ Gagal mengunduh. Pastikan link valid dan akun tidak di-private!';
+              }
             }
             break;
           }
