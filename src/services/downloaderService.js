@@ -10,6 +10,7 @@ async function getDownloadUrl(url) {
   }
 
   const isHttpUrl = (value) => typeof value === 'string' && /^https?:\/\//i.test(String(value).trim());
+  const isAudioUrl = (value) => /(^|[/?&_.-])(mp3|m4a|aac|wav)([/?&_.-]|$)|sf=\.mp3/i.test(String(value || ''));
   const mediaUrlSet = new Set();
   const visitedNodes = new WeakSet();
 
@@ -82,7 +83,26 @@ async function getDownloadUrl(url) {
       console.log('btch-downloader result:', result);
       collectUrls(result?.video);
       collectUrls(result?.data?.video);
-      collectUrls(result);
+
+      try {
+        const sipuRes = await axios.get(`https://api.siputzx.my.id/api/d/tiktok?url=${encodeURIComponent(normalizedUrl)}`);
+        console.log('siputzx tiktok result:', sipuRes?.data);
+        collectUrls(sipuRes?.data?.data);
+        collectUrls(sipuRes?.data?.url);
+        collectUrls(sipuRes?.data);
+      } catch (sipuErr) {
+        console.error('Siputzx TikTok fallback failed:', sipuErr.message);
+      }
+
+      try {
+        const tikwmRes = await axios.get(`https://www.tikwm.com/api/?url=${encodeURIComponent(normalizedUrl)}`);
+        console.log('tikwm result:', tikwmRes?.data);
+        collectUrls(tikwmRes?.data?.data?.play);
+        collectUrls(tikwmRes?.data?.data?.hdplay);
+        collectUrls(tikwmRes?.data?.data?.wmplay);
+      } catch (tikwmErr) {
+        console.error('TikWM fallback failed:', tikwmErr.message);
+      }
     } else if (normalizedUrl.includes('twitter.com') || normalizedUrl.includes('x.com')) {
       const res = await axios.get(`https://api.siputzx.my.id/api/d/twitter?url=${encodeURIComponent(normalizedUrl)}`);
       console.log('siputzx twitter result:', res?.data);
@@ -102,7 +122,17 @@ async function getDownloadUrl(url) {
       throw new Error('MEDIA_NOT_FOUND');
     }
 
-    const mediaUrls = Array.from(mediaUrlSet);
+    let mediaUrls = Array.from(mediaUrlSet).filter((item) => !isAudioUrl(item));
+
+    if (normalizedUrl.includes('tiktok.com')) {
+      const nonTiktokioUrls = mediaUrls.filter((item) => !item.includes('tiktokio.com') && !item.includes('dl.tiktokio.com'));
+      mediaUrls = nonTiktokioUrls.length > 0 ? nonTiktokioUrls : mediaUrls;
+
+      if (mediaUrls.length > 1) {
+        mediaUrls = [mediaUrls[0]];
+      }
+    }
+
     if (mediaUrls.length === 0) throw new Error('MEDIA_NOT_FOUND');
     return mediaUrls;
   } catch (_error) {
