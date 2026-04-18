@@ -88,19 +88,23 @@ async function getDownloadUrl(url) {
 }
 
 async function getMediaBuffer(url) {
-  const fakeHeaders = {
+  const urlObj = new URL(url);
+  const dynamicHeaders = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-    Referer: 'https://www.tiktok.com/'
+    Accept: '*/*',
+    Referer: `${urlObj.origin}/`
   };
 
-  const headRes = await axios.head(url, { headers: fakeHeaders });
-  const contentLength = Number(headRes?.headers?.['content-length'] || 0);
-
-  if (Number.isFinite(contentLength) && contentLength > MAX_FILE_SIZE_BYTES) {
+  const headRes = await axios.head(url, { headers: dynamicHeaders });
+  const size = headRes?.headers?.['content-length'];
+  if (size && parseInt(size, 10) > MAX_FILE_SIZE_BYTES) {
     throw new Error('FILE_TOO_LARGE');
   }
 
-  const mediaRes = await axios.get(url, { responseType: 'arraybuffer', headers: fakeHeaders });
+  const mediaRes = await axios.get(url, {
+    responseType: 'arraybuffer',
+    headers: dynamicHeaders
+  });
   const type = String(mediaRes?.headers?.['content-type'] || '').toLowerCase();
   const buffer = Buffer.from(mediaRes.data);
 
