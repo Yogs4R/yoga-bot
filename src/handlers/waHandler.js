@@ -1286,6 +1286,7 @@ class WhatsAppHandler {
 
               let successCount = 0;
               let hasFileTooLarge = false;
+              let hasBufferFailed = false;
 
               for (const mediaUrl of mediaUrls) {
                 try {
@@ -1311,12 +1312,18 @@ class WhatsAppHandler {
                   if (itemErr.message === 'FILE_TOO_LARGE') {
                     hasFileTooLarge = true;
                   }
+                  if (itemErr.message === 'DOWNLOAD_BUFFER_FAILED') {
+                    hasBufferFailed = true;
+                  }
                 }
               }
 
               if (successCount === 0) {
                 if (hasFileTooLarge) {
                   throw new Error('FILE_TOO_LARGE');
+                }
+                if (hasBufferFailed) {
+                  throw new Error('DOWNLOAD_BUFFER_FAILED');
                 }
                 throw new Error('DOWNLOAD_FAILED');
               }
@@ -1325,6 +1332,8 @@ class WhatsAppHandler {
                 replyText = '❌ Gagal: Ukuran file terlalu besar (Maksimal 25MB demi stabilitas bot).';
               } else if (err.message === 'FB_NOT_SUPPORTED') {
                 replyText = '❌ Mohon maaf, fitur download Facebook sedang dalam perbaikan.';
+              } else if (err.message === 'DOWNLOAD_BUFFER_FAILED') {
+                replyText = '❌ Media ditemukan, tapi server sumber menolak koneksi (proxy/anti-hotlink). Coba ulang beberapa saat lagi.';
               } else {
                 replyText = '❌ Gagal mengunduh. Pastikan link valid dan akun tidak di-private!';
               }
