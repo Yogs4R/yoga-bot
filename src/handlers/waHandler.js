@@ -1321,7 +1321,6 @@ class WhatsAppHandler {
                 throw new Error('DOWNLOAD_FAILED');
               }
             } catch (err) {
-              console.error("=== ERROR DOWNLOADER ===", err.message);
               if (err.message === 'FILE_TOO_LARGE') {
                 replyText = '❌ Gagal: Ukuran file terlalu besar (Maksimal 25MB demi stabilitas bot).';
               } else {

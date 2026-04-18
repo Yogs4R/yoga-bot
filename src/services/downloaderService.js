@@ -8,40 +8,43 @@ async function getDownloadUrl(url) {
     throw new Error('URL_REQUIRED');
   }
 
-  let endpoint = '';
+  let endpointPath = '';
   const encodedUrl = encodeURIComponent(normalizedUrl);
 
   if (normalizedUrl.includes('instagram.com') || normalizedUrl.includes('instagr.am')) {
-    endpoint = `https://api.ryzendesu.vip/api/downloader/igdl?url=${encodedUrl}`;
+    endpointPath = 'igdl';
   } else if (normalizedUrl.includes('tiktok.com') || normalizedUrl.includes('vt.tiktok.com')) {
-    endpoint = `https://api.ryzendesu.vip/api/downloader/ttdl?url=${encodedUrl}`;
+    endpointPath = 'tiktok';
   } else if (normalizedUrl.includes('twitter.com') || normalizedUrl.includes('x.com')) {
-    endpoint = `https://api.ryzendesu.vip/api/downloader/twitter?url=${encodedUrl}`;
+    endpointPath = 'twitter';
   } else if (normalizedUrl.includes('facebook.com') || normalizedUrl.includes('fb.watch')) {
-    endpoint = `https://api.ryzendesu.vip/api/downloader/fbdl?url=${encodedUrl}`;
+    endpointPath = 'facebook';
   } else if (normalizedUrl.includes('threads.net')) {
-    endpoint = `https://api.ryzendesu.vip/api/downloader/threads?url=${encodedUrl}`;
+    endpointPath = 'threads';
   } else if (normalizedUrl.includes('pinterest.com') || normalizedUrl.includes('pin.it')) {
-    endpoint = `https://api.ryzendesu.vip/api/downloader/pinterest?url=${encodedUrl}`;
+    endpointPath = 'pinterest';
+  } else if (normalizedUrl.includes('youtube.com') || normalizedUrl.includes('youtu.be')) {
+    endpointPath = 'youtube';
+  } else if (normalizedUrl.includes('snapchat.com')) {
+    endpointPath = 'snapchat';
   } else {
     throw new Error('URL_NOT_SUPPORTED');
   }
+
+  const endpoint = `https://api.siputzx.my.id/api/d/${endpointPath}?url=${encodedUrl}`;
 
   let res;
   try {
     res = await axios.get(endpoint, {
       headers: {
-        Accept: 'application/json'
+        Accept: 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       }
     });
   } catch (_error) {
     throw new Error('DOWNLOAD_API_FAILED');
   }
-
-  console.log("=== DEBUG API RYZENDESU ===");
-  console.log(JSON.stringify(res.data, null, 2));
-  console.log("=========================");
-
+  
   const isHttpUrl = (value) => typeof value === 'string' && /^https?:\/\//i.test(value.trim());
   const toUrl = (value) => (typeof value === 'string' ? value.trim() : '');
 
@@ -108,8 +111,17 @@ async function getDownloadUrl(url) {
 
   const urlSet = new Set();
   const payload = res?.data;
+  const dataNode = payload?.data;
 
-  collectFromAny(payload?.data, urlSet);
+  if (Array.isArray(dataNode)) {
+    for (const item of dataNode) {
+      collectFromAny(item?.url, urlSet);
+      collectFromAny(item, urlSet);
+    }
+  } else {
+    collectFromAny(dataNode, urlSet);
+  }
+
   collectFromAny(payload?.url, urlSet);
 
   if (urlSet.size === 0) {
