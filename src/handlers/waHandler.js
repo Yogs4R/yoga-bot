@@ -682,7 +682,8 @@ class WhatsAppHandler {
               replyText = buildBookRecommendationText(keyword, books);
             } catch (error) {
               console.error('Error in /buku handler for WhatsApp:', error);
-              replyText = '❌ Gagal mencari buku. Coba lagi beberapa saat.';
+              const detailedMessage = String(error?.message || '').trim();
+              replyText = detailedMessage || '❌ Gagal mencari buku. Coba lagi beberapa saat.';
             }
             break;
           }

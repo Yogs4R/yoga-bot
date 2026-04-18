@@ -36,6 +36,20 @@ Berjalan ganda secara independen namun terintegrasi penuh:
 
 ### 🤖 AI Assistant
 Asisten cerdas tingkat lanjut yang ditenagai oleh model bahasa besar (LLM) melalui integrasi OpenRouter API. Siap menjawab pertanyaan teknis, diskusi, dan coding.
+- Dukungan multi-model dengan command pergantian model per pengguna.
+- Metadata penggunaan model di balasan (token usage dan label RPM).
+
+### 📚 Research Tools
+Fitur riset buku berbasis Open Library API (tanpa API key):
+- Pencarian 5 rekomendasi buku teratas berdasarkan keyword.
+- Menampilkan judul, penulis, tahun terbit pertama, dan link Open Library.
+- Fallback pesan yang lebih jelas saat Open Library timeout/down.
+
+### ⬇️ Downloader Tools
+Kumpulan command downloader media dan audio:
+- `/download` mendukung: Instagram, Twitter/X, YouTube, dan TikTok.
+- `/audio` mendukung: YouTube dan YouTube Music.
+- Utilitas pemendek URL via `/short` (is.gd).
 
 ### 💰 Finance Management
 Pencatatan keuangan interaktif langsung dari dalam chat:
@@ -49,18 +63,21 @@ Pencatatan keuangan interaktif langsung dari dalam chat:
 Layanan konversi file dan media tangguh dengan dukungan batch:
 - Konversi gambar, kompres, rotasi, resize, hapus background, hingga tangkapan layar web (screenshot).
 - Operasi dokumen PDF: Word/Docx ke PDF, compress PDF, rotasi, ekstrak halaman, hingga menggabungkan (merge) berbagai file PDF menjadi satu dokumen.
+- Generator stiker (`/tosticker`) untuk input gambar WhatsApp dan Telegram.
 
 ### 🖥️ System and Server Monitoring
 Infrastruktur backend yang andal dengan dukungan monitoring:
 - Pemantauan metrik perangkat keras (CPU, RAM, dan Uptime).
 - Pemantauan uptime website reguler.
 - Command Usage Tracker untuk melaporkan statistik top tier pengguna dan perintah terpopuler.
+- Pusat command admin untuk monitor, statistik penggunaan, dan broadcast.
 
 ### 🛠️ Daily Utilities
 Layanan pendamping yang bermanfaat:
 - Pemeriksa jadwal sholat per kota
 - Pemeriksa kondisi cuaca per kota teraktual
 - Modul *About Me* portfolio kreator
+- Modul donasi dengan pengiriman QR Ko-fi dan Saweria di chat.
 
 ---
 

@@ -36,6 +36,20 @@ Runs simultaneously, independently but fully integrated:
 
 ### 🤖 AI Assistant
 Advanced smart assistant powered by large language models (LLM) via OpenRouter API integration. Ready to answer technical questions, discussions, and coding.
+- Multi-model support with user-level model switching command.
+- Built-in model usage metadata in replies (token usage and RPM label).
+
+### 📚 Research Tools
+Book discovery powered by Open Library API (no API key required):
+- Search top 5 book recommendations by keyword.
+- Returns title, author, first publish year, and direct Open Library link.
+- Better fallback messages when Open Library is timeout/down.
+
+### ⬇️ Downloader Tools
+Unified downloader commands for social media and music:
+- `/download` supports: Instagram, Twitter/X, YouTube, and TikTok.
+- `/audio` supports: YouTube and YouTube Music.
+- URL shortener utility via `/short` using is.gd.
 
 ### 💰 Finance Management
 Interactive financial logging directly from chat:
@@ -49,18 +63,21 @@ Interactive financial logging directly from chat:
 Powerful file and media conversion services with batch support:
 - Image conversion, compress, rotate, resize, remove background, to web screenshots.
 - PDF document operations: Word/Docx to PDF, compress PDF, rotate, extract pages, to merge various PDF files into a single document.
+- Sticker generator (`/tosticker`) for WhatsApp and Telegram image input.
 
 ### 🖥️ System and Server Monitoring
 Reliable backend infrastructure with monitoring support:
 - Hardware metrics monitoring (CPU, RAM, and Uptime).
 - Regular website uptime monitoring.
 - Command Usage Tracker to report top-tier user statistics and most popular commands.
+- Admin command center for monitor checks, usage stats, and broadcast tools.
 
 ### 🛠️ Daily Utilities
 Useful companion services:
 - Prayer times checker per city
 - Real-time weather condition checker per city
 - *About Me* creator portfolio module
+- Donation module with Ko-fi and Saweria QR delivery in chat.
 
 ---
 

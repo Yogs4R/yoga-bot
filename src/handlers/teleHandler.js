@@ -1439,7 +1439,8 @@ function setupTelegramBot() {
                         await ctx.reply(message, { parse_mode: 'HTML' });
                     } catch (error) {
                         console.error('Error handling /buku command in Telegram:', error);
-                        await ctx.reply('❌ Gagal mencari buku. Coba lagi beberapa saat.');
+                        const detailedMessage = String(error?.message || '').trim();
+                        await ctx.reply(detailedMessage || '❌ Gagal mencari buku. Coba lagi beberapa saat.');
                     }
                     break;
                 }
