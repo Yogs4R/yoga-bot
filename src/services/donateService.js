@@ -7,32 +7,32 @@ function buildDonateMessage(platform = 'whatsapp') {
     if (platform === 'telegram') {
         return `<b>☕ DUKUNG YOGA BOT</b>
 
-        Halo! Senang rasanya Yoga Bot bisa membantumu. 🤖✨
+    Halo! Senang rasanya Yoga Bot bisa membantumu. 🤖✨
 
-        Yoga Bot berjalan 24/7 di server cloud menggunakan model AI canggih yang membutuhkan biaya operasional bulanan. Jika kamu merasa terbantu, kamu bisa mendukung Fuenzer Studio melalui:
+    Yoga Bot berjalan 24/7 di server cloud menggunakan model AI canggih yang membutuhkan biaya operasional bulanan. Jika kamu merasa terbantu, kamu bisa mendukung Fuenzer Studio melalui:
 
-        🇮🇩 <b>Untuk Pengguna Indonesia (QRIS, GoPay, OVO, dll):</b>
-        🔗 ${SAWERIA_URL}
+    🇮🇩 <b>Untuk Pengguna Indonesia (QRIS, GoPay, OVO, dll):</b>
+    🔗 ${SAWERIA_URL}
 
-        🌍 <b>For International Users (PayPal, Credit Card):</b>
-        🔗 ${KOFI_URL}
+    🌍 <b>For International Users (PayPal, Credit Card):</b>
+    🔗 ${KOFI_URL}
 
-        Dukunganmu menjaga bot ini tetap hidup. Terima kasih! ❤️`;
+    Dukunganmu menjaga bot ini tetap hidup. Terima kasih! ❤️`;
     }
 
     return `> ☕ DUKUNG YOGA BOT
 
-        Halo! Senang rasanya Yoga Bot bisa membantumu. 🤖✨
+    Halo! Senang rasanya Yoga Bot bisa membantumu. 🤖✨
 
-        Yoga Bot berjalan 24/7 di server cloud menggunakan model AI canggih yang membutuhkan biaya operasional bulanan. Jika kamu merasa terbantu, kamu bisa mendukung Fuenzer Studio melalui:
+    Yoga Bot berjalan 24/7 di server cloud menggunakan model AI canggih yang membutuhkan biaya operasional bulanan. Jika kamu merasa terbantu, kamu bisa mendukung Fuenzer Studio melalui:
 
-        🇮🇩 *Untuk Pengguna Indonesia (QRIS, GoPay, OVO, dll):*
-        🔗 ${SAWERIA_URL}
+    🇮🇩 *Untuk Pengguna Indonesia (QRIS, GoPay, OVO, dll):*
+    🔗 ${SAWERIA_URL}
 
-        🌍 *For International Users (PayPal, Credit Card):*
-        🔗 ${KOFI_URL}
+    🌍 *For International Users (PayPal, Credit Card):*
+    🔗 ${KOFI_URL}
 
-        Dukunganmu menjaga bot ini tetap hidup. Terima kasih! ❤️`;
+    Dukunganmu menjaga bot ini tetap hidup. Terima kasih! ❤️`;
 }
 
 function getDonateQrImagePaths() {

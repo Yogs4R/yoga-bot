@@ -279,8 +279,8 @@ function appendFooter(text, footer) {
 
 function buildMainMenuKeyboard() {
     return Markup.inlineKeyboard([
-        [Markup.button.callback('💰 Finance Info', 'cmd:finance_info'), Markup.button.callback('⚙️ Info', 'cmd:info')],
         [Markup.button.callback('☕ Donate', 'cmd:donate')],
+        [Markup.button.callback('💰 Finance Info', 'cmd:finance_info'), Markup.button.callback('⚙️ Info', 'cmd:info')],
         [Markup.button.callback('🌤️ Cuaca', 'cmd:cuaca'), Markup.button.callback('🕌 Sholat', 'cmd:sholat')],
         [Markup.button.callback('👨‍💻 About Me', 'cmd:me'), Markup.button.callback('🏓 Ping', 'cmd:ping')],
         [Markup.button.callback('🖼️ Image Tools', 'cmd:img_info'), Markup.button.callback('📄 PDF Tools', 'cmd:pdf_info')],
