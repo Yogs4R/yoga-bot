@@ -19,6 +19,7 @@ const { getQuotaStatus } = require('../services/quotaService');
 const { logCommand } = require('../services/logService');
 const { shortenUrl } = require('../services/shortenerService');
 const { getDownloadUrl, getAudioUrl, getMediaBuffer, getAudioBuffer } = require('../services/downloaderService');
+const { searchBooks } = require('../services/researchService');
 const { buildDonateMessage, getDonateQrImagePaths } = require('../services/donateService');
 const {
     MAX_FILE_SIZE,
@@ -285,7 +286,8 @@ function buildMainMenuKeyboard() {
         [Markup.button.callback('🌤️ Cuaca', 'cmd:cuaca'), Markup.button.callback('🕌 Sholat', 'cmd:sholat')],
         [Markup.button.callback('👨‍💻 About Me', 'cmd:me'), Markup.button.callback('🏓 Ping', 'cmd:ping')],
         [Markup.button.callback('🖼️ Image Tools', 'cmd:img_info'), Markup.button.callback('📄 PDF Tools', 'cmd:pdf_info')],
-        [Markup.button.callback('🤖 Model AI', 'cmd:model_info'), Markup.button.callback('🧩 Sticker Tools', 'cmd:sticker_info')]
+        [Markup.button.callback('🤖 Model AI', 'cmd:model_info'), Markup.button.callback('🧩 Sticker Tools', 'cmd:sticker_info')],
+        [Markup.button.callback('🔎 Research', 'cmd:research_info'), Markup.button.callback('⬇️ Downloader', 'cmd:downloader')]
     ]);
 }
 
@@ -405,6 +407,21 @@ async function sendUtilityCommandMessage(ctx, command, userId, args = []) {
     const replyText = await handleUtilityCommand(command, args, userId, 'telegram');
     const linksKeyboard = command === '/me' ? buildMonitorLinksKeyboard() : null;
     await sendTelegramReply(ctx, replyText, linksKeyboard || {});
+}
+
+function buildBookRecommendationMessage(keyword, books = []) {
+    const safeKeyword = escapeHtml(String(keyword || '').trim());
+    const lines = [`📚 REKOMENDASI BUKU: ${safeKeyword}`];
+
+    books.slice(0, 5).forEach((book, index) => {
+        lines.push('');
+        lines.push(`${index + 1}. ${escapeHtml(String(book?.title || '-'))}`);
+        lines.push(`   👤 Penulis: ${escapeHtml(String(book?.author || '-'))}`);
+        lines.push(`   📅 Tahun: ${escapeHtml(String(book?.year || '-'))}`);
+        lines.push(`   🔗 Link: ${escapeHtml(String(book?.url || 'https://openlibrary.org'))}`);
+    });
+
+    return lines.join('\n');
 }
 
 async function handleImageConverter(ctx, args) {
@@ -815,12 +832,24 @@ async function processMenuCommand(ctx, command, userId) {
         }
         case '/info': {
             const header = '<b>INFORMASI YOGA BOT</b> 🤖';
-            const body = `Saya adalah asisten virtual pribadi milik <b>Ridwan Yoga Suryantara</b>.\n\n<b>DUKUNGAN BOT</b> ☕\n• /donate : Link dukungan + QR donasi\n\n<b>FITUR KEUANGAN</b> 💰\n• /finance_info : Panduan lengkap command keuangan\n\n<b>FITUR SISTEM</b> ⚙️\n• /ping : Cek status bot\n• /info : Menampilkan pesan ini\n• /start : Memulai bot\n\n<b>FITUR AI</b> 🧠\nKirim pesan biasa (tanpa awalan /) untuk ngobrol, tanya coding, atau diskusi teknologi.\n• /model_info : Daftar model AI yang tersedia\n• /switch : Ganti model AI aktif\n\n<b>FITUR UTILITAS</b> 🛠️\n• /short : Pendekkan URL dengan is.gd\n• /download : Download media sosial (video/foto)\n• /audio : Download audio YouTube / YouTube Music\n• /cuaca : Info cuaca hari ini\n• /sholat : Jadwal sholat hari ini\n• /me : Tentang pembuat bot\n\n<b>FITUR CONVERTER</b> 🖼️\n• /img_info : Panduan lengkap image tools\n• /pdf_info : Panduan lengkap PDF tools\n\n<b>FITUR STICKER</b> 🧩\n• /sticker_info : Panduan sticker tools\n\n<b>FITUR ADMIN</b> 🛡️\n• /admin : Menu command admin`;
+            const body = `Saya adalah asisten virtual pribadi milik <b>Ridwan Yoga Suryantara</b>.\n\n<b>DUKUNGAN BOT</b> ☕\n• /donate : Link dukungan + QR donasi\n\n<b>FITUR KEUANGAN</b> 💰\n• /finance_info : Panduan lengkap command keuangan\n\n<b>FITUR SISTEM</b> ⚙️\n• /ping : Cek status bot\n• /info : Menampilkan pesan ini\n• /start : Memulai bot\n\n<b>FITUR AI</b> 🧠\nKirim pesan biasa (tanpa awalan /) untuk ngobrol, tanya coding, atau diskusi teknologi.\n• /model_info : Daftar model AI yang tersedia\n• /switch : Ganti model AI aktif\n\n<b>FITUR RESEARCH</b> 🔎\n• /research_info : Panduan pencarian buku\n\n<b>FITUR UTILITAS</b> 🛠️\n• /short : Pendekkan URL dengan is.gd\n• /downloader : Kumpulan command download (/download & /audio)\n• /cuaca : Info cuaca hari ini\n• /sholat : Jadwal sholat hari ini\n• /me : Tentang pembuat bot\n\n<b>FITUR CONVERTER</b> 🖼️\n• /img_info : Panduan lengkap image tools\n• /pdf_info : Panduan lengkap PDF tools\n\n<b>FITUR STICKER</b> 🧩\n• /sticker_info : Panduan sticker tools\n\n<b>FITUR ADMIN</b> 🛡️\n• /admin : Menu command admin`;
             const message = `${header}\n\n${body}\n\n${buildSystemStatsFooter()}`;
             await ctx.reply(message, {
                 parse_mode: 'HTML',
                 ...buildMainMenuKeyboard()
             });
+            return;
+        }
+        case '/research_info': {
+            const header = '<b>RESEARCH TOOLS</b> 📚';
+            const body = `Panduan fitur riset buku dari Open Library (tanpa API key).\n\n<b>COMMAND INTI:</b>\n• /buku &lt;keyword&gt; : Cari rekomendasi buku berdasarkan judul/topik/penulis\n\n<b>CONTOH CEPAT:</b>\n• <code>/buku atomic habits</code>\n• <code>/buku clean code</code>\n• <code>/buku sejarah indonesia</code>\n\n<b>OUTPUT YANG DITAMPILKAN:</b>\n• Judul buku\n• Nama penulis\n• Tahun terbit pertama\n• Link buku ke Open Library\n\n<b>TIPS:</b>\n• Pakai kata kunci spesifik agar hasil lebih relevan\n• Jika hasil kurang pas, coba variasi bahasa Inggris/Indonesia`;
+            await ctx.reply(`${header}\n\n${body}`, { parse_mode: 'HTML' });
+            return;
+        }
+        case '/downloader': {
+            const header = '<b>DOWNLOADER TOOLS</b> ⬇️';
+            const body = `Kumpulan command untuk download media dan audio.\n\n<b>COMMAND DOWNLOAD:</b>\n• /download &lt;url&gt; : Download media sosial (video/foto)\n• /audio &lt;url&gt; : Download audio dari YouTube/YouTube Music\n\n<b>CONTOH CEPAT:</b>\n• <code>/download https://www.instagram.com/reel/xxxx</code>\n• <code>/audio https://www.youtube.com/watch?v=xxxx</code>\n\n<b>SUPPORT PLATFORM:</b>\n• /download hanya support: Instagram, Twitter/X, YouTube, dan TikTok\n• /audio hanya support: YouTube dan YouTube Music\n\n<b>CATATAN:</b>\n• Jika media terlalu besar atau sumber menolak koneksi, coba ulang beberapa saat lagi`;
+            await ctx.reply(`${header}\n\n${body}`, { parse_mode: 'HTML' });
             return;
         }
         case '/donate': {
@@ -1008,6 +1037,14 @@ function setupTelegramBot() {
 
                 case '/finance_info':
                     await processMenuCommand(ctx, '/finance_info', userId);
+                    break;
+
+                case '/research_info':
+                    await processMenuCommand(ctx, '/research_info', userId);
+                    break;
+
+                case '/downloader':
+                    await processMenuCommand(ctx, '/downloader', userId);
                     break;
                     
                 case '/saldo':
@@ -1383,6 +1420,30 @@ function setupTelegramBot() {
                     break;
                 }
 
+                case '/buku': {
+                    const keyword = String(args.join(' ') || '').trim();
+
+                    if (!keyword) {
+                        await ctx.reply('❌ Masukkan kata kunci buku! Contoh: /buku atomic habits');
+                        break;
+                    }
+
+                    try {
+                        const books = await searchBooks(keyword);
+                        if (!Array.isArray(books) || books.length === 0) {
+                            await ctx.reply(`📚 REKOMENDASI BUKU: ${escapeHtml(keyword)}\n\nTidak ada hasil ditemukan. Coba keyword lain.`, { parse_mode: 'HTML' });
+                            break;
+                        }
+
+                        const message = buildBookRecommendationMessage(keyword, books);
+                        await ctx.reply(message, { parse_mode: 'HTML' });
+                    } catch (error) {
+                        console.error('Error handling /buku command in Telegram:', error);
+                        await ctx.reply('❌ Gagal mencari buku. Coba lagi beberapa saat.');
+                    }
+                    break;
+                }
+
                 case '/download': {
                     const targetUrl = String(args.join(' ') || '').trim();
 
@@ -1547,6 +1608,8 @@ function setupTelegramBot() {
                     donate: '/donate',
                     ping: '/ping',
                     finance_info: '/finance_info',
+                    research_info: '/research_info',
+                    downloader: '/downloader',
                     cuaca: '/cuaca',
                     sholat: '/sholat',
                     me: '/me',

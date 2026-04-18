@@ -15,6 +15,7 @@ const { getQuotaStatus } = require('../services/quotaService');
 const { logCommand } = require('../services/logService');
 const { shortenUrl } = require('../services/shortenerService');
 const { getDownloadUrl, getAudioUrl, getMediaBuffer, getAudioBuffer } = require('../services/downloaderService');
+const { searchBooks } = require('../services/researchService');
 const { buildDonateMessage, getDonateQrImagePaths } = require('../services/donateService');
 const {
   MAX_FILE_SIZE,
@@ -176,6 +177,21 @@ async function buildPdfToolsQuotaFooter() {
     '—'.repeat(19),
     `*CloudConvert:* Usage: ${cloudConvertUsage} | Limit: ${cloudConvertLimit}`
   ].join('\n');
+}
+
+function buildBookRecommendationText(keyword, books = []) {
+  const safeKeyword = String(keyword || '').trim();
+  const lines = [`📚 REKOMENDASI BUKU: ${safeKeyword}`];
+
+  books.slice(0, 5).forEach((book, index) => {
+    lines.push('');
+    lines.push(`${index + 1}. ${String(book?.title || '-')}`);
+    lines.push(`   👤 Penulis: ${String(book?.author || '-')}`);
+    lines.push(`   📅 Tahun: ${String(book?.year || '-')}`);
+    lines.push(`   🔗 Link: ${String(book?.url || 'https://openlibrary.org')}`);
+  });
+
+  return lines.join('\n');
 }
 
 function normalizeWhatsAppId(value) {
@@ -588,6 +604,20 @@ class WhatsAppHandler {
             replyText = `${header}\n\n${body}`;
             break;
           }
+
+          case '/research_info': {
+            const header = '> *RESEARCH TOOLS* 📚';
+            const body = `Panduan fitur riset buku dari Open Library (tanpa API key).\n\n*COMMAND INTI:*\n- /buku <keyword> : Cari rekomendasi buku berdasarkan judul/topik/penulis\n\n*CONTOH CEPAT:*\n- /buku atomic habits\n- /buku clean code\n- /buku sejarah indonesia\n\n*OUTPUT YANG DITAMPILKAN:*\n- Judul buku\n- Nama penulis\n- Tahun terbit pertama\n- Link buku ke Open Library\n\n*TIPS:*\n- Pakai kata kunci spesifik agar hasil lebih relevan\n- Jika hasil kurang pas, coba variasi bahasa Inggris/Indonesia`;
+            replyText = `${header}\n\n${body}`;
+            break;
+          }
+
+          case '/downloader': {
+            const header = '> *DOWNLOADER TOOLS* ⬇️';
+            const body = `Kumpulan command untuk download media dan audio.\n\n*COMMAND DOWNLOAD:*\n- /download <url> : Download media sosial (video/foto)\n- /audio <url> : Download audio dari YouTube/YouTube Music\n\n*CONTOH CEPAT:*\n- /download https://www.instagram.com/reel/xxxx\n- /audio https://www.youtube.com/watch?v=xxxx\n\n*SUPPORT PLATFORM:*\n- /download hanya support: Instagram, Twitter/X, YouTube, dan TikTok\n- /audio hanya support: YouTube dan YouTube Music\n\n*CATATAN:*\n- Jika media terlalu besar atau sumber menolak koneksi, coba ulang beberapa saat lagi`;
+            replyText = `${header}\n\n${body}`;
+            break;
+          }
           
           case '/cuaca': {
             const { handleWeatherCommand } = require('../services/weatherService');
@@ -631,6 +661,29 @@ class WhatsAppHandler {
             const { handleAboutMeCommand } = require('../services/aboutService');
             const aboutReply = await handleAboutMeCommand(command, args, msg.key.remoteJid, 'whatsapp');
             replyText = aboutReply;
+            break;
+          }
+
+          case '/buku': {
+            const keyword = String(args.join(' ') || '').trim();
+
+            if (!keyword) {
+              replyText = '❌ Masukkan kata kunci buku! Contoh: /buku atomic habits';
+              break;
+            }
+
+            try {
+              const books = await searchBooks(keyword);
+              if (!Array.isArray(books) || books.length === 0) {
+                replyText = `📚 REKOMENDASI BUKU: ${keyword}\n\nTidak ada hasil ditemukan. Coba keyword lain.`;
+                break;
+              }
+
+              replyText = buildBookRecommendationText(keyword, books);
+            } catch (error) {
+              console.error('Error in /buku handler for WhatsApp:', error);
+              replyText = '❌ Gagal mencari buku. Coba lagi beberapa saat.';
+            }
             break;
           }
 
@@ -841,7 +894,7 @@ class WhatsAppHandler {
 
           case '/info': {
             const header = '> *INFORMASI YOGA BOT* 🤖';
-            const body = `Saya adalah asisten virtual pribadi milik Ridwan Yoga Suryantara.\n\n☕ *DUKUNGAN BOT*\n- \`/donate\`        : Link dukungan + QR donasi\n\n📋 *FITUR KEUANGAN* 💰\n- \`/finance_info\`  : Panduan lengkap command keuangan\n\n📋 *FITUR SISTEM* ⚙️\n- \`/ping\`          : Cek status bot\n- \`/info\`          : Menampilkan pesan ini\n- \`/start\`         : Memulai bot\n\n💡 *FITUR AI* 🧠\nKirimkan pesan biasa (tanpa awalan '/') untuk ngobrol,\nbertanya seputar coding, teknologi, atau sekadar bertukar pikiran!\n- \`/model_info\`    : Daftar model AI yang tersedia\n- \`/switch\`        : Ganti model AI aktif\n\n🛠️ *FITUR UTILITAS*\n- \`/short\`         : Pendekkan URL dengan is.gd\n- \`/download\`      : Download media sosial (video/foto)\n- \`/audio\`         : Download audio YouTube / YouTube Music\n- \`/cuaca\`         : Info cuaca hari ini\n- \`/sholat\`        : Jadwal sholat hari ini\n- \`/me\`            : Tentang pembuat bot\n\n🖼️ *FITUR CONVERTER* 📄\n- \`/img_info\`      : Panduan lengkap image tools\n- \`/pdf_info\`      : Panduan lengkap PDF tools\n\n🧩 *FITUR STICKER*\n- \`/sticker_info\`  : Panduan sticker tools\n\n🛡️ *FITUR ADMIN*\n- \`/admin\`         : Menu command admin`;
+            const body = `Saya adalah asisten virtual pribadi milik Ridwan Yoga Suryantara.\n\n☕ *DUKUNGAN BOT*\n- \`/donate\`         : Link dukungan + QR donasi\n\n📋 *FITUR KEUANGAN* 💰\n- \`/finance_info\`   : Panduan lengkap command keuangan\n\n📋 *FITUR SISTEM* ⚙️\n- \`/ping\`           : Cek status bot\n- \`/info\`           : Menampilkan pesan ini\n- \`/start\`          : Memulai bot\n\n💡 *FITUR AI* 🧠\nKirimkan pesan biasa (tanpa awalan '/') untuk ngobrol,\nbertanya seputar coding, teknologi, atau sekadar bertukar pikiran!\n- \`/model_info\`     : Daftar model AI yang tersedia\n- \`/switch\`         : Ganti model AI aktif\n\n🔎 *FITUR RESEARCH*\n- \`/research_info\`  : Panduan pencarian buku\n\n🛠️ *FITUR UTILITAS*\n- \`/short\`          : Pendekkan URL dengan is.gd\n- \`/downloader\`     : Kumpulan command download (/download & /audio)\n- \`/cuaca\`          : Info cuaca hari ini\n- \`/sholat\`         : Jadwal sholat hari ini\n- \`/me\`             : Tentang pembuat bot\n\n🖼️ *FITUR CONVERTER* 📄\n- \`/img_info\`       : Panduan lengkap image tools\n- \`/pdf_info\`       : Panduan lengkap PDF tools\n\n🧩 *FITUR STICKER*\n- \`/sticker_info\`   : Panduan sticker tools\n\n🛡️ *FITUR ADMIN*\n- \`/admin\`          : Menu command admin`;
             replyText = appendFooter(`${header}\n\n${body}`, buildSystemStatsFooter());
             break;
           }
