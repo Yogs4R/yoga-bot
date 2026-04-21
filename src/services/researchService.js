@@ -126,24 +126,25 @@ async function searchArticles(query) {
   }
 
   try {
-    const fields = 'title,authors,year,url,openAccessPdf';
-    const url = `https://api.semanticscholar.org/graph/v1/paper/search?query=${encodeURIComponent(keyword)}&limit=5&fields=${encodeURIComponent(fields)}`;
+    const url = `https://api.openalex.org/works?search=${encodeURIComponent(keyword)}&per-page=5&mailto=fuenzerapps@gmail.com`;
     const response = await axios.get(url, { timeout: 15000 });
-    const items = Array.isArray(response?.data?.data) ? response.data.data : [];
+    const items = Array.isArray(response?.data?.results) ? response.data.results : [];
 
     return items.slice(0, 5).map((item) => {
       const title = String(item?.title || '-').trim() || '-';
-      const authors = Array.isArray(item?.authors)
-        ? item.authors
-          .map((author) => String(author?.name || '').trim())
+      const authors = Array.isArray(item?.authorships)
+        ? item.authorships
+          .map((authorship) => String(authorship?.author?.display_name || '').trim())
           .filter(Boolean)
           .slice(0, 3)
           .join(', ')
         : '';
-      const year = Number(item?.year);
-      const openAccessPdfUrl = String(item?.openAccessPdf?.url || '').trim();
-      const paperUrl = String(item?.url || '').trim();
-      const link = openAccessPdfUrl || paperUrl || '-';
+      const year = Number(item?.publication_year);
+      const isOpenAccess = item?.open_access?.is_oa === true;
+      const openAccessUrl = String(item?.open_access?.oa_url || '').trim();
+      const doi = String(item?.doi || '').trim();
+      const id = String(item?.id || '').trim();
+      const link = isOpenAccess && openAccessUrl ? openAccessUrl : (doi || id || '-');
 
       return {
         title,
@@ -153,7 +154,7 @@ async function searchArticles(query) {
       };
     });
   } catch (error) {
-    throw buildResearchError('Semantic Scholar', error);
+    throw buildResearchError('OpenAlex', error);
   }
 }
 
