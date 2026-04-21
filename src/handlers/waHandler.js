@@ -638,14 +638,14 @@ class WhatsAppHandler {
 
           case '/research_info': {
             const header = '> *RESEARCH TOOLS* 📚';
-            const body = `Panduan fitur riset referensi buku, jurnal, dan artikel ilmiah.\n\n*COMMAND INTI:*\n- /buku <keyword> : Cari rekomendasi buku dari Open Library\n- /jurnal <keyword> : Cari referensi jurnal dari Crossref\n- /artikel <keyword> : Cari artikel ilmiah dari Semantic Scholar\n\n*CONTOH CEPAT:*\n- /buku atomic habits\n- /jurnal machine learning\n- /artikel deep learning healthcare\n\n*OUTPUT /buku:*\n- Judul buku\n- Nama penulis\n- Tahun terbit pertama\n- Link Open Library\n\n*OUTPUT /jurnal:*\n- Judul artikel\n- Nama penulis\n- Nama jurnal\n- Tahun terbit\n- Link DOI\n\n*OUTPUT /artikel:*\n- Judul artikel\n- Penulis (maks. 3 nama)\n- Tahun\n- Link PDF open access (jika tersedia) atau halaman artikel\n\n*TIPS:*\n- Pakai kata kunci spesifik agar hasil lebih relevan\n- Jika hasil kurang pas, coba variasi bahasa Inggris/Indonesia`;
+            const body = `Panduan Lengkap fitur riset Referensi buku, jurnal, dan artikel ilmiah.\n\n*COMMAND INTI:*\n- /buku <keyword> : Cari rekomendasi buku dari Open Library\n- /jurnal <keyword> : Cari referensi jurnal/artikel ilmiah dari Crossref\n- /artikel <keyword> : Cari artikel ilmiah dari OpenAlex\n\n*CONTOH CEPAT:*\n- /buku atomic habits\n- /jurnal machine learning\n- /artikel deep learning healthcare\n\n*OUTPUT /buku:*\n- Judul buku\n- Nama penulis\n- Tahun terbit pertama\n- Link Open Library\n\n*OUTPUT /jurnal:*\n- Judul artikel/jurnal\n- Nama penulis\n- Nama jurnal\n- Tahun terbit\n- Link DOI\n\n*OUTPUT /artikel:*\n- Judul artikel\n- Penulis (maks. 3 nama)\n- Tahun\n- Link PDF open access (jika tersedia) atau halaman artikel\n\n*TIPS:*\n- /jurnal bisa dipakai juga untuk cari artikel ilmiah berbasis kata kunci\n- Pakai kata kunci spesifik agar hasil lebih relevan\n- Jika hasil kurang pas, coba variasi bahasa Inggris/Indonesia`;
             replyText = `${header}\n\n${body}`;
             break;
           }
 
           case '/downloader': {
             const header = '> *DOWNLOADER TOOLS* ⬇️';
-            const body = `Kumpulan command untuk download media dan audio.\n\n*COMMAND DOWNLOAD:*\n- /download <url> : Download media sosial (video/foto)\n- /audio <url> : Download audio dari YouTube/YouTube Music\n\n*CONTOH CEPAT:*\n- /download https://www.instagram.com/reel/xxxx\n- /audio https://www.youtube.com/watch?v=xxxx\n\n*SUPPORT PLATFORM:*\n- /download hanya support: Instagram, Twitter/X, YouTube, dan TikTok\n- /audio hanya support: YouTube dan YouTube Music\n\n*CATATAN:*\n- Jika media terlalu besar atau sumber menolak koneksi, coba ulang beberapa saat lagi`;
+            const body = `Panduan Lengkap untuk download media dan audio.\n\n*COMMAND DOWNLOAD:*\n- /download <url> : Download media sosial (video/foto)\n- /audio <url> : Download audio dari YouTube/YouTube Music\n\n*CONTOH CEPAT:*\n- /download https://www.instagram.com/reel/xxxx\n- /audio https://www.youtube.com/watch?v=xxxx\n\n*SUPPORT PLATFORM:*\n- /download hanya support: Instagram, Twitter/X, YouTube, dan TikTok\n- /audio hanya support: YouTube dan YouTube Music\n\n*CATATAN:*\n- Jika media terlalu besar atau sumber menolak koneksi, coba ulang beberapa saat lagi`;
             replyText = `${header}\n\n${body}`;
             break;
           }
@@ -729,14 +729,14 @@ class WhatsAppHandler {
             const keyword = String(args.join(' ') || '').trim();
 
             if (!keyword) {
-              replyText = '❌ Masukkan kata kunci jurnal! Contoh: /jurnal machine learning';
+              replyText = '❌ Masukkan kata kunci jurnal/artikel! Contoh: /jurnal machine learning';
               break;
             }
 
             try {
               await this.sock.sendMessage(
                 msg.key.remoteJid,
-                { text: '⏳ Sedang mencari referensi jurnal...' },
+                { text: '⏳ Sedang mencari referensi jurnal/artikel...' },
                 { quoted: msg }
               );
 
@@ -941,7 +941,7 @@ class WhatsAppHandler {
           }
 
           case '/sticker_info': {
-            replyText = '> *STICKER TOOLS* 🧩\n\n\`/tosticker\` : Ubah gambar/video (max 5 dtk) jadi stiker.';
+            replyText = '> *STICKER TOOLS* 🧩\n\nPanduan Lengkap sticker tools.\n\n\`/tosticker\` : Ubah gambar/video (max 5 dtk) jadi stiker.';
             break;
           }
 
@@ -992,7 +992,7 @@ class WhatsAppHandler {
 
           case '/info': {
             const header = '> *INFORMASI YOGA BOT* 🤖';
-            const body = `Saya adalah asisten virtual pribadi milik Ridwan Yoga Suryantara.\n\n☕ *DUKUNGAN BOT*\n- \`/donate\`         : Link dukungan + QR donasi\n\n📋 *FITUR KEUANGAN* 💰\n- \`/finance_info\`   : Panduan lengkap command keuangan\n\n📋 *FITUR SISTEM* ⚙️\n- \`/ping\`           : Cek status bot\n- \`/info\`           : Menampilkan pesan ini\n- \`/start\`          : Memulai bot\n\n💡 *FITUR AI* 🧠\nKirimkan pesan biasa (tanpa awalan '/') untuk ngobrol,\nbertanya seputar coding, teknologi, atau sekadar bertukar pikiran!\n- \`/model_info\`     : Daftar model AI yang tersedia\n- \`/switch\`         : Ganti model AI aktif\n\n🔎 *FITUR RESEARCH*\n- \`/research_info\`  : Panduan pencarian buku\n\n🛠️ *FITUR UTILITAS*\n- \`/short\`          : Pendekkan URL dengan is.gd\n- \`/downloader\`     : Kumpulan command download (/download & /audio)\n- \`/cuaca\`          : Info cuaca hari ini\n- \`/sholat\`         : Jadwal sholat hari ini\n- \`/me\`             : Tentang pembuat bot\n\n🖼️ *FITUR CONVERTER* 📄\n- \`/img_info\`       : Panduan lengkap image tools\n- \`/pdf_info\`       : Panduan lengkap PDF tools\n\n🧩 *FITUR STICKER*\n- \`/sticker_info\`   : Panduan sticker tools\n\n🛡️ *FITUR ADMIN*\n- \`/admin\`          : Menu command admin`;
+            const body = `Saya adalah asisten virtual pribadi milik Ridwan Yoga Suryantara.\n\n☕ *DUKUNGAN BOT*\n- \`/donate\`         : Link dukungan + QR donasi\n\n📋 *FITUR KEUANGAN* 💰\n- \`/finance_info\`   : Panduan Lengkap command keuangan\n\n📋 *FITUR SISTEM* ⚙️\n- \`/ping\`           : Cek status bot\n- \`/info\`           : Menampilkan pesan ini\n- \`/start\`          : Memulai bot\n\n💡 *FITUR AI* 🧠\nKirimkan pesan biasa (tanpa awalan '/') untuk ngobrol,\nbertanya seputar coding, teknologi, atau sekadar bertukar pikiran!\n- \`/model_info\`     : Daftar model AI yang tersedia\n- \`/switch\`         : Ganti model AI aktif\n\n🛠️ *FITUR UTILITAS*\n- \`/short\`          : Pendekkan URL dengan is.gd\n- \`/research_info\`  : Panduan Lengkap Referensi (buku/jurnal/artikel)\n- \`/downloader\`     : Panduan Lengkap download (/download & /audio)\n- \`/cuaca\`          : Info cuaca hari ini\n- \`/sholat\`         : Jadwal sholat hari ini\n- \`/me\`             : Tentang pembuat bot\n\n🖼️ *FITUR CONVERTER* 📄\n- \`/img_info\`       : Panduan Lengkap image tools\n- \`/pdf_info\`       : Panduan Lengkap PDF tools\n\n🧩 *FITUR STICKER*\n- \`/sticker_info\`   : Panduan Lengkap sticker tools\n\n🛡️ *FITUR ADMIN*\n- \`/admin\`          : Menu command admin`;
             replyText = appendFooter(`${header}\n\n${body}`, buildSystemStatsFooter());
             break;
           }

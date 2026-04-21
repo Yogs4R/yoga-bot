@@ -863,7 +863,7 @@ async function processMenuCommand(ctx, command, userId) {
         }
         case '/info': {
             const header = '<b>INFORMASI YOGA BOT</b> 🤖';
-            const body = `Saya adalah asisten virtual pribadi milik <b>Ridwan Yoga Suryantara</b>.\n\n<b>DUKUNGAN BOT</b> ☕\n• /donate : Link dukungan + QR donasi\n\n<b>FITUR KEUANGAN</b> 💰\n• /finance_info : Panduan lengkap command keuangan\n\n<b>FITUR SISTEM</b> ⚙️\n• /ping : Cek status bot\n• /info : Menampilkan pesan ini\n• /start : Memulai bot\n\n<b>FITUR AI</b> 🧠\nKirim pesan biasa (tanpa awalan /) untuk ngobrol, tanya coding, atau diskusi teknologi.\n• /model_info : Daftar model AI yang tersedia\n• /switch : Ganti model AI aktif\n\n<b>FITUR RESEARCH</b> 🔎\n• /research_info : Panduan pencarian buku\n\n<b>FITUR UTILITAS</b> 🛠️\n• /short : Pendekkan URL dengan is.gd\n• /downloader : Kumpulan command download (/download & /audio)\n• /cuaca : Info cuaca hari ini\n• /sholat : Jadwal sholat hari ini\n• /me : Tentang pembuat bot\n\n<b>FITUR CONVERTER</b> 🖼️\n• /img_info : Panduan lengkap image tools\n• /pdf_info : Panduan lengkap PDF tools\n\n<b>FITUR STICKER</b> 🧩\n• /sticker_info : Panduan sticker tools\n\n<b>FITUR ADMIN</b> 🛡️\n• /admin : Menu command admin`;
+            const body = `Saya adalah asisten virtual pribadi milik <b>Ridwan Yoga Suryantara</b>.\n\n<b>DUKUNGAN BOT</b> ☕\n• /donate : Link dukungan + QR donasi\n\n<b>FITUR KEUANGAN</b> 💰\n• /finance_info : Panduan Lengkap command keuangan\n\n<b>FITUR SISTEM</b> ⚙️\n• /ping : Cek status bot\n• /info : Menampilkan pesan ini\n• /start : Memulai bot\n\n<b>FITUR AI</b> 🧠\nKirim pesan biasa (tanpa awalan /) untuk ngobrol, tanya coding, atau diskusi teknologi.\n• /model_info : Daftar model AI yang tersedia\n• /switch : Ganti model AI aktif\n\n<b>FITUR UTILITAS</b> 🛠️\n• /short : Pendekkan URL dengan is.gd\n• /research_info : Panduan Lengkap Referensi (buku/jurnal/artikel)\n• /downloader : Panduan Lengkap download (/download & /audio)\n• /cuaca : Info cuaca hari ini\n• /sholat : Jadwal sholat hari ini\n• /me : Tentang pembuat bot\n\n<b>FITUR CONVERTER</b> 🖼️\n• /img_info : Panduan Lengkap image tools\n• /pdf_info : Panduan Lengkap PDF tools\n\n<b>FITUR STICKER</b> 🧩\n• /sticker_info : Panduan Lengkap sticker tools\n\n<b>FITUR ADMIN</b> 🛡️\n• /admin : Menu command admin`;
             const message = `${header}\n\n${body}\n\n${buildSystemStatsFooter()}`;
             await ctx.reply(message, {
                 parse_mode: 'HTML',
@@ -873,13 +873,13 @@ async function processMenuCommand(ctx, command, userId) {
         }
         case '/research_info': {
             const header = '<b>RESEARCH TOOLS</b> 📚';
-            const body = `Panduan fitur riset referensi buku, jurnal, dan artikel ilmiah.\n\n<b>COMMAND INTI:</b>\n• /buku &lt;keyword&gt; : Cari rekomendasi buku dari Open Library\n• /jurnal &lt;keyword&gt; : Cari referensi jurnal dari Crossref\n• /artikel &lt;keyword&gt; : Cari artikel ilmiah dari Semantic Scholar\n\n<b>CONTOH CEPAT:</b>\n• <code>/buku atomic habits</code>\n• <code>/jurnal machine learning</code>\n• <code>/artikel deep learning healthcare</code>\n\n<b>OUTPUT /buku:</b>\n• Judul buku\n• Nama penulis\n• Tahun terbit pertama\n• Link Open Library\n\n<b>OUTPUT /jurnal:</b>\n• Judul artikel\n• Nama penulis\n• Nama jurnal\n• Tahun terbit\n• Link DOI\n\n<b>OUTPUT /artikel:</b>\n• Judul artikel\n• Penulis (maks. 3 nama)\n• Tahun\n• Link PDF open access (jika tersedia) atau halaman artikel\n\n<b>TIPS:</b>\n• Pakai kata kunci spesifik agar hasil lebih relevan\n• Jika hasil kurang pas, coba variasi bahasa Inggris/Indonesia`;
+            const body = `Panduan Lengkap fitur riset Referensi buku, jurnal, dan artikel ilmiah.\n\n<b>COMMAND INTI:</b>\n• /buku &lt;keyword&gt; : Cari rekomendasi buku dari Open Library\n• /jurnal &lt;keyword&gt; : Cari referensi jurnal/artikel ilmiah dari Crossref\n• /artikel &lt;keyword&gt; : Cari artikel ilmiah dari OpenAlex\n\n<b>CONTOH CEPAT:</b>\n• <code>/buku atomic habits</code>\n• <code>/jurnal machine learning</code>\n• <code>/artikel deep learning healthcare</code>\n\n<b>OUTPUT /buku:</b>\n• Judul buku\n• Nama penulis\n• Tahun terbit pertama\n• Link Open Library\n\n<b>OUTPUT /jurnal:</b>\n• Judul artikel/jurnal\n• Nama penulis\n• Nama jurnal\n• Tahun terbit\n• Link DOI\n\n<b>OUTPUT /artikel:</b>\n• Judul artikel\n• Penulis (maks. 3 nama)\n• Tahun\n• Link PDF open access (jika tersedia) atau halaman artikel\n\n<b>TIPS:</b>\n• /jurnal bisa dipakai juga untuk cari artikel ilmiah berbasis kata kunci\n• Pakai kata kunci spesifik agar hasil lebih relevan\n• Jika hasil kurang pas, coba variasi bahasa Inggris/Indonesia`;
             await ctx.reply(`${header}\n\n${body}`, { parse_mode: 'HTML' });
             return;
         }
         case '/downloader': {
             const header = '<b>DOWNLOADER TOOLS</b> ⬇️';
-            const body = `Kumpulan command untuk download media dan audio.\n\n<b>COMMAND DOWNLOAD:</b>\n• /download &lt;url&gt; : Download media sosial (video/foto)\n• /audio &lt;url&gt; : Download audio dari YouTube/YouTube Music\n\n<b>CONTOH CEPAT:</b>\n• <code>/download https://www.instagram.com/reel/xxxx</code>\n• <code>/audio https://www.youtube.com/watch?v=xxxx</code>\n\n<b>SUPPORT PLATFORM:</b>\n• /download hanya support: Instagram, Twitter/X, YouTube, dan TikTok\n• /audio hanya support: YouTube dan YouTube Music\n\n<b>CATATAN:</b>\n• Jika media terlalu besar atau sumber menolak koneksi, coba ulang beberapa saat lagi`;
+            const body = `Panduan Lengkap untuk download media dan audio.\n\n<b>COMMAND DOWNLOAD:</b>\n• /download &lt;url&gt; : Download media sosial (video/foto)\n• /audio &lt;url&gt; : Download audio dari YouTube/YouTube Music\n\n<b>CONTOH CEPAT:</b>\n• <code>/download https://www.instagram.com/reel/xxxx</code>\n• <code>/audio https://www.youtube.com/watch?v=xxxx</code>\n\n<b>SUPPORT PLATFORM:</b>\n• /download hanya support: Instagram, Twitter/X, YouTube, dan TikTok\n• /audio hanya support: YouTube dan YouTube Music\n\n<b>CATATAN:</b>\n• Jika media terlalu besar atau sumber menolak koneksi, coba ulang beberapa saat lagi`;
             await ctx.reply(`${header}\n\n${body}`, { parse_mode: 'HTML' });
             return;
         }
@@ -963,7 +963,7 @@ async function processMenuCommand(ctx, command, userId) {
         }
         case '/sticker_info': {
             const header = '<b>STICKER TOOLS</b> 🧩';
-            const body = '/tosticker : Ubah gambar/video (max 5 dtk) jadi stiker.';
+            const body = 'Panduan Lengkap sticker tools.\n\n/tosticker : Ubah gambar/video (max 5 dtk) jadi stiker.';
             await ctx.reply(`${header}\n\n${body}`, { parse_mode: 'HTML' });
             return;
         }
@@ -1482,12 +1482,12 @@ function setupTelegramBot() {
                     const keyword = String(args.join(' ') || '').trim();
 
                     if (!keyword) {
-                        await ctx.reply('❌ Masukkan kata kunci jurnal! Contoh: /jurnal machine learning');
+                        await ctx.reply('❌ Masukkan kata kunci jurnal/artikel! Contoh: /jurnal machine learning');
                         break;
                     }
 
                     try {
-                        await ctx.reply('⏳ Sedang mencari referensi jurnal...');
+                        await ctx.reply('⏳ Sedang mencari referensi jurnal/artikel...');
 
                         const journals = await searchJournals(keyword);
                         if (!Array.isArray(journals) || journals.length === 0) {

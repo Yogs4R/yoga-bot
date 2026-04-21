@@ -38,12 +38,13 @@ Berjalan ganda secara independen namun terintegrasi penuh:
 Asisten cerdas tingkat lanjut yang ditenagai oleh model bahasa besar (LLM) melalui integrasi OpenRouter API. Siap menjawab pertanyaan teknis, diskusi, dan coding.
 - Dukungan multi-model dengan command pergantian model per pengguna.
 - Metadata penggunaan model di balasan (token usage dan label RPM).
+- Mendukung jawaban multi-bahasa dengan menyesuaikan bahasa input pengguna.
+- Sebagian besar command bot masih dioptimalkan dengan label dan contoh berbahasa Indonesia.
 
 ### 📚 Research Tools
 Fitur riset referensi berbasis beberapa API publik (tanpa API key):
-- `/buku` via Open Library API untuk 5 rekomendasi buku teratas.
-- `/jurnal` via Crossref API untuk 5 referensi jurnal teratas dengan link DOI.
-- `/artikel` via Semantic Scholar API untuk 5 referensi artikel ilmiah teratas.
+- Rekomendasi buku dari Open Library, pencarian jurnal dari Crossref, dan pencarian artikel ilmiah dari OpenAlex.
+- Pencarian jurnal juga bisa digunakan untuk mencari referensi artikel berdasarkan topik.
 - Menampilkan judul, penulis, tahun, dan link sumber (DOI/PDF open access jika tersedia).
 - Fallback pesan lebih jelas saat timeout/down/network error sesuai provider.
 
@@ -73,6 +74,7 @@ Infrastruktur backend yang andal dengan dukungan monitoring:
 - Pemantauan uptime website reguler.
 - Command Usage Tracker untuk melaporkan statistik top tier pengguna dan perintah terpopuler.
 - Pusat command admin untuk monitor, statistik penggunaan, dan broadcast.
+- Cron job monitor akan mengirim notifikasi hanya jika ada website yang down.
 
 ### 🛠️ Daily Utilities
 Layanan pendamping yang bermanfaat:
@@ -83,13 +85,59 @@ Layanan pendamping yang bermanfaat:
 
 ---
 
+## Tabel Referensi Command
+
+| Command | Deskripsi | Library yang digunakan | Contoh penggunaan | Screenshot preview |
+|---|---|---|---|---|
+| /start | Mulai bot dan tampilkan menu cepat | Baileys, Telegraf | /start | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
+| /info | Tampilkan kategori command dan info bot | Baileys, Telegraf | /info | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
+| /ping | Cek status online bot dan footer sistem | Node.js os module | /ping | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
+| /model_info | Tampilkan model AI dan alias yang tersedia | OpenRouter, aiPreferenceService | /model_info | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
+| /switch | Ganti model AI aktif per pengguna | OpenRouter, aiPreferenceService | /switch elephant | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
+| /finance_info | Panduan Lengkap command keuangan | financeService, Supabase | /finance_info | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
+| /saldo | Tampilkan ringkasan saldo terbaru | financeService, Supabase | /saldo | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
+| /catat | Catat transaksi pengeluaran | financeService, Supabase | /catat 25000 makan siang | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
+| /pemasukan | Catat transaksi pemasukan | financeService, Supabase | /pemasukan 150000 freelance | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
+| /laporan_chart | Buat laporan keuangan berbentuk grafik | financeService, chart renderer | /laporan_chart | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
+| /riwayat | Tampilkan riwayat transaksi berhalaman | financeService, Supabase | /riwayat 2 | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
+| /edit | Ubah transaksi berdasarkan id dan field | financeService, Supabase | /edit 123e4567 nominal 30000 | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
+| /hapus | Hapus transaksi dengan konfirmasi | financeService, Supabase | /hapus 123e4567 | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
+| /research_info | Panduan Lengkap pencarian Referensi, termasuk info bahwa /jurnal juga bisa mencari artikel | researchService, axios | /research_info | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
+| /buku | Cari referensi buku | Open Library API, axios | /buku clean code | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
+| /jurnal | Cari referensi jurnal dan artikel | Crossref API, axios | /jurnal machine learning | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
+| /artikel | Cari referensi artikel ilmiah | OpenAlex API, axios | /artikel deep learning healthcare | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
+| /downloader | Panduan Lengkap download media | downloaderService | /downloader | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
+| /download | Unduh video/foto dari media sosial | downloaderService, axios | /download https://instagram.com/reel/xxxx | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
+| /audio | Unduh audio dari sumber YouTube | downloaderService, axios | /audio https://youtube.com/watch?v=xxxx | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
+| /short | Pendekkan URL via is.gd | shortenerService, is.gd API | /short https://example.com | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
+| /cuaca | Tampilkan info cuaca per kota | weatherService, weather API | /cuaca bandung | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
+| /sholat | Tampilkan jadwal sholat per kota | religionService, prayer time API | /sholat bandung | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
+| /me | Tampilkan profil pembuat dan link penting | aboutService | /me | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
+| /img_info | Panduan Lengkap image tools | converterService | /img_info | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
+| /img | Konversi, resize, rotate, kompres gambar | converterService, image processor | /img to png | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
+| /hapusbg | Hapus background gambar | converterService, remove.bg API | /hapusbg | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
+| /ss | Screenshot website dari URL | converterService, html-to-image engine | /ss https://example.com | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
+| /pdf_info | Panduan Lengkap PDF tools | converterService | /pdf_info | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
+| /topdf | Konversi dokumen/media ke PDF | converterService, CloudConvert | /topdf | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
+| /pdf | Kompres, konversi, rotate, extract, merge PDF | converterService, CloudConvert, PDF tools | /pdf compress | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
+| /sticker_info | Panduan Lengkap sticker tools | stickerService | /sticker_info | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
+| /tosticker | Ubah gambar/video menjadi stiker | stickerService, ffmpeg | /tosticker | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
+| /donate | Tampilkan link dukungan dan QR donasi | donateService | /donate | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
+| /admin | Buka pusat command admin | auth util, modul admin | /admin | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
+| /monitor | Jalankan cek status website manual | monitorService | /monitor | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
+| /stats | Tampilkan statistik penggunaan platform | modul admin, stats service | /stats | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
+| /cmd_usage | Tampilkan statistik command terpopuler | modul admin, log service | /cmd_usage | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
+| /ai_usage | Tampilkan statistik penggunaan AI per model | modul admin, log service | /ai_usage | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
+| /broadcast | Kirim broadcast admin ke pengguna | modul admin, WhatsApp/Telegram clients | /broadcast maintenance malam ini | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
+
+---
+
 ## Preview
 
-### WhatsApp Bot
-![WhatsApp Bot Screenshot](assets/images/screenshot-wa.png)
-
-### Telegram Bot
-![Telegram Bot Screenshot](assets/images/screenshot-tele.png)
+| Platform | Screenshot |
+|---|---|
+| WhatsApp Bot | <img src="assets/images/screenshot-wa.png" alt="WhatsApp Bot Screenshot" width="260" /> |
+| Telegram Bot | <img src="assets/images/screenshot-tele.png" alt="Telegram Bot Screenshot" width="260" /> |
 
 ---
 
@@ -122,4 +170,4 @@ Beberapa variabel di `.env` yang digunakan untuk modul monitoring dan hak akses 
 - `ADMIN_TELE_IDS=123456789,987654321`
 - `MONITOR_URLS=https://example.com,https://example.com/health`
 
-*Catatan: Cron job untuk laporan kesehatan server akan berjalan setiap pagi (06:00) sesuai zona waktu server.*
+*Catatan: Cron job laporan kesehatan server berjalan setiap pagi (06:00, zona waktu server) dan hanya mengirim pesan saat ada website monitor yang down. Jika semua website normal, pesan tidak akan dikirim.*
