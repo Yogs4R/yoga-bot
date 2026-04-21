@@ -50,9 +50,9 @@ Research references powered by multiple public APIs (no API key required):
 
 ### ⬇️ Downloader Tools
 Unified downloader commands for social media and music:
-- `/download` supports: Instagram, Twitter/X, YouTube, and TikTok.
-- `/audio` supports: YouTube and YouTube Music.
-- URL shortener utility via `/short` using is.gd.
+- Supports media downloads from Instagram, Twitter/X, YouTube, and TikTok.
+- Supports audio downloads from YouTube and YouTube Music.
+- Built-in URL shortener utility via is.gd.
 
 ### 💰 Finance Management
 Interactive financial logging directly from chat:
@@ -66,7 +66,7 @@ Interactive financial logging directly from chat:
 Powerful file and media conversion services with batch support:
 - Image conversion, compress, rotate, resize, remove background, to web screenshots.
 - PDF document operations: Word/Docx to PDF, compress PDF, rotate, extract pages, to merge various PDF files into a single document.
-- Sticker generator (`/tosticker`) for WhatsApp and Telegram image input.
+- Sticker generator for WhatsApp and Telegram image input.
 
 ### 🖥️ System and Server Monitoring
 Reliable backend infrastructure with monitoring support:
@@ -89,46 +89,42 @@ Useful companion services:
 
 | Command | Description | Library Used | Example Usage | Screenshot Preview |
 |---|---|---|---|---|
-| /start | Start bot and show quick menu | Baileys, Telegraf | /start | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /info | Show command categories and bot info | Baileys, Telegraf | /info | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /ping | Check bot online status and system footer | Node.js os module | /ping | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /model_info | Show available AI models and aliases | OpenRouter, aiPreferenceService | /model_info | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /switch | Switch active AI model per user | OpenRouter, aiPreferenceService | /switch elephant | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /finance_info | Full finance command guide | financeService, Supabase | /finance_info | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /saldo | Show latest balance summary | financeService, Supabase | /saldo | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /catat | Record expense transaction | financeService, Supabase | /catat 25000 lunch | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /pemasukan | Record income transaction | financeService, Supabase | /pemasukan 150000 freelance | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /laporan_chart | Generate finance chart report | financeService, chart renderer | /laporan_chart | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /riwayat | Show paginated transaction history | financeService, Supabase | /riwayat 2 | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /edit | Edit transaction by id and field | financeService, Supabase | /edit 123e4567 nominal 30000 | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /hapus | Delete transaction with confirmation | financeService, Supabase | /hapus 123e4567 | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /research_info | Full reference search guide, including note that /jurnal can also search article references | researchService, axios | /research_info | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /buku | Search book references | Open Library API, axios | /buku clean code | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /jurnal | Search journal and article references | Crossref API, axios | /jurnal machine learning | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /artikel | Search scientific article references | OpenAlex API, axios | /artikel deep learning healthcare | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /downloader | Full media downloader guide | downloaderService | /downloader | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /download | Download social media video or photo | downloaderService, axios | /download https://instagram.com/reel/xxxx | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /audio | Download audio from YouTube sources | downloaderService, axios | /audio https://youtube.com/watch?v=xxxx | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /short | Shorten URL via is.gd | shortenerService, is.gd API | /short https://example.com | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /cuaca | Show weather information by city | weatherService, external weather API | /cuaca bandung | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /sholat | Show prayer times by city | religionService, prayer time API | /sholat bandung | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /me | Show creator profile and links | aboutService | /me | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /img_info | Full image tools guide | converterService | /img_info | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /img | Image convert, resize, rotate, compress | converterService, image processor | /img to png | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /hapusbg | Remove image background | converterService, remove.bg API | /hapusbg | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /ss | Capture website screenshot | converterService, html-to-image engine | /ss https://example.com | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /pdf_info | Full PDF tools guide | converterService | /pdf_info | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /topdf | Convert document/media to PDF | converterService, CloudConvert | /topdf | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /pdf | Compress, convert, rotate, extract, merge PDF | converterService, CloudConvert, PDF tools | /pdf compress | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /sticker_info | Full sticker tools guide | stickerService | /sticker_info | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /tosticker | Convert image/video to sticker | stickerService, ffmpeg | /tosticker | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /donate | Show support links and donation QR | donateService | /donate | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /admin | Open admin command center | auth util, admin command module | /admin | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /monitor | Run website status check manually | monitorService | /monitor | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /stats | Show platform usage statistics | admin module, stats service | /stats | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /cmd_usage | Show top command usage stats | admin module, log service | /cmd_usage | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /ai_usage | Show AI usage stats by model | admin module, log service | /ai_usage | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /broadcast | Send admin broadcast to users | admin module, WhatsApp/Telegram clients | /broadcast maintenance tonight | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
+| /start | Start bot and show quick menu | Baileys, Telegraf | /start | WA: [Preview](assets/images/screenshot-wa-start.png) \| TG: [Preview](assets/images/screenshot-tele-start.png) |
+| /info | Show command categories and bot info | Baileys, Telegraf | /info | WA: [Preview](assets/images/screenshot-wa-info.png) \| TG: [Preview](assets/images/screenshot-tele-info.png) |
+| /ping | Check bot online status and system footer | Node.js os module | /ping | WA: [Preview](assets/images/screenshot-wa-ping.png) \| TG: [Preview](assets/images/screenshot-tele-ping.png) |
+| /model_info | Show available AI models and aliases | OpenRouter, aiPreferenceService | /model_info | WA: [Preview](assets/images/screenshot-wa-model_info.png) \| TG: [Preview](assets/images/screenshot-tele-model_info.png) |
+| /switch | Switch active AI model per user | OpenRouter, aiPreferenceService | /switch elephant | WA: [Preview](assets/images/screenshot-wa-switch.png) \| TG: [Preview](assets/images/screenshot-tele-switch.png) |
+| /finance_info | Full finance command guide | financeService, Supabase | /finance_info | WA: [Preview](assets/images/screenshot-wa-finance_info.png) \| TG: [Preview](assets/images/screenshot-tele-finance_info.png) |
+| /saldo | Show latest balance summary | financeService, Supabase | /saldo | WA: [Preview](assets/images/screenshot-wa-saldo.png) \| TG: [Preview](assets/images/screenshot-tele-saldo.png) |
+| /catat | Record expense transaction | financeService, Supabase | /catat 25000 lunch | WA: [Preview](assets/images/screenshot-wa-catat.png) \| TG: [Preview](assets/images/screenshot-tele-catat.png) |
+| /pemasukan | Record income transaction | financeService, Supabase | /pemasukan 150000 freelance | WA: [Preview](assets/images/screenshot-wa-pemasukan.png) \| TG: [Preview](assets/images/screenshot-tele-pemasukan.png) |
+| /laporan_chart | Generate finance chart report | financeService, chart renderer | /laporan_chart | WA: [Preview](assets/images/screenshot-wa-laporan_chart.png) \| TG: [Preview](assets/images/screenshot-tele-laporan_chart.png) |
+| /riwayat | Show paginated transaction history | financeService, Supabase | /riwayat 2 | WA: [Preview](assets/images/screenshot-wa-riwayat.png) \| TG: [Preview](assets/images/screenshot-tele-riwayat.png) |
+| /edit | Edit transaction by id and field | financeService, Supabase | /edit 123e4567 nominal 30000 | WA: [Preview](assets/images/screenshot-wa-edit.png) \| TG: [Preview](assets/images/screenshot-tele-edit.png) |
+| /hapus | Delete transaction with confirmation | financeService, Supabase | /hapus 123e4567 | WA: [Preview](assets/images/screenshot-wa-hapus.png) \| TG: [Preview](assets/images/screenshot-tele-hapus.png) |
+| /research_info | Full reference search guide, including note that /jurnal can also search article references | researchService, axios | /research_info | WA: [Preview](assets/images/screenshot-wa-research_info.png) \| TG: [Preview](assets/images/screenshot-tele-research_info.png) |
+| /buku | Search book references | Open Library API, axios | /buku clean code | WA: [Preview](assets/images/screenshot-wa-buku.png) \| TG: [Preview](assets/images/screenshot-tele-buku.png) |
+| /jurnal | Search journal and article references | Crossref API, axios | /jurnal machine learning | WA: [Preview](assets/images/screenshot-wa-jurnal.png) \| TG: [Preview](assets/images/screenshot-tele-jurnal.png) |
+| /artikel | Search scientific article references | OpenAlex API, axios | /artikel deep learning healthcare | WA: [Preview](assets/images/screenshot-wa-artikel.png) \| TG: [Preview](assets/images/screenshot-tele-artikel.png) |
+| /downloader | Full media downloader guide | downloaderService | /downloader | WA: [Preview](assets/images/screenshot-wa-downloader.png) \| TG: [Preview](assets/images/screenshot-tele-downloader.png) |
+| /cuaca | Show weather information by city | weatherService, external weather API | /cuaca bandung | WA: [Preview](assets/images/screenshot-wa-cuaca.png) \| TG: [Preview](assets/images/screenshot-tele-cuaca.png) |
+| /sholat | Show prayer times by city | religionService, prayer time API | /sholat bandung | WA: [Preview](assets/images/screenshot-wa-sholat.png) \| TG: [Preview](assets/images/screenshot-tele-sholat.png) |
+| /me | Show creator profile and links | aboutService | /me | WA: [Preview](assets/images/screenshot-wa-me.png) \| TG: [Preview](assets/images/screenshot-tele-me.png) |
+| /img_info | Full image tools guide | converterService | /img_info | WA: [Preview](assets/images/screenshot-wa-img_info.png) \| TG: [Preview](assets/images/screenshot-tele-img_info.png) |
+| /img | Image convert, resize, rotate, compress | converterService, image processor | /img to png | WA: [Preview](assets/images/screenshot-wa-img.png) \| TG: [Preview](assets/images/screenshot-tele-img.png) |
+| /hapusbg | Remove image background | converterService, remove.bg API | /hapusbg | WA: [Preview](assets/images/screenshot-wa-hapusbg.png) \| TG: [Preview](assets/images/screenshot-tele-hapusbg.png) |
+| /ss | Capture website screenshot | converterService, html-to-image engine | /ss https://example.com | WA: [Preview](assets/images/screenshot-wa-ss.png) \| TG: [Preview](assets/images/screenshot-tele-ss.png) |
+| /pdf_info | Full PDF tools guide | converterService | /pdf_info | WA: [Preview](assets/images/screenshot-wa-pdf_info.png) \| TG: [Preview](assets/images/screenshot-tele-pdf_info.png) |
+| /topdf | Convert document/media to PDF | converterService, CloudConvert | /topdf | WA: [Preview](assets/images/screenshot-wa-topdf.png) \| TG: [Preview](assets/images/screenshot-tele-topdf.png) |
+| /pdf | Compress, convert, rotate, extract, merge PDF | converterService, CloudConvert, PDF tools | /pdf compress | WA: [Preview](assets/images/screenshot-wa-pdf.png) \| TG: [Preview](assets/images/screenshot-tele-pdf.png) |
+| /sticker_info | Full sticker tools guide | stickerService | /sticker_info | WA: [Preview](assets/images/screenshot-wa-sticker_info.png) \| TG: [Preview](assets/images/screenshot-tele-sticker_info.png) |
+| /donate | Show support links and donation QR | donateService | /donate | WA: [Preview](assets/images/screenshot-wa-donate.png) \| TG: [Preview](assets/images/screenshot-tele-donate.png) |
+| /admin | Open admin command center | auth util, admin command module | /admin | WA: [Preview](assets/images/screenshot-wa-admin.png) \| TG: [Preview](assets/images/screenshot-tele-admin.png) |
+| /monitor | Run website status check manually | monitorService | /monitor | WA: [Preview](assets/images/screenshot-wa-monitor.png) \| TG: [Preview](assets/images/screenshot-tele-monitor.png) |
+| /stats | Show platform usage statistics | admin module, stats service | /stats | WA: [Preview](assets/images/screenshot-wa-stats.png) \| TG: [Preview](assets/images/screenshot-tele-stats.png) |
+| /cmd_usage | Show top command usage stats | admin module, log service | /cmd_usage | WA: [Preview](assets/images/screenshot-wa-cmd_usage.png) \| TG: [Preview](assets/images/screenshot-tele-cmd_usage.png) |
+| /ai_usage | Show AI usage stats by model | admin module, log service | /ai_usage | WA: [Preview](assets/images/screenshot-wa-ai_usage.png) \| TG: [Preview](assets/images/screenshot-tele-ai_usage.png) |
+| /broadcast | Send admin broadcast to users | admin module, WhatsApp/Telegram clients | /broadcast maintenance tonight | WA: [Preview](assets/images/screenshot-wa-broadcast.png) \| TG: [Preview](assets/images/screenshot-tele-broadcast.png) |
 
 ---
 
@@ -145,7 +141,7 @@ Useful companion services:
 
 1. Clone the repository
 ```bash
-git clone <repository-url>
+git clone https://github.com/Yogs4R/yoga-bot.git
 cd yoga-bot
 ```
 

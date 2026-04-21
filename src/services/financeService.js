@@ -1,6 +1,6 @@
 // Finance services (currency, stocks, etc.)
 const supabase = require('../lib/supabaseClient');
-const { formatRupiah, generateBoxTemplate } = require('../utils/formatter');
+const { formatRupiah, formatBulletList } = require('../utils/formatter');
 
 const SHORT_ID_LENGTH = 8;
 
@@ -49,7 +49,7 @@ async function resolveTransactionId(userId, transactionIdInput) {
 function formatHistoryText(records, page, pageSize, totalCount) {
   if (!records || records.length === 0) {
     const header = '> *RIWAYAT TRANSAKSI TERAKHIR* 📜';
-    const body = generateBoxTemplate(['Belum ada transaksi tercatat.']);
+    const body = formatBulletList(['Belum ada transaksi tercatat.']);
     return `${header}\n\n${body}`;
   }
 
@@ -60,7 +60,7 @@ function formatHistoryText(records, page, pageSize, totalCount) {
     const date = new Date(record.created_at).toLocaleDateString('id-ID');
 
     const itemHeader = `*${startIndex + index + 1}. ${typeEmoji} ${typeText}*`;
-    const itemBody = generateBoxTemplate({
+    const itemBody = formatBulletList({
       ID: `${toShortTransactionId(record.id)}`,
       Jumlah: formatRupiah(record.amount),
       Desk: record.description,
@@ -96,7 +96,7 @@ async function getHistoryPage(userId, page = 1, pageSize = 5) {
     if (error) {
       console.error('Error querying paginated finance history:', error);
       const header = '> *ERROR RIWAYAT* ❌';
-      const body = generateBoxTemplate([`Gagal mengambil riwayat: ${error.message}`]);
+      const body = formatBulletList([`Gagal mengambil riwayat: ${error.message}`]);
       return {
         text: `${header}\n\n${body}`,
         page: safePage,
@@ -128,7 +128,7 @@ async function getHistoryPage(userId, page = 1, pageSize = 5) {
   } catch (error) {
     console.error('Unexpected error in getHistoryPage:', error);
     const header = '> *ERROR SISTEM* ❌';
-    const body = generateBoxTemplate([`Terjadi kesalahan tak terduga: ${error.message}`]);
+    const body = formatBulletList([`Terjadi kesalahan tak terduga: ${error.message}`]);
     return {
       text: `${header}\n\n${body}`,
       page: 1,
@@ -149,7 +149,7 @@ async function getHistory(userId, limit = 5) {
   } catch (error) {
     console.error('Unexpected error in getHistory:', error);
     const header = '> *ERROR SISTEM* ❌';
-    const body = generateBoxTemplate([`Terjadi kesalahan tak terduga: ${error.message}`]);
+    const body = formatBulletList([`Terjadi kesalahan tak terduga: ${error.message}`]);
     return `${header}\n\n${body}`;
   }
 }
@@ -160,14 +160,14 @@ async function deleteTransaction(userId, transactionId) {
     // Validate and resolve transactionId (short/full)
     if (!transactionId || typeof transactionId !== 'string' || transactionId.trim().length === 0) {
       const header = '> *ERROR FORMAT* ❌';
-      const body = generateBoxTemplate(['ID transaksi tidak valid.']);
+      const body = formatBulletList(['ID transaksi tidak valid.']);
       return `${header}\n\n${body}`;
     }
 
     const { resolvedId, shortId, errorMessage } = await resolveTransactionId(userId, transactionId);
     if (errorMessage) {
       const header = '> *TRANSAKSI TIDAK DITEMUKAN* 🔍';
-      const body = generateBoxTemplate([errorMessage]);
+      const body = formatBulletList([errorMessage]);
       return `${header}\n\n${body}`;
     }
 
@@ -181,12 +181,12 @@ async function deleteTransaction(userId, transactionId) {
     if (error) {
       console.error('Error deleting transaction:', error);
       const header = '> *ERROR HAPUS* ❌';
-      const body = generateBoxTemplate([`Gagal menghapus transaksi: ${error.message}`]);
+      const body = formatBulletList([`Gagal menghapus transaksi: ${error.message}`]);
       return `${header}\n\n${body}`;
     }
 
     const header = '> *TRANSAKSI DIHAPUS* ✅';
-    const body = generateBoxTemplate([
+    const body = formatBulletList([
       `ID: \`${shortId}\``,
       'Status: Berhasil dihapus'
     ]);
@@ -196,7 +196,7 @@ async function deleteTransaction(userId, transactionId) {
   } catch (error) {
     console.error('Unexpected error in deleteTransaction:', error);
     const header = '> *ERROR SISTEM* ❌';
-    const body = generateBoxTemplate([`Terjadi kesalahan tak terduga: ${error.message}`]);
+    const body = formatBulletList([`Terjadi kesalahan tak terduga: ${error.message}`]);
     return `${header}\n\n${body}`;
   }
 }
@@ -207,21 +207,21 @@ async function editTransaction(userId, transactionId, newAmount, newDescription)
     // Validate transactionId
     if (!transactionId || typeof transactionId !== 'string' || transactionId.trim().length === 0) {
       const header = '> *ERROR FORMAT* ❌';
-      const body = generateBoxTemplate(['ID transaksi tidak valid.']);
+      const body = formatBulletList(['ID transaksi tidak valid.']);
       return `${header}\n\n${body}`;
     }
 
     // Validate amount
     if (isNaN(newAmount) || newAmount <= 0) {
       const header = '> *ERROR INPUT* ❌';
-      const body = generateBoxTemplate(['Jumlah baru harus angka positif.']);
+      const body = formatBulletList(['Jumlah baru harus angka positif.']);
       return `${header}\n\n${body}`;
     }
 
     const { resolvedId, shortId, errorMessage } = await resolveTransactionId(userId, transactionId);
     if (errorMessage) {
       const header = '> *TRANSAKSI TIDAK DITEMUKAN* 🔍';
-      const body = generateBoxTemplate([errorMessage]);
+      const body = formatBulletList([errorMessage]);
       return `${header}\n\n${body}`;
     }
 
@@ -240,24 +240,24 @@ async function editTransaction(userId, transactionId, newAmount, newDescription)
     if (error) {
       console.error('Error editing transaction:', error);
       const header = '> *ERROR EDIT* ❌';
-      const body = generateBoxTemplate([`Gagal mengedit transaksi: ${error.message}`]);
+      const body = formatBulletList([`Gagal mengedit transaksi: ${error.message}`]);
       return `${header}\n\n${body}`;
     }
 
     if (!data || data.length === 0) {
       const header = '> *TRANSAKSI TIDAK DITEMUKAN* 🔍';
-      const body = generateBoxTemplate(['Transaksi tidak ditemukan atau tidak dapat diakses.']);
+      const body = formatBulletList(['Transaksi tidak ditemukan atau tidak dapat diakses.']);
       return `${header}\n\n${body}`;
     }
 
     const updated = data[0];
     const typeText = updated.type === 'IN' ? 'PEMASUKAN' : 'PENGELUARAN';
     const header = '> *TRANSAKSI DIEDIT* ✅';
-    const body = generateBoxTemplate([
-      `ID      : \`${shortId}\``,
-      `Tipe    : ${typeText}`,
-      `Jumlah  : ${formatRupiah(updated.amount)}`,
-      `Desk    : ${updated.description}`
+    const body = formatBulletList([
+      `ID: \`${shortId}\``,
+      `Tipe: ${typeText}`,
+      `Jumlah: ${formatRupiah(updated.amount)}`,
+      `Deskripsi: ${updated.description}`
     ]);
     const footer = `\nTransaksi berhasil diperbarui. Gunakan \`/riwayat\` untuk melihat perubahan.`;
     
@@ -265,7 +265,7 @@ async function editTransaction(userId, transactionId, newAmount, newDescription)
   } catch (error) {
     console.error('Unexpected error in editTransaction:', error);
     const header = '> *ERROR SISTEM* ❌';
-    const body = generateBoxTemplate([`Terjadi kesalahan tak terduga: ${error.message}`]);
+    const body = formatBulletList([`Terjadi kesalahan tak terduga: ${error.message}`]);
     return `${header}\n\n${body}`;
   }
 }
@@ -283,7 +283,7 @@ async function checkSaldo(userId) {
       console.error('Error querying finance data:', error);
       // Header + Body + Footer
       const header = '> *ERROR QUERY SALDO* ❌';
-      const body = generateBoxTemplate([`Gagal mengambil data saldo: ${error.message}`]);
+      const body = formatBulletList([`Gagal mengambil data saldo: ${error.message}`]);
       return `${header}\n\n${body}`;
     }
 
@@ -299,9 +299,9 @@ async function checkSaldo(userId) {
 
     // Format response according to Hybrid UI v3
     const header = '> *INFO SALDO DOMPET* 💰';
-    const body = generateBoxTemplate([
-      `Saldo  : ${formatRupiah(total)}`,
-      `Status : ${total >= 0 ? 'Aman Bro!' : 'Hati-hati minus!'}`
+    const body = formatBulletList([
+      `Saldo: ${formatRupiah(total)}`,
+      `Status: ${total >= 0 ? 'Aman Bro!' : 'Hati-hati minus!'}`
     ]);
     const footer = `\nGunakan \`/catat <jumlah> <deskripsi>\` untuk mencatat pengeluaran atau \`/pemasukan <jumlah> <deskripsi>\` untuk mencatat pemasukan.`;
     
@@ -309,7 +309,7 @@ async function checkSaldo(userId) {
   } catch (error) {
     console.error('Unexpected error in checkSaldo:', error);
     const header = '> *ERROR SISTEM* ❌';
-    const body = generateBoxTemplate([`Terjadi kesalahan tak terduga: ${error.message}`]);
+    const body = formatBulletList([`Terjadi kesalahan tak terduga: ${error.message}`]);
     return `${header}\n\n${body}`;
   }
 }
@@ -320,7 +320,7 @@ async function addTransaction(userId, amount, type, description, platform) {
     // Validate amount
     if (isNaN(amount) || amount <= 0) {
       const header = '> *ERROR INPUT* ❌';
-      const body = generateBoxTemplate(['Jumlah harus angka positif.']);
+      const body = formatBulletList(['Jumlah harus angka positif.']);
       return `${header}\n\n${body}`;
     }
 
@@ -339,17 +339,17 @@ async function addTransaction(userId, amount, type, description, platform) {
     if (error) {
       console.error('Error inserting transaction:', error);
       const header = '> *ERROR TRANSAKSI* ❌';
-      const body = generateBoxTemplate([`Gagal mencatat transaksi: ${error.message}`]);
+      const body = formatBulletList([`Gagal mencatat transaksi: ${error.message}`]);
       return `${header}\n\n${body}`;
     }
 
     // Format success response according to Hybrid UI v3
     const typeText = type === 'IN' ? 'PEMASUKAN' : 'PENGELUARAN';
     const header = '> *TRANSAKSI BERHASIL* ✅';
-    const body = generateBoxTemplate([
-      `Tipe    : ${typeText}`,
-      `Jumlah  : ${formatRupiah(amount)}`,
-      `Desk    : ${description}`,
+    const body = formatBulletList([
+      `Tipe: ${typeText}`,
+      `Jumlah: ${formatRupiah(amount)}`,
+      `Deskripsi: ${description}`,
       `Platform: ${platform}`
     ]);
     const footer = `\nTransaksi telah tercatat dengan baik. Gunakan \`/saldo\` untuk melihat saldo terkini.`;
@@ -358,7 +358,7 @@ async function addTransaction(userId, amount, type, description, platform) {
   } catch (error) {
     console.error('Unexpected error in addTransaction:', error);
     const header = '> *ERROR SISTEM* ❌';
-    const body = generateBoxTemplate([`Terjadi kesalahan tak terduga: ${error.message}`]);
+    const body = formatBulletList([`Terjadi kesalahan tak terduga: ${error.message}`]);
     return `${header}\n\n${body}`;
   }
 }
@@ -375,7 +375,7 @@ async function getFinanceChart(userId) {
     if (error) {
       console.error('Error querying finance data for chart:', error);
       const header = '> *ERROR QUERY DATA* ❌';
-      const body = generateBoxTemplate([`Gagal mengambil data laporan: ${error.message}`]);
+      const body = formatBulletList([`Gagal mengambil data laporan: ${error.message}`]);
       return `${header}\n\n${body}`;
     }
 
@@ -423,7 +423,7 @@ async function getFinanceChart(userId) {
     const chartUrl = 'https://quickchart.io/chart?c=' + encodeURIComponent(JSON.stringify(chartConfig));
 
     const header = '> *LAPORAN GRAFIK KEUANGAN* 📊';
-    const body = generateBoxTemplate({
+    const body = formatBulletList({
       'Pemasukan': formatRupiah(totalIn),
       'Pengeluaran': formatRupiah(totalOut)
     });
@@ -438,7 +438,7 @@ async function getFinanceChart(userId) {
   } catch (error) {
     console.error('Unexpected error in getFinanceChart:', error);
     const header = '> *ERROR SISTEM* ❌';
-    const body = generateBoxTemplate([`Terjadi kesalahan tak terduga: ${error.message}`]);
+    const body = formatBulletList([`Terjadi kesalahan tak terduga: ${error.message}`]);
     return `${header}\n\n${body}`;
   }
 }

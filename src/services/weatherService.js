@@ -1,6 +1,6 @@
 // Weather service
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
-const { generateBoxTemplate } = require('../utils/formatter');
+const { formatBulletList } = require('../utils/formatter');
 
 async function getCuaca(kota) {
     try {
@@ -23,7 +23,7 @@ async function getCuaca(kota) {
         const data = await response.json();
         
         const header = '> *INFO CUACA HARI INI* 🌤️';
-        const body = generateBoxTemplate({
+        const body = formatBulletList({
             Kota: `${data.name}, ${data.sys.country}`,
             Kondisi: data.weather[0].description,
             Suhu: `${data.main.temp}°C`,
@@ -48,7 +48,7 @@ async function handleWeatherCommand(command, args, userId, platform) {
     
     if (args.length === 0) {
         const header = '> *ERROR FORMAT* ❌';
-        const body = generateBoxTemplate([
+        const body = formatBulletList([
             'Gunakan format: /cuaca <nama_kota>',
             'Contoh: /cuaca Jakarta'
         ]);

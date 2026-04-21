@@ -6,7 +6,7 @@ const {
   deleteTransaction,
   editTransaction 
 } = require('../../services/financeService');
-const { generateBoxTemplate } = require('../../utils/formatter');
+const { formatBulletList } = require('../../utils/formatter');
 
 async function handleFinanceCommand(command, args, userId, platform) {
   // Clean command to ensure it's in lowercase
@@ -21,7 +21,7 @@ async function handleFinanceCommand(command, args, userId, platform) {
       // Ensure there are enough arguments
       if (args.length < 2) {
         const header = '> *ERROR FORMAT* ❌';
-        const body = generateBoxTemplate([
+        const body = formatBulletList([
           `Format: ${cleanCommand} <jumlah> <deskripsi>`,
           `Contoh: ${cleanCommand} 50000 Makan siang`
         ]);
@@ -35,7 +35,7 @@ async function handleFinanceCommand(command, args, userId, platform) {
       
       if (isNaN(amount) || amount <= 0) {
         const header = '> *ERROR INPUT* ❌';
-        const body = generateBoxTemplate([
+        const body = formatBulletList([
           `Jumlah harus angka positif.`,
           `Diterima: ${rawAmount}`,
           `Contoh yang benar: ${cleanCommand} 50000 Makan siang`
@@ -62,7 +62,7 @@ async function handleFinanceCommand(command, args, userId, platform) {
     case '/hapus':
       if (args.length < 1) {
         const header = '> *ERROR FORMAT* ❌';
-        const body = generateBoxTemplate([
+        const body = formatBulletList([
           'Format: /hapus <id_transaksi>',
           'Contoh: /hapus 123e4567',
           'Gunakan /riwayat untuk melihat ID transaksi'
@@ -74,7 +74,7 @@ async function handleFinanceCommand(command, args, userId, platform) {
     case '/edit':
       if (args.length < 3) {
         const header = '> *ERROR FORMAT* ❌';
-        const body = generateBoxTemplate([
+        const body = formatBulletList([
           'Format: /edit <id> <jumlah_baru> <deskripsi_baru>',
           'Contoh: /edit 123e4567 75000 Makan malam',
           'Gunakan /riwayat untuk melihat ID transaksi'
@@ -89,7 +89,7 @@ async function handleFinanceCommand(command, args, userId, platform) {
       
       if (isNaN(newAmount) || newAmount <= 0) {
         const header = '> *ERROR INPUT* ❌';
-        const body = generateBoxTemplate([
+        const body = formatBulletList([
           `Jumlah baru harus angka positif.`,
           `Diterima: ${newRawAmount}`,
           `Contoh yang benar: /edit ${args[0]} 75000 Makan malam`
@@ -104,7 +104,7 @@ async function handleFinanceCommand(command, args, userId, platform) {
       
     default:
       const header = '> *COMMAND TIDAK DIKENAL* ❌';
-      const body = generateBoxTemplate([
+      const body = formatBulletList([
         `Perintah keuangan "${command}" tidak tersedia.`,
         `Gunakan /saldo, /catat, /pemasukan, /laporan_chart, /riwayat, /hapus, atau /edit.`
       ]);

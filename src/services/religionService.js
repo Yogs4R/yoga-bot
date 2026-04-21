@@ -1,6 +1,6 @@
 // Religion service (sholat schedule)
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
-const { generateBoxTemplate } = require('../utils/formatter');
+const { formatBulletList } = require('../utils/formatter');
 
 async function getSholat(kota) {
     try {
@@ -51,7 +51,7 @@ async function getSholat(kota) {
         
         const jadwal = scheduleData.data.jadwal;
         const header = '> *JADWAL SHOLAT HARI INI* 🕌';
-        const body = generateBoxTemplate({
+        const body = formatBulletList({
             Kota: cityName,
             Tanggal: jadwal.tanggal,
             Imsak: jadwal.imsak,
@@ -77,7 +77,7 @@ async function handleReligionCommand(command, args, userId, platform) {
     
     if (args.length === 0) {
         const header = '> *ERROR FORMAT* ❌';
-        const body = generateBoxTemplate([
+        const body = formatBulletList([
             'Gunakan format: /sholat <nama_kota>',
             'Contoh: /sholat Jakarta'
         ]);

@@ -50,9 +50,9 @@ Fitur riset referensi berbasis beberapa API publik (tanpa API key):
 
 ### ⬇️ Downloader Tools
 Kumpulan command downloader media dan audio:
-- `/download` mendukung: Instagram, Twitter/X, YouTube, dan TikTok.
-- `/audio` mendukung: YouTube dan YouTube Music.
-- Utilitas pemendek URL via `/short` (is.gd).
+- Mendukung unduhan media dari Instagram, Twitter/X, YouTube, dan TikTok.
+- Mendukung unduhan audio dari YouTube dan YouTube Music.
+- Tersedia utilitas pemendek URL via is.gd.
 
 ### 💰 Finance Management
 Pencatatan keuangan interaktif langsung dari dalam chat:
@@ -66,7 +66,7 @@ Pencatatan keuangan interaktif langsung dari dalam chat:
 Layanan konversi file dan media tangguh dengan dukungan batch:
 - Konversi gambar, kompres, rotasi, resize, hapus background, hingga tangkapan layar web (screenshot).
 - Operasi dokumen PDF: Word/Docx ke PDF, compress PDF, rotasi, ekstrak halaman, hingga menggabungkan (merge) berbagai file PDF menjadi satu dokumen.
-- Generator stiker (`/tosticker`) untuk input gambar WhatsApp dan Telegram.
+- Generator stiker untuk input gambar WhatsApp dan Telegram.
 
 ### 🖥️ System and Server Monitoring
 Infrastruktur backend yang andal dengan dukungan monitoring:
@@ -89,46 +89,42 @@ Layanan pendamping yang bermanfaat:
 
 | Command | Deskripsi | Library yang digunakan | Contoh penggunaan | Screenshot preview |
 |---|---|---|---|---|
-| /start | Mulai bot dan tampilkan menu cepat | Baileys, Telegraf | /start | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /info | Tampilkan kategori command dan info bot | Baileys, Telegraf | /info | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /ping | Cek status online bot dan footer sistem | Node.js os module | /ping | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /model_info | Tampilkan model AI dan alias yang tersedia | OpenRouter, aiPreferenceService | /model_info | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /switch | Ganti model AI aktif per pengguna | OpenRouter, aiPreferenceService | /switch elephant | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /finance_info | Panduan Lengkap command keuangan | financeService, Supabase | /finance_info | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /saldo | Tampilkan ringkasan saldo terbaru | financeService, Supabase | /saldo | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /catat | Catat transaksi pengeluaran | financeService, Supabase | /catat 25000 makan siang | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /pemasukan | Catat transaksi pemasukan | financeService, Supabase | /pemasukan 150000 freelance | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /laporan_chart | Buat laporan keuangan berbentuk grafik | financeService, chart renderer | /laporan_chart | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /riwayat | Tampilkan riwayat transaksi berhalaman | financeService, Supabase | /riwayat 2 | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /edit | Ubah transaksi berdasarkan id dan field | financeService, Supabase | /edit 123e4567 nominal 30000 | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /hapus | Hapus transaksi dengan konfirmasi | financeService, Supabase | /hapus 123e4567 | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /research_info | Panduan Lengkap pencarian Referensi, termasuk info bahwa /jurnal juga bisa mencari artikel | researchService, axios | /research_info | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /buku | Cari referensi buku | Open Library API, axios | /buku clean code | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /jurnal | Cari referensi jurnal dan artikel | Crossref API, axios | /jurnal machine learning | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /artikel | Cari referensi artikel ilmiah | OpenAlex API, axios | /artikel deep learning healthcare | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /downloader | Panduan Lengkap download media | downloaderService | /downloader | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /download | Unduh video/foto dari media sosial | downloaderService, axios | /download https://instagram.com/reel/xxxx | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /audio | Unduh audio dari sumber YouTube | downloaderService, axios | /audio https://youtube.com/watch?v=xxxx | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /short | Pendekkan URL via is.gd | shortenerService, is.gd API | /short https://example.com | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /cuaca | Tampilkan info cuaca per kota | weatherService, weather API | /cuaca bandung | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /sholat | Tampilkan jadwal sholat per kota | religionService, prayer time API | /sholat bandung | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /me | Tampilkan profil pembuat dan link penting | aboutService | /me | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /img_info | Panduan Lengkap image tools | converterService | /img_info | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /img | Konversi, resize, rotate, kompres gambar | converterService, image processor | /img to png | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /hapusbg | Hapus background gambar | converterService, remove.bg API | /hapusbg | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /ss | Screenshot website dari URL | converterService, html-to-image engine | /ss https://example.com | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /pdf_info | Panduan Lengkap PDF tools | converterService | /pdf_info | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /topdf | Konversi dokumen/media ke PDF | converterService, CloudConvert | /topdf | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /pdf | Kompres, konversi, rotate, extract, merge PDF | converterService, CloudConvert, PDF tools | /pdf compress | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /sticker_info | Panduan Lengkap sticker tools | stickerService | /sticker_info | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /tosticker | Ubah gambar/video menjadi stiker | stickerService, ffmpeg | /tosticker | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /donate | Tampilkan link dukungan dan QR donasi | donateService | /donate | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /admin | Buka pusat command admin | auth util, modul admin | /admin | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /monitor | Jalankan cek status website manual | monitorService | /monitor | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /stats | Tampilkan statistik penggunaan platform | modul admin, stats service | /stats | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /cmd_usage | Tampilkan statistik command terpopuler | modul admin, log service | /cmd_usage | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /ai_usage | Tampilkan statistik penggunaan AI per model | modul admin, log service | /ai_usage | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
-| /broadcast | Kirim broadcast admin ke pengguna | modul admin, WhatsApp/Telegram clients | /broadcast maintenance malam ini | WA: [Preview](assets/images/screenshot-wa.png) \| TG: [Preview](assets/images/screenshot-tele.png) |
+| /start | Mulai bot dan tampilkan menu cepat | Baileys, Telegraf | /start | WA: [Preview](assets/images/screenshot-wa-start.png) \| TG: [Preview](assets/images/screenshot-tele-start.png) |
+| /info | Tampilkan kategori command dan info bot | Baileys, Telegraf | /info | WA: [Preview](assets/images/screenshot-wa-info.png) \| TG: [Preview](assets/images/screenshot-tele-info.png) |
+| /ping | Cek status online bot dan footer sistem | Node.js os module | /ping | WA: [Preview](assets/images/screenshot-wa-ping.png) \| TG: [Preview](assets/images/screenshot-tele-ping.png) |
+| /model_info | Tampilkan model AI dan alias yang tersedia | OpenRouter, aiPreferenceService | /model_info | WA: [Preview](assets/images/screenshot-wa-model_info.png) \| TG: [Preview](assets/images/screenshot-tele-model_info.png) |
+| /switch | Ganti model AI aktif per pengguna | OpenRouter, aiPreferenceService | /switch elephant | WA: [Preview](assets/images/screenshot-wa-switch.png) \| TG: [Preview](assets/images/screenshot-tele-switch.png) |
+| /finance_info | Panduan Lengkap command keuangan | financeService, Supabase | /finance_info | WA: [Preview](assets/images/screenshot-wa-finance_info.png) \| TG: [Preview](assets/images/screenshot-tele-finance_info.png) |
+| /saldo | Tampilkan ringkasan saldo terbaru | financeService, Supabase | /saldo | WA: [Preview](assets/images/screenshot-wa-saldo.png) \| TG: [Preview](assets/images/screenshot-tele-saldo.png) |
+| /catat | Catat transaksi pengeluaran | financeService, Supabase | /catat 25000 makan siang | WA: [Preview](assets/images/screenshot-wa-catat.png) \| TG: [Preview](assets/images/screenshot-tele-catat.png) |
+| /pemasukan | Catat transaksi pemasukan | financeService, Supabase | /pemasukan 150000 freelance | WA: [Preview](assets/images/screenshot-wa-pemasukan.png) \| TG: [Preview](assets/images/screenshot-tele-pemasukan.png) |
+| /laporan_chart | Buat laporan keuangan berbentuk grafik | financeService, chart renderer | /laporan_chart | WA: [Preview](assets/images/screenshot-wa-laporan_chart.png) \| TG: [Preview](assets/images/screenshot-tele-laporan_chart.png) |
+| /riwayat | Tampilkan riwayat transaksi berhalaman | financeService, Supabase | /riwayat 2 | WA: [Preview](assets/images/screenshot-wa-riwayat.png) \| TG: [Preview](assets/images/screenshot-tele-riwayat.png) |
+| /edit | Ubah transaksi berdasarkan id dan field | financeService, Supabase | /edit 123e4567 nominal 30000 | WA: [Preview](assets/images/screenshot-wa-edit.png) \| TG: [Preview](assets/images/screenshot-tele-edit.png) |
+| /hapus | Hapus transaksi dengan konfirmasi | financeService, Supabase | /hapus 123e4567 | WA: [Preview](assets/images/screenshot-wa-hapus.png) \| TG: [Preview](assets/images/screenshot-tele-hapus.png) |
+| /research_info | Panduan Lengkap pencarian Referensi, termasuk info bahwa /jurnal juga bisa mencari artikel | researchService, axios | /research_info | WA: [Preview](assets/images/screenshot-wa-research_info.png) \| TG: [Preview](assets/images/screenshot-tele-research_info.png) |
+| /buku | Cari referensi buku | Open Library API, axios | /buku clean code | WA: [Preview](assets/images/screenshot-wa-buku.png) \| TG: [Preview](assets/images/screenshot-tele-buku.png) |
+| /jurnal | Cari referensi jurnal dan artikel | Crossref API, axios | /jurnal machine learning | WA: [Preview](assets/images/screenshot-wa-jurnal.png) \| TG: [Preview](assets/images/screenshot-tele-jurnal.png) |
+| /artikel | Cari referensi artikel ilmiah | OpenAlex API, axios | /artikel deep learning healthcare | WA: [Preview](assets/images/screenshot-wa-artikel.png) \| TG: [Preview](assets/images/screenshot-tele-artikel.png) |
+| /downloader | Panduan Lengkap download media | downloaderService | /downloader | WA: [Preview](assets/images/screenshot-wa-downloader.png) \| TG: [Preview](assets/images/screenshot-tele-downloader.png) |
+| /cuaca | Tampilkan info cuaca per kota | weatherService, weather API | /cuaca bandung | WA: [Preview](assets/images/screenshot-wa-cuaca.png) \| TG: [Preview](assets/images/screenshot-tele-cuaca.png) |
+| /sholat | Tampilkan jadwal sholat per kota | religionService, prayer time API | /sholat bandung | WA: [Preview](assets/images/screenshot-wa-sholat.png) \| TG: [Preview](assets/images/screenshot-tele-sholat.png) |
+| /me | Tampilkan profil pembuat dan link penting | aboutService | /me | WA: [Preview](assets/images/screenshot-wa-me.png) \| TG: [Preview](assets/images/screenshot-tele-me.png) |
+| /img_info | Panduan Lengkap image tools | converterService | /img_info | WA: [Preview](assets/images/screenshot-wa-img_info.png) \| TG: [Preview](assets/images/screenshot-tele-img_info.png) |
+| /img | Konversi, resize, rotate, kompres gambar | converterService, image processor | /img to png | WA: [Preview](assets/images/screenshot-wa-img.png) \| TG: [Preview](assets/images/screenshot-tele-img.png) |
+| /hapusbg | Hapus background gambar | converterService, remove.bg API | /hapusbg | WA: [Preview](assets/images/screenshot-wa-hapusbg.png) \| TG: [Preview](assets/images/screenshot-tele-hapusbg.png) |
+| /ss | Screenshot website dari URL | converterService, html-to-image engine | /ss https://example.com | WA: [Preview](assets/images/screenshot-wa-ss.png) \| TG: [Preview](assets/images/screenshot-tele-ss.png) |
+| /pdf_info | Panduan Lengkap PDF tools | converterService | /pdf_info | WA: [Preview](assets/images/screenshot-wa-pdf_info.png) \| TG: [Preview](assets/images/screenshot-tele-pdf_info.png) |
+| /topdf | Konversi dokumen/media ke PDF | converterService, CloudConvert | /topdf | WA: [Preview](assets/images/screenshot-wa-topdf.png) \| TG: [Preview](assets/images/screenshot-tele-topdf.png) |
+| /pdf | Kompres, konversi, rotate, extract, merge PDF | converterService, CloudConvert, PDF tools | /pdf compress | WA: [Preview](assets/images/screenshot-wa-pdf.png) \| TG: [Preview](assets/images/screenshot-tele-pdf.png) |
+| /sticker_info | Panduan Lengkap sticker tools | stickerService | /sticker_info | WA: [Preview](assets/images/screenshot-wa-sticker_info.png) \| TG: [Preview](assets/images/screenshot-tele-sticker_info.png) |
+| /donate | Tampilkan link dukungan dan QR donasi | donateService | /donate | WA: [Preview](assets/images/screenshot-wa-donate.png) \| TG: [Preview](assets/images/screenshot-tele-donate.png) |
+| /admin | Buka pusat command admin | auth util, modul admin | /admin | WA: [Preview](assets/images/screenshot-wa-admin.png) \| TG: [Preview](assets/images/screenshot-tele-admin.png) |
+| /monitor | Jalankan cek status website manual | monitorService | /monitor | WA: [Preview](assets/images/screenshot-wa-monitor.png) \| TG: [Preview](assets/images/screenshot-tele-monitor.png) |
+| /stats | Tampilkan statistik penggunaan platform | modul admin, stats service | /stats | WA: [Preview](assets/images/screenshot-wa-stats.png) \| TG: [Preview](assets/images/screenshot-tele-stats.png) |
+| /cmd_usage | Tampilkan statistik command terpopuler | modul admin, log service | /cmd_usage | WA: [Preview](assets/images/screenshot-wa-cmd_usage.png) \| TG: [Preview](assets/images/screenshot-tele-cmd_usage.png) |
+| /ai_usage | Tampilkan statistik penggunaan AI per model | modul admin, log service | /ai_usage | WA: [Preview](assets/images/screenshot-wa-ai_usage.png) \| TG: [Preview](assets/images/screenshot-tele-ai_usage.png) |
+| /broadcast | Kirim broadcast admin ke pengguna | modul admin, WhatsApp/Telegram clients | /broadcast maintenance malam ini | WA: [Preview](assets/images/screenshot-wa-broadcast.png) \| TG: [Preview](assets/images/screenshot-tele-broadcast.png) |
 
 ---
 
@@ -145,7 +141,7 @@ Layanan pendamping yang bermanfaat:
 
 1. Clone repositori
 ```bash
-git clone <repository-url>
+git clone https://github.com/Yogs4R/yoga-bot.git
 cd yoga-bot
 ```
 
