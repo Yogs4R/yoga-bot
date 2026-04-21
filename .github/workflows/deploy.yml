@@ -1,0 +1,30 @@
+name: Deploy Yoga Bot
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Execute deployment script on remote server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd ~/yoga-bot
+            
+            # Get the latest code from the main branch
+            git fetch origin
+            
+            # Reset local changes and update to the latest code
+            git reset --hard origin/main
+            
+            # Install dependencies
+            npm install
+            
+            # Restart bot
+            pm2 restart yogabot || pm2 start src/index.js --name yogabot
