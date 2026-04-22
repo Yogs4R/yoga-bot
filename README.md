@@ -141,7 +141,7 @@ Useful companion services:
 
 1. Clone the repository
 ```bash
-git clone https://github.com/Yogs4R/yoga-bot.git
+git clone https://github.com/Yogs4R/fuenzer-bot.git
 cd yoga-bot
 ```
 

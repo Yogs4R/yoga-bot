@@ -141,7 +141,7 @@ Layanan pendamping yang bermanfaat:
 
 1. Clone repositori
 ```bash
-git clone https://github.com/Yogs4R/yoga-bot.git
+git clone https://github.com/Yogs4R/fuenzer-bot.git
 cd yoga-bot
 ```
 
