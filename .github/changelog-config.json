@@ -1,0 +1,38 @@
+{
+  "categories": [
+    {
+      "title": "What's New",
+      "labels": ["feature"]
+    },
+    {
+      "title": "Bug Fixes",
+      "labels": ["bug"]
+    },
+    {
+      "title": "Maintenance & Refactor",
+      "labels": ["maintenance"]
+    }
+  ],
+  "label_extractors": [
+    {
+      "pattern": "^feat.*:",
+      "target": "feature"
+    },
+    {
+      "pattern": "^fix.*:",
+      "target": "bug"
+    },
+    {
+      "pattern": "^refactor.*:|^chore.*:",
+      "target": "maintenance"
+    },
+    {
+      "pattern": "^docs.*:|^Merge.*|Add files via upload",
+      "target": "documentation"
+    }
+  ],
+  "ignore_labels": [
+    "documentation"
+  ],
+  "template": "#{{CHANGELOG}}\n\n---\n*Note: This changelog was automatically generated from commit messages.*"
+}
