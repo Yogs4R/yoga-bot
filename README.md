@@ -168,4 +168,296 @@ Some variables in `.env` used for monitoring modules and access rights include:
 
 *Note: The cron job for server health reports runs every morning (06:00, server time) and sends a message only when one or more monitored websites are down. If all websites are healthy, no alert message is sent.*
 
+---
 
+## VM Deployment Tutorial (From Scratch to PM2 Start)
+
+This guide uses Ubuntu 22.04 LTS as an example. Adjust commands if you use a different distro.
+
+1. SSH into your VM
+```bash
+ssh username@vm-ip
+```
+
+2. Update OS packages
+```bash
+sudo apt update && sudo apt upgrade -y
+```
+
+3. Install base dependencies
+```bash
+sudo apt install -y git curl build-essential ffmpeg
+```
+
+4. Install Node.js LTS (example: Node 20)
+```bash
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs
+node -v
+npm -v
+```
+
+5. Clone repository
+```bash
+git clone https://github.com/Yogs4R/fuenzer-bot.git
+cd fuenzer-bot
+```
+
+6. Install project dependencies
+```bash
+npm install
+```
+
+7. Prepare environment file
+```bash
+cp .env.example .env
+nano .env
+```
+
+8. Fill required variables in `.env`
+- Telegram: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`
+- OpenRouter: `OPENROUTER_API_KEY`
+- Supabase: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+- CloudConvert: `CLOUDCONVERT_API_KEY`
+- RemoveBG: `REMOVEBG_API_KEY`
+- Weather: `OPENWEATHER_API_KEY`
+- Admin and monitoring: `ADMIN_WA_NUMBERS`, `ADMIN_TELE_IDS`, `MONITOR_URLS`
+
+9. Run a quick local test
+```bash
+npm start
+```
+If the process runs normally, stop it with `Ctrl + C`.
+
+10. Install PM2 globally
+```bash
+sudo npm install -g pm2
+pm2 -v
+```
+
+11. Start bot with PM2
+```bash
+pm2 start src/index.js --name fuenzer-bot
+pm2 status
+pm2 logs fuenzer-bot
+```
+
+12. Persist PM2 process for reboot
+```bash
+pm2 save
+pm2 startup
+```
+Run the extra command shown by PM2 (usually needs `sudo`).
+
+13. Daily PM2 operations
+```bash
+pm2 restart fuenzer-bot
+pm2 stop fuenzer-bot
+pm2 delete fuenzer-bot
+pm2 logs fuenzer-bot --lines 200
+```
+
+---
+
+## CI/CD and Auto Release Tutorial (Step by Step)
+
+This section is important for people who clone this repository and wonder why GitHub Actions fails.
+
+### A. Required file structure
+
+1. Release workflow at `.github/workflows/auto-release.yml`
+2. Changelog config at `.github/changelog-config.json`
+
+### B. Example `changelog-config.json`
+
+Make sure `target` values in `label_extractors` exactly match labels in `categories`.
+
+```json
+{
+  "categories": [
+    {
+      "title": "What's New",
+      "labels": ["feature"]
+    },
+    {
+      "title": "Bug Fixes",
+      "labels": ["bug"]
+    },
+    {
+      "title": "Maintenance & Refactor",
+      "labels": ["maintenance"]
+    },
+    {
+      "title": "Documentation",
+      "labels": ["documentation"]
+    }
+  ],
+  "label_extractors": [
+    {
+      "pattern": "(?i)^feat(?:\\([^)]*\\))?!?:\\s.*",
+      "target": "feature"
+    },
+    {
+      "pattern": "(?i)^fix(?:\\([^)]*\\))?!?:\\s.*",
+      "target": "bug"
+    },
+    {
+      "pattern": "(?i)^(?:refactor|chore)(?:\\([^)]*\\))?!?:\\s.*",
+      "target": "maintenance"
+    },
+    {
+      "pattern": "(?i)^(?:docs(?:\\([^)]*\\))?!?:\\s.*|merge\\b.*|add files via upload.*)",
+      "target": "documentation"
+    }
+  ],
+  "ignore_labels": [
+    "documentation"
+  ],
+  "template": "#{{CHANGELOG}}\\n\\n---\\n*Note: This changelog was automatically generated from commit messages.*"
+}
+```
+
+### C. Example `auto-release.yml`
+
+```yaml
+name: Auto Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-and-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build Changelog
+        id: build_changelog
+        uses: mikepenz/release-changelog-builder-action@v5
+        with:
+          configuration: ".github/changelog-config.json"
+          mode: "COMMIT"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body: ${{ steps.build_changelog.outputs.changelog }}
+          draft: false
+          prerelease: false
+```
+
+### D. Commit message format rules for changelog
+
+Use commit prefixes like:
+- `feat: add new command`
+- `fix: resolve argument parsing`
+- `chore: update dependency`
+- `refactor: clean handler`
+- `docs: update README` (ignored if `documentation` is listed in `ignore_labels`)
+
+### E. How to trigger auto release
+
+1. Commit and push to main branch
+```bash
+git add .
+git commit -m "feat: add vm deployment tutorial"
+git push origin main
+```
+
+2. Create and push a version tag
+```bash
+git tag v1.0.6
+git push origin v1.0.6
+```
+
+3. Check GitHub Actions and Releases tabs
+
+### F. Common errors and fixes
+
+1. `Empty CHANGELOG`
+- Ensure there are new commits after the previous tag.
+- Ensure commit format matches regex (`feat:`, `fix:`, etc).
+- Ensure workflow uses `mode: COMMIT`.
+
+2. `No categories found` or commits not grouped
+- Ensure each `target` in `label_extractors` exactly matches a label in `categories`.
+
+3. `Workflow not triggered`
+- Ensure workflow trigger is `push` on `tags: v*`.
+- Ensure you pushed a tag, not only a commit.
+
+4. `Permission denied` when creating release
+- Ensure workflow includes:
+  - `permissions: contents: write`
+
+5. Config file not found error
+- Ensure path is correct: `.github/changelog-config.json`
+
+### G. Quick checklist after cloning this repo
+
+1. Ensure `.github/workflows` and `.github/changelog-config.json` are present after clone.
+2. Ensure commit messages follow supported patterns.
+3. Ensure release is triggered by pushing a `v*` tag.
+
+### H. CI/CD Smoke Test (Copy-Paste for first release)
+
+Run these commands from the repository root. Replace `v1.0.6` if that version already exists.
+
+```bash
+# 1) Check active branch and pull latest changes
+git branch --show-current
+git pull origin main
+
+# 2) Create a guaranteed changelog-visible test commit
+git commit --allow-empty -m "feat: smoke test auto release pipeline"
+git push origin main
+
+# 3) Create and push first release tag for testing
+git tag v1.0.6
+git push origin v1.0.6
+
+# 4) Verify that the tag exists on remote
+git ls-remote --tags origin
+```
+
+If the tag already exists and you want to re-test with a new version:
+
+```bash
+# Example: bump to another version
+git tag v1.0.7
+git push origin v1.0.7
+```
+
+Verify in GitHub after running the commands above:
+
+1. Actions tab: `Auto Release` workflow completed successfully.
+2. Releases tab: new release appears with the tag title (for example `v1.0.6`).
+3. Release notes are not empty and include `feat: smoke test auto release pipeline`.
+
+### I. Rollback when release tag is wrong
+
+If you pushed a wrong tag (for example version typo), delete local and remote tag, then create a new one.
+
+```bash
+# Example: wrong tag v1.0.6, replace with v1.0.7
+git tag -d v1.0.6
+git push origin :refs/tags/v1.0.6
+
+git tag v1.0.7
+git push origin v1.0.7
+```
+
+Notes:
+1. If release `v1.0.6` was already created in the Releases tab, delete that release in GitHub UI too for cleanup.
+2. Do not reuse the same tag name for different commits.
