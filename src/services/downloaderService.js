@@ -199,10 +199,10 @@ async function getAudioUrl(url) {
   }
 
   const isHttpUrl = (value) => typeof value === 'string' && /^https?:\/\//i.test(String(value).trim());
+  const normalizedHostname = getNormalizedUrlHostname(normalizedUrl);
   const isYoutubeUrl =
-    normalizedUrl.includes('youtube.com') ||
-    normalizedUrl.includes('youtu.be') ||
-    normalizedUrl.includes('music.youtube.com');
+    isHostOrSubdomain(normalizedHostname, 'youtube.com') ||
+    isHostOrSubdomain(normalizedHostname, 'youtu.be');
 
   try {
     if (!isYoutubeUrl) {
