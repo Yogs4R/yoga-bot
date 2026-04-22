@@ -7,9 +7,7 @@ if (!process.env.OPENROUTER_API_KEY) {
     console.warn('   Buat file .env di root dengan: OPENROUTER_API_KEY=your_key_here');
     console.warn('   Dapatkan API key dari: https://openrouter.ai/keys');
 } else {
-    console.log('✅ OPENROUTER_API_KEY ditemukan.');
-    // Jangan tampilkan key sebenarnya untuk keamanan
-    console.log('   Panjang key:', process.env.OPENROUTER_API_KEY.length, 'karakter');
+    console.log('✅ OPENROUTER_API_KEY ditemukan dan siap digunakan.');
 }
 
 const settings = require('./config/settings');
