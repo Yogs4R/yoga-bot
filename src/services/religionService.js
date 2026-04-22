@@ -61,7 +61,7 @@ async function getSholat(kota) {
             Maghrib: jadwal.maghrib,
             Isya: jadwal.isya
         });
-        const footer = '\nSemoga ibadahmu lancar dan tepat waktu.';
+        const footer = '\n\nSemoga ibadahmu lancar dan tepat waktu.';
 
         return `${header}\n\n${body}${footer}`;
     } catch (error) {

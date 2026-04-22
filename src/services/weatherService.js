@@ -32,7 +32,7 @@ async function getCuaca(kota) {
             Tekanan: `${data.main.pressure} hPa`,
             Angin: `${data.wind.speed} m/s`
         });
-        const footer = '\nTetap jaga kesehatan dan sesuaikan aktivitasmu dengan cuaca.';
+        const footer = '\n\nTetap jaga kesehatan dan sesuaikan aktivitasmu dengan cuaca.';
 
         return `${header}\n\n${body}${footer}`;
     } catch (error) {
