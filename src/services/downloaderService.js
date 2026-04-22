@@ -9,6 +9,14 @@ async function getDownloadUrl(url) {
     throw new Error('MEDIA_NOT_FOUND');
   }
 
+  let normalizedHostname = '';
+  try {
+    normalizedHostname = new URL(normalizedUrl).hostname.toLowerCase();
+  } catch (_error) {
+    throw new Error('MEDIA_NOT_FOUND');
+  }
+
+  const isHostOrSubdomain = (hostname, domain) => hostname === domain || hostname.endsWith(`.${domain}`);
   const isHttpUrl = (value) => typeof value === 'string' && /^https?:\/\//i.test(String(value).trim());
   const isAudioUrl = (value) => /(^|[/?&_.-])(mp3|m4a|aac|wav)([/?&_.-]|$)|sf=\.mp3/i.test(String(value || ''));
   const isImageLikeUrl = (value) => /\.(jpg|jpeg|png|webp)(\?|$)|thumbnail|cover|origin_cover|dynamic_cover/i.test(String(value || ''));
@@ -69,7 +77,7 @@ async function getDownloadUrl(url) {
   };
 
   try {
-    if (normalizedUrl.includes('instagram.com')) {
+    if (isHostOrSubdomain(normalizedHostname, 'instagram.com')) {
       const result = await btch.igdl(normalizedUrl);
       console.log('btch-downloader result:', result);
       if (Array.isArray(result)) {
@@ -80,7 +88,7 @@ async function getDownloadUrl(url) {
       } else {
         collectUrls(result);
       }
-    } else if (normalizedUrl.includes('tiktok.com')) {
+    } else if (isHostOrSubdomain(normalizedHostname, 'tiktok.com')) {
       const result = await btch.ttdl(normalizedUrl);
       console.log('btch-downloader result:', result);
       collectUrls(result?.video);
@@ -105,15 +113,15 @@ async function getDownloadUrl(url) {
       } catch (tikwmErr) {
         console.error('TikWM fallback failed:', tikwmErr.message);
       }
-    } else if (normalizedUrl.includes('twitter.com') || normalizedUrl.includes('x.com')) {
+    } else if (isHostOrSubdomain(normalizedHostname, 'twitter.com') || isHostOrSubdomain(normalizedHostname, 'x.com')) {
       const res = await axios.get(`https://api.siputzx.my.id/api/d/twitter?url=${encodeURIComponent(normalizedUrl)}`);
       console.log('siputzx twitter result:', res?.data);
       collectUrls(res?.data?.data);
       collectUrls(res?.data?.url);
       collectUrls(res?.data);
-    } else if (normalizedUrl.includes('facebook.com') || normalizedUrl.includes('fb.watch')) {
+    } else if (isHostOrSubdomain(normalizedHostname, 'facebook.com') || isHostOrSubdomain(normalizedHostname, 'fb.watch')) {
       throw new Error('FB_NOT_SUPPORTED');
-    } else if (normalizedUrl.includes('youtube.com') || normalizedUrl.includes('youtu.be')) {
+    } else if (isHostOrSubdomain(normalizedHostname, 'youtube.com') || isHostOrSubdomain(normalizedHostname, 'youtu.be')) {
       const result = await btch.youtube(normalizedUrl);
       console.log('btch-downloader result:', result);
       collectUrls(result?.mp4);
@@ -126,7 +134,7 @@ async function getDownloadUrl(url) {
 
     let mediaUrls = Array.from(mediaUrlSet).filter((item) => !isAudioUrl(item));
 
-    if (normalizedUrl.includes('tiktok.com')) {
+    if (isHostOrSubdomain(normalizedHostname, 'tiktok.com')) {
       const videoCandidateUrls = mediaUrls.filter((item) => isVideoLikeUrl(item) && !isImageLikeUrl(item));
       const nonTiktokioVideoUrls = videoCandidateUrls.filter((item) => !item.includes('tiktokio.com') && !item.includes('dl.tiktokio.com'));
 
