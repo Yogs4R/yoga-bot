@@ -1,0 +1,27 @@
+name: Auto Release
+
+# This workflow triggers on push events to tags that match the pattern 'v*', which is a common convention for version tags (e.g., v1.0.0).
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-and-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Granting write permissions to the repository contents is necessary for creating releases.
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # This ensures that the full commit history is available, which is necessary for generating accurate release notes.
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true # This automatically creates a release notes section!
+          draft: false
+          prerelease: false
