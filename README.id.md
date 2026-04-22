@@ -27,6 +27,25 @@
 
 Fuenzer Bot adalah asisten virtual mandiri yang berjalan secara paralel di WhatsApp dan Telegram. Dirancang untuk meningkatkan produktivitas harian dengan memadukan pengelolaan keuangan, kecerdasan buatan, pemrosesan file media, hingga pemantauan server pribadi.
 
+## Index
+
+- [Features](#features)
+- [Tabel Referensi Command](#tabel-referensi-command)
+- [Preview](#preview)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Tutorial Deploy di VM (Dari Nol Sampai PM2 Start)](#tutorial-deploy-di-vm-dari-nol-sampai-pm2-start)
+- [Tutorial CI/CD dan Auto Release (Step by Step)](#tutorial-cicd-dan-auto-release-step-by-step)
+- [A. Struktur file yang wajib ada](#a-struktur-file-yang-wajib-ada)
+- [B. Contoh changelog-config.json](#b-contoh-changelog-configjson)
+- [C. Contoh workflow auto-release.yml](#c-contoh-workflow-auto-releaseyml)
+- [D. Aturan format commit agar masuk changelog](#d-aturan-format-commit-agar-masuk-changelog)
+- [E. Cara trigger auto release](#e-cara-trigger-auto-release)
+- [F. Error umum dan solusinya](#f-error-umum-dan-solusinya)
+- [G. Checklist cepat setelah clone repo](#g-checklist-cepat-setelah-clone-repo)
+- [H. Smoke Test CI/CD (Copy-Paste untuk rilis pertama)](#h-smoke-test-cicd-copy-paste-untuk-rilis-pertama)
+- [I. Rollback saat tag release salah](#i-rollback-saat-tag-release-salah)
+
 ## Features
 
 ### 🔄 Multi-Platform Integration
