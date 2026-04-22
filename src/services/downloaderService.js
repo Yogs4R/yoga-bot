@@ -200,6 +200,9 @@ async function getAudioUrl(url) {
 
   const isHttpUrl = (value) => typeof value === 'string' && /^https?:\/\//i.test(String(value).trim());
   const normalizedHostname = getNormalizedUrlHostname(normalizedUrl);
+  if (!isHttpUrl(normalizedUrl) || !normalizedHostname) {
+    throw new Error('MEDIA_NOT_FOUND');
+  }
   const isYoutubeUrl =
     isHostOrSubdomain(normalizedHostname, 'youtube.com') ||
     isHostOrSubdomain(normalizedHostname, 'youtu.be');
