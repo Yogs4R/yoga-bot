@@ -3,6 +3,16 @@ const btch = require('btch-downloader');
 
 const MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024;
 
+function isUrlHostOrSubdomain(candidateUrl, baseDomain) {
+  try {
+    const hostname = new URL(String(candidateUrl || '').trim()).hostname.toLowerCase();
+    const normalizedBaseDomain = String(baseDomain || '').toLowerCase();
+    return hostname === normalizedBaseDomain || hostname.endsWith(`.${normalizedBaseDomain}`);
+  } catch (_error) {
+    return false;
+  }
+}
+
 async function getDownloadUrl(url) {
   const normalizedUrl = String(url || '').trim();
   if (!normalizedUrl) {
@@ -136,14 +146,21 @@ async function getDownloadUrl(url) {
 
     if (isHostOrSubdomain(normalizedHostname, 'tiktok.com')) {
       const videoCandidateUrls = mediaUrls.filter((item) => isVideoLikeUrl(item) && !isImageLikeUrl(item));
-      const nonTiktokioVideoUrls = videoCandidateUrls.filter((item) => !item.includes('tiktokio.com') && !item.includes('dl.tiktokio.com'));
+      const nonTiktokioVideoUrls = videoCandidateUrls.filter(
+        (item) => !isUrlHostOrSubdomain(item, 'tiktokio.com') && !isUrlHostOrSubdomain(item, 'dl.tiktokio.com')
+      );
 
       if (nonTiktokioVideoUrls.length > 0) {
         mediaUrls = nonTiktokioVideoUrls;
       } else if (videoCandidateUrls.length > 0) {
         mediaUrls = videoCandidateUrls;
       } else {
-        const nonTiktokioUrls = mediaUrls.filter((item) => !item.includes('tiktokio.com') && !item.includes('dl.tiktokio.com') && !isImageLikeUrl(item));
+        const nonTiktokioUrls = mediaUrls.filter(
+          (item) =>
+            !isUrlHostOrSubdomain(item, 'tiktokio.com') &&
+            !isUrlHostOrSubdomain(item, 'dl.tiktokio.com') &&
+            !isImageLikeUrl(item)
+        );
         mediaUrls = nonTiktokioUrls.length > 0 ? nonTiktokioUrls : mediaUrls.filter((item) => !isImageLikeUrl(item));
       }
 
