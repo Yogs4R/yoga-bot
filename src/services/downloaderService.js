@@ -4,12 +4,28 @@ const btch = require('btch-downloader');
 const MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024;
 
 function isUrlHostOrSubdomain(candidateUrl, baseDomain) {
-  try {
-    const hostname = new URL(String(candidateUrl || '').trim()).hostname.toLowerCase();
-    const normalizedBaseDomain = String(baseDomain || '').toLowerCase();
-    return hostname === normalizedBaseDomain || hostname.endsWith(`.${normalizedBaseDomain}`);
-  } catch (_error) {
+  const normalizedHostname = getNormalizedUrlHostname(candidateUrl);
+  return isHostOrSubdomain(normalizedHostname, baseDomain);
+}
+
+function normalizeDomain(value) {
+  return String(value || '').trim().toLowerCase().replace(/\.+$/, '');
+}
+
+function isHostOrSubdomain(hostname, baseDomain) {
+  const normalizedHostname = normalizeDomain(hostname);
+  const normalizedBaseDomain = normalizeDomain(baseDomain);
+  if (!normalizedHostname || !normalizedBaseDomain) {
     return false;
+  }
+  return normalizedHostname === normalizedBaseDomain || normalizedHostname.endsWith(`.${normalizedBaseDomain}`);
+}
+
+function getNormalizedUrlHostname(candidateUrl) {
+  try {
+    return normalizeDomain(new URL(String(candidateUrl || '').trim()).hostname);
+  } catch (_error) {
+    return '';
   }
 }
 
@@ -21,12 +37,14 @@ async function getDownloadUrl(url) {
 
   let normalizedHostname = '';
   try {
-    normalizedHostname = new URL(normalizedUrl).hostname.toLowerCase();
+    normalizedHostname = getNormalizedUrlHostname(normalizedUrl);
+    if (!normalizedHostname) {
+      throw new Error('MEDIA_NOT_FOUND');
+    }
   } catch (_error) {
     throw new Error('MEDIA_NOT_FOUND');
   }
 
-  const isHostOrSubdomain = (hostname, domain) => hostname === domain || hostname.endsWith(`.${domain}`);
   const isHttpUrl = (value) => typeof value === 'string' && /^https?:\/\//i.test(String(value).trim());
   const isAudioUrl = (value) => /(^|[/?&_.-])(mp3|m4a|aac|wav)([/?&_.-]|$)|sf=\.mp3/i.test(String(value || ''));
   const isImageLikeUrl = (value) => /\.(jpg|jpeg|png|webp)(\?|$)|thumbnail|cover|origin_cover|dynamic_cover/i.test(String(value || ''));
@@ -146,9 +164,7 @@ async function getDownloadUrl(url) {
 
     if (isHostOrSubdomain(normalizedHostname, 'tiktok.com')) {
       const videoCandidateUrls = mediaUrls.filter((item) => isVideoLikeUrl(item) && !isImageLikeUrl(item));
-      const nonTiktokioVideoUrls = videoCandidateUrls.filter(
-        (item) => !isUrlHostOrSubdomain(item, 'tiktokio.com') && !isUrlHostOrSubdomain(item, 'dl.tiktokio.com')
-      );
+      const nonTiktokioVideoUrls = videoCandidateUrls.filter((item) => !isUrlHostOrSubdomain(item, 'tiktokio.com'));
 
       if (nonTiktokioVideoUrls.length > 0) {
         mediaUrls = nonTiktokioVideoUrls;
@@ -156,10 +172,7 @@ async function getDownloadUrl(url) {
         mediaUrls = videoCandidateUrls;
       } else {
         const nonTiktokioUrls = mediaUrls.filter(
-          (item) =>
-            !isUrlHostOrSubdomain(item, 'tiktokio.com') &&
-            !isUrlHostOrSubdomain(item, 'dl.tiktokio.com') &&
-            !isImageLikeUrl(item)
+          (item) => !isUrlHostOrSubdomain(item, 'tiktokio.com') && !isImageLikeUrl(item)
         );
         mediaUrls = nonTiktokioUrls.length > 0 ? nonTiktokioUrls : mediaUrls.filter((item) => !isImageLikeUrl(item));
       }
