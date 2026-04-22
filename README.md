@@ -7,10 +7,10 @@
 </p>
 
 <p align="center">
-  <img src="assets/images/banner.png" alt="Yoga Bot Banner" width="100%" />
+  <img src="assets/images/banner.png" alt="Fuenzer Bot Banner" width="100%" />
 </p>
 
-<h1 align="center">Personal Bot Core - Yoga Bot</h1>
+<h1 align="center">Personal Bot Core - Fuenzer Bot</h1>
 
 <h4 align="center">
     <a href="README.md">English</a> | <a href="README.id.md">Indonesia</a>
@@ -21,11 +21,11 @@
     <img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="Support via Ko-fi" />
   </a>
   <a href="https://saweria.co/fuenzer">
-    <img src="https://img.shields.io/badge/Saweria-Dukung%20Yoga%20Bot-FF6B00?style=for-the-badge&logo=buymeacoffee&logoColor=white" alt="Support via Saweria" />
+    <img src="https://img.shields.io/badge/Saweria-Dukung%20Fuenzer%20Bot-FF6B00?style=for-the-badge&logo=buymeacoffee&logoColor=white" alt="Support via Saweria" />
   </a>
 </p>
 
-Yoga Bot is a standalone virtual assistant that runs in parallel on WhatsApp and Telegram. Designed to increase daily productivity by combining financial management, artificial intelligence, media file processing, and personal server monitoring.
+Fuenzer Bot is a standalone virtual assistant that runs in parallel on WhatsApp and Telegram. Designed to increase daily productivity by combining financial management, artificial intelligence, media file processing, and personal server monitoring.
 
 ## Features
 
@@ -87,44 +87,44 @@ Useful companion services:
 
 ## Command Reference Table
 
-| Command | Description | Library Used | Example Usage | Screenshot Preview |
-|---|---|---|---|---|
-| /start | Start bot and show quick menu | Baileys, Telegraf | /start | WA: [Preview](assets/images/screenshot-wa-start.png) \| TG: [Preview](assets/images/screenshot-tele-start.png) |
-| /info | Show command categories and bot info | Baileys, Telegraf | /info | WA: [Preview](assets/images/screenshot-wa-info.png) \| TG: [Preview](assets/images/screenshot-tele-info.png) |
-| /ping | Check bot online status and system footer | Node.js os module | /ping | WA: [Preview](assets/images/screenshot-wa-ping.png) \| TG: [Preview](assets/images/screenshot-tele-ping.png) |
-| /model_info | Show available AI models and aliases | OpenRouter, aiPreferenceService | /model_info | WA: [Preview](assets/images/screenshot-wa-model_info.png) \| TG: [Preview](assets/images/screenshot-tele-model_info.png) |
-| /switch | Switch active AI model per user | OpenRouter, aiPreferenceService | /switch elephant | WA: [Preview](assets/images/screenshot-wa-switch.png) \| TG: [Preview](assets/images/screenshot-tele-switch.png) |
-| /finance_info | Full finance command guide | financeService, Supabase | /finance_info | WA: [Preview](assets/images/screenshot-wa-finance_info.png) \| TG: [Preview](assets/images/screenshot-tele-finance_info.png) |
-| /saldo | Show latest balance summary | financeService, Supabase | /saldo | WA: [Preview](assets/images/screenshot-wa-saldo.png) \| TG: [Preview](assets/images/screenshot-tele-saldo.png) |
-| /catat | Record expense transaction | financeService, Supabase | /catat 25000 lunch | WA: [Preview](assets/images/screenshot-wa-catat.png) \| TG: [Preview](assets/images/screenshot-tele-catat.png) |
-| /pemasukan | Record income transaction | financeService, Supabase | /pemasukan 150000 freelance | WA: [Preview](assets/images/screenshot-wa-pemasukan.png) \| TG: [Preview](assets/images/screenshot-tele-pemasukan.png) |
-| /laporan_chart | Generate finance chart report | financeService, chart renderer | /laporan_chart | WA: [Preview](assets/images/screenshot-wa-laporan_chart.png) \| TG: [Preview](assets/images/screenshot-tele-laporan_chart.png) |
-| /riwayat | Show paginated transaction history | financeService, Supabase | /riwayat 2 | WA: [Preview](assets/images/screenshot-wa-riwayat.png) \| TG: [Preview](assets/images/screenshot-tele-riwayat.png) |
-| /edit | Edit transaction by id and field | financeService, Supabase | /edit 123e4567 nominal 30000 | WA: [Preview](assets/images/screenshot-wa-edit.png) \| TG: [Preview](assets/images/screenshot-tele-edit.png) |
-| /hapus | Delete transaction with confirmation | financeService, Supabase | /hapus 123e4567 | WA: [Preview](assets/images/screenshot-wa-hapus.png) \| TG: [Preview](assets/images/screenshot-tele-hapus.png) |
-| /research_info | Full reference search guide, including note that /jurnal can also search article references | researchService, axios | /research_info | WA: [Preview](assets/images/screenshot-wa-research_info.png) \| TG: [Preview](assets/images/screenshot-tele-research_info.png) |
-| /buku | Search book references | Open Library API, axios | /buku clean code | WA: [Preview](assets/images/screenshot-wa-buku.png) \| TG: [Preview](assets/images/screenshot-tele-buku.png) |
-| /jurnal | Search journal and article references | Crossref API, axios | /jurnal machine learning | WA: [Preview](assets/images/screenshot-wa-jurnal.png) \| TG: [Preview](assets/images/screenshot-tele-jurnal.png) |
-| /artikel | Search scientific article references | OpenAlex API, axios | /artikel deep learning healthcare | WA: [Preview](assets/images/screenshot-wa-artikel.png) \| TG: [Preview](assets/images/screenshot-tele-artikel.png) |
-| /downloader | Full media downloader guide | downloaderService | /downloader | WA: [Preview](assets/images/screenshot-wa-downloader.png) \| TG: [Preview](assets/images/screenshot-tele-downloader.png) |
-| /cuaca | Show weather information by city | weatherService, external weather API | /cuaca bandung | WA: [Preview](assets/images/screenshot-wa-cuaca.png) \| TG: [Preview](assets/images/screenshot-tele-cuaca.png) |
-| /sholat | Show prayer times by city | religionService, prayer time API | /sholat bandung | WA: [Preview](assets/images/screenshot-wa-sholat.png) \| TG: [Preview](assets/images/screenshot-tele-sholat.png) |
-| /me | Show creator profile and links | aboutService | /me | WA: [Preview](assets/images/screenshot-wa-me.png) \| TG: [Preview](assets/images/screenshot-tele-me.png) |
-| /img_info | Full image tools guide | converterService | /img_info | WA: [Preview](assets/images/screenshot-wa-img_info.png) \| TG: [Preview](assets/images/screenshot-tele-img_info.png) |
-| /img | Image convert, resize, rotate, compress | converterService, image processor | /img to png | WA: [Preview](assets/images/screenshot-wa-img.png) \| TG: [Preview](assets/images/screenshot-tele-img.png) |
-| /hapusbg | Remove image background | converterService, remove.bg API | /hapusbg | WA: [Preview](assets/images/screenshot-wa-hapusbg.png) \| TG: [Preview](assets/images/screenshot-tele-hapusbg.png) |
-| /ss | Capture website screenshot | converterService, html-to-image engine | /ss https://example.com | WA: [Preview](assets/images/screenshot-wa-ss.png) \| TG: [Preview](assets/images/screenshot-tele-ss.png) |
-| /pdf_info | Full PDF tools guide | converterService | /pdf_info | WA: [Preview](assets/images/screenshot-wa-pdf_info.png) \| TG: [Preview](assets/images/screenshot-tele-pdf_info.png) |
-| /topdf | Convert document/media to PDF | converterService, CloudConvert | /topdf | WA: [Preview](assets/images/screenshot-wa-topdf.png) \| TG: [Preview](assets/images/screenshot-tele-topdf.png) |
-| /pdf | Compress, convert, rotate, extract, merge PDF | converterService, CloudConvert, PDF tools | /pdf compress | WA: [Preview](assets/images/screenshot-wa-pdf.png) \| TG: [Preview](assets/images/screenshot-tele-pdf.png) |
-| /sticker_info | Full sticker tools guide | stickerService | /sticker_info | WA: [Preview](assets/images/screenshot-wa-sticker_info.png) \| TG: [Preview](assets/images/screenshot-tele-sticker_info.png) |
-| /donate | Show support links and donation QR | donateService | /donate | WA: [Preview](assets/images/screenshot-wa-donate.png) \| TG: [Preview](assets/images/screenshot-tele-donate.png) |
-| /admin | Open admin command center | auth util, admin command module | /admin | WA: [Preview](assets/images/screenshot-wa-admin.png) \| TG: [Preview](assets/images/screenshot-tele-admin.png) |
-| /monitor | Run website status check manually | monitorService | /monitor | WA: [Preview](assets/images/screenshot-wa-monitor.png) \| TG: [Preview](assets/images/screenshot-tele-monitor.png) |
-| /stats | Show platform usage statistics | admin module, stats service | /stats | WA: [Preview](assets/images/screenshot-wa-stats.png) \| TG: [Preview](assets/images/screenshot-tele-stats.png) |
-| /cmd_usage | Show top command usage stats | admin module, log service | /cmd_usage | WA: [Preview](assets/images/screenshot-wa-cmd_usage.png) \| TG: [Preview](assets/images/screenshot-tele-cmd_usage.png) |
-| /ai_usage | Show AI usage stats by model | admin module, log service | /ai_usage | WA: [Preview](assets/images/screenshot-wa-ai_usage.png) \| TG: [Preview](assets/images/screenshot-tele-ai_usage.png) |
-| /broadcast | Send admin broadcast to users | admin module, WhatsApp/Telegram clients | /broadcast maintenance tonight | WA: [Preview](assets/images/screenshot-wa-broadcast.png) \| TG: [Preview](assets/images/screenshot-tele-broadcast.png) |
+| Command | Description | Library Used | Example Usage |
+|---|---|---|---|
+| /start | Start bot and show quick menu | Baileys, Telegraf | /start |
+| /info | Show command categories and bot info | Baileys, Telegraf | /info |
+| /ping | Check bot online status and system footer | Node.js os module | /ping |
+| /model_info | Show available AI models and aliases | OpenRouter, aiPreferenceService | /model_info |
+| /switch | Switch active AI model per user | OpenRouter, aiPreferenceService | /switch elephant |
+| /finance_info | Full finance command guide | financeService, Supabase | /finance_info |
+| /saldo | Show latest balance summary | financeService, Supabase | /saldo |
+| /catat | Record expense transaction | financeService, Supabase | /catat 25000 lunch |
+| /pemasukan | Record income transaction | financeService, Supabase | /pemasukan 150000 freelance |
+| /laporan_chart | Generate finance chart report | financeService, chart renderer | /laporan_chart |
+| /riwayat | Show paginated transaction history | financeService, Supabase | /riwayat 2 |
+| /edit | Edit transaction by id and field | financeService, Supabase | /edit 123e4567 nominal 30000 |
+| /hapus | Delete transaction with confirmation | financeService, Supabase | /hapus 123e4567 |
+| /research_info | Full reference search guide, including note that /jurnal can also search article references | researchService, axios | /research_info |
+| /buku | Search book references | Open Library API, axios | /buku clean code |
+| /jurnal | Search journal and article references | Crossref API, axios | /jurnal machine learning |
+| /artikel | Search scientific article references | OpenAlex API, axios | /artikel deep learning healthcare |
+| /downloader | Full media downloader guide | downloaderService | /downloader |
+| /cuaca | Show weather information by city | weatherService, external weather API | /cuaca bandung |
+| /sholat | Show prayer times by city | religionService, prayer time API | /sholat bandung |
+| /me | Show creator profile and links | aboutService | /me |
+| /img_info | Full image tools guide | converterService | /img_info |
+| /img | Image convert, resize, rotate, compress | converterService, image processor | /img to png |
+| /hapusbg | Remove image background | converterService, remove.bg API | /hapusbg |
+| /ss | Capture website screenshot | converterService, html-to-image engine | /ss https://example.com |
+| /pdf_info | Full PDF tools guide | converterService | /pdf_info |
+| /topdf | Convert document/media to PDF | converterService, CloudConvert | /topdf |
+| /pdf | Compress, convert, rotate, extract, merge PDF | converterService, CloudConvert, PDF tools | /pdf compress |
+| /sticker_info | Full sticker tools guide | stickerService | /sticker_info |
+| /donate | Show support links and donation QR | donateService | /donate |
+| /admin | Open admin command center | auth util, admin command module | /admin |
+| /monitor | Run website status check manually | monitorService | /monitor |
+| /stats | Show platform usage statistics | admin module, stats service | /stats |
+| /cmd_usage | Show top command usage stats | admin module, log service | /cmd_usage |
+| /ai_usage | Show AI usage stats by model | admin module, log service | /ai_usage |
+| /broadcast | Send admin broadcast to users | admin module, WhatsApp/Telegram clients | /broadcast maintenance tonight |
 
 ---
 
@@ -167,4 +167,5 @@ Some variables in `.env` used for monitoring modules and access rights include:
 - `MONITOR_URLS=https://example.com,https://example.com/health`
 
 *Note: The cron job for server health reports runs every morning (06:00, server time) and sends a message only when one or more monitored websites are down. If all websites are healthy, no alert message is sent.*
+
 

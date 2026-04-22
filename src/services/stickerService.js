@@ -16,8 +16,8 @@ function safeUnlinkSync(filePath) {
 
 function createExif(pack, author) {
   const metadata = {
-    'sticker-pack-id': 'com.yogabot.sticker',
-    'sticker-pack-name': String(pack || 'Yoga Bot'),
+    'sticker-pack-id': 'com.fuenzerbot.sticker',
+    'sticker-pack-name': String(pack || 'Fuenzer Bot'),
     'sticker-pack-publisher': String(author || 'Fuenzer Studio'),
     emojis: ['']
   };
@@ -63,7 +63,7 @@ async function createSticker(buffer, type = 'image') {
 
     const img = new webpmux.Image();
     await img.load(outputPath);
-    img.exif = createExif('Yoga Bot', 'Fuenzer Studio');
+    img.exif = createExif('Fuenzer Bot', 'Fuenzer Studio');
 
     return await img.save(null);
   } finally {

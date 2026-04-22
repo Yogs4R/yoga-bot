@@ -72,7 +72,7 @@ async function searchJournals(query) {
     const response = await axios.get(url, {
       timeout: 15000,
       headers: {
-        'User-Agent': 'YogaBot/1.0 (mailto:dedekculesrbx@gmail.com)'
+        'User-Agent': 'FuenzerBot/1.0 (mailto:dedekculesrbx@gmail.com)'
       }
     });
 

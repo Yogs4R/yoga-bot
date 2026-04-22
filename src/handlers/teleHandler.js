@@ -283,7 +283,6 @@ function buildMainMenuKeyboard() {
     return Markup.inlineKeyboard([
         [Markup.button.callback('☕ Donate', 'cmd:donate')],
         [Markup.button.callback('💰 Finance Info', 'cmd:finance_info'), Markup.button.callback('⚙️ Info', 'cmd:info')],
-        [Markup.button.callback('🌤️ Cuaca', 'cmd:cuaca'), Markup.button.callback('🕌 Sholat', 'cmd:sholat')],
         [Markup.button.callback('👨‍💻 About Me', 'cmd:me'), Markup.button.callback('🏓 Ping', 'cmd:ping')],
         [Markup.button.callback('🖼️ Image Tools', 'cmd:img_info'), Markup.button.callback('📄 PDF Tools', 'cmd:pdf_info')],
         [Markup.button.callback('🤖 Model AI', 'cmd:model_info'), Markup.button.callback('🧩 Sticker Tools', 'cmd:sticker_info')],
@@ -853,7 +852,7 @@ async function sendHistoryPageMessage(ctx, userId, page = 1, useEdit = false) {
 async function processMenuCommand(ctx, command, userId) {
     switch (command) {
         case '/start': {
-            const welcomeHeader = '<b>SELAMAT DATANG DI YOGA BOT</b> 🤖';
+            const welcomeHeader = '<b>SELAMAT DATANG DI FUENZER BOT</b> 🤖';
             const welcomeBody = `Halo <b>${escapeHtml(ctx.from.first_name || 'Pengguna')}</b>! Saya asisten virtual pribadi.\n\nGunakan tombol di bawah untuk akses cepat fitur keuangan.`;
             await ctx.reply(`${welcomeHeader}\n\n${welcomeBody}`, {
                 parse_mode: 'HTML',
@@ -862,7 +861,7 @@ async function processMenuCommand(ctx, command, userId) {
             return;
         }
         case '/info': {
-            const header = '<b>INFORMASI YOGA BOT</b> 🤖';
+            const header = '<b>INFORMASI FUENZER BOT</b> 🤖';
             const body = `Saya adalah asisten virtual pribadi milik <b>Ridwan Yoga Suryantara</b>.\n\n<b>DUKUNGAN BOT</b> ☕\n• /donate : Link dukungan + QR donasi\n\n<b>FITUR KEUANGAN</b> 💰\n• /finance_info : Panduan Lengkap command keuangan\n\n<b>FITUR SISTEM</b> ⚙️\n• /ping : Cek status bot\n• /info : Menampilkan pesan ini\n• /start : Memulai bot\n\n<b>FITUR AI</b> 🧠\nKirim pesan biasa (tanpa awalan /) untuk ngobrol, tanya coding, atau diskusi teknologi.\n• /model_info : Daftar model AI yang tersedia\n• /switch : Ganti model AI aktif\n\n<b>FITUR UTILITAS</b> 🛠️\n• /short : Pendekkan URL dengan is.gd\n• /research_info : Panduan Lengkap Referensi (buku/jurnal/artikel)\n• /downloader : Panduan Lengkap download (/download & /audio)\n• /cuaca : Info cuaca hari ini\n• /sholat : Jadwal sholat hari ini\n• /me : Tentang pembuat bot\n\n<b>FITUR CONVERTER</b> 🖼️\n• /img_info : Panduan Lengkap image tools\n• /pdf_info : Panduan Lengkap PDF tools\n\n<b>FITUR STICKER</b> 🧩\n• /sticker_info : Panduan Lengkap sticker tools\n\n<b>FITUR ADMIN</b> 🛡️\n• /admin : Menu command admin`;
             const message = `${header}\n\n${body}\n\n${buildSystemStatsFooter()}`;
             await ctx.reply(message, {
@@ -894,7 +893,7 @@ async function processMenuCommand(ctx, command, userId) {
         }
         case '/finance_info': {
             const header = '<b>FINANCE TOOLS</b> 💰';
-            const body = `Panduan lengkap fitur keuangan Yoga Bot.\n\n<b>COMMAND INTI:</b>\n• /saldo : Lihat ringkasan saldo terbaru\n• /catat &lt;nominal&gt; &lt;keterangan&gt; : Catat pengeluaran\n• /pemasukan &lt;nominal&gt; &lt;keterangan&gt; : Catat pemasukan\n• /laporan_chart : Tampilkan grafik laporan\n• /riwayat [halaman] : Riwayat transaksi (paging 5 data)\n• /edit &lt;id&gt; &lt;field&gt; &lt;nilai&gt; : Ubah transaksi\n• /hapus &lt;id&gt; : Hapus transaksi (dengan konfirmasi)\n\n<b>CONTOH CEPAT:</b>\n• <code>/catat 25000 makan siang</code>\n• <code>/pemasukan 150000 freelance logo</code>\n• <code>/riwayat 2</code>\n• <code>/edit 123e4567 nominal 30000</code>\n• <code>/hapus 123e4567</code>\n\n<b>TIPS:</b>\n• Gunakan /riwayat untuk ambil ID transaksi sebelum /edit atau /hapus\n• Tulisan nominal tanpa titik/koma agar lebih aman diproses`;
+            const body = `Panduan lengkap fitur keuangan Fuenzer Bot.\n\n<b>COMMAND INTI:</b>\n• /saldo : Lihat ringkasan saldo terbaru\n• /catat &lt;nominal&gt; &lt;keterangan&gt; : Catat pengeluaran\n• /pemasukan &lt;nominal&gt; &lt;keterangan&gt; : Catat pemasukan\n• /laporan_chart : Tampilkan grafik laporan\n• /riwayat [halaman] : Riwayat transaksi (paging 5 data)\n• /edit &lt;id&gt; &lt;field&gt; &lt;nilai&gt; : Ubah transaksi\n• /hapus &lt;id&gt; : Hapus transaksi (dengan konfirmasi)\n\n<b>CONTOH CEPAT:</b>\n• <code>/catat 25000 makan siang</code>\n• <code>/pemasukan 150000 freelance logo</code>\n• <code>/riwayat 2</code>\n• <code>/edit 123e4567 nominal 30000</code>\n• <code>/hapus 123e4567</code>\n\n<b>TIPS:</b>\n• Gunakan /riwayat untuk ambil ID transaksi sebelum /edit atau /hapus\n• Tulisan nominal tanpa titik/koma agar lebih aman diproses`;
             await ctx.reply(`${header}\n\n${body}`, { parse_mode: 'HTML' });
             return;
         }

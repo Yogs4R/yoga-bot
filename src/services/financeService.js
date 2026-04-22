@@ -72,10 +72,10 @@ function formatHistoryText(records, page, pageSize, totalCount) {
 
   const totalPages = Math.max(1, Math.ceil((totalCount || records.length) / pageSize));
   const header = '> *RIWAYAT TRANSAKSI* 📜';
-  const body = `\n\n${transactions.join('\n\n')}\n\n`;
-  const footer = `\nHalaman ${page}/${totalPages} • Menampilkan ${records.length} dari ${totalCount || records.length} transaksi. \nGunakan \`/hapus <id8>\` untuk menghapus atau \`/edit <id8> <jumlah> <deskripsi>\` untuk mengedit.`;
+  const body = transactions.join('\n\n');
+  const footer = `Halaman ${page}/${totalPages} • Menampilkan ${records.length} dari ${totalCount || records.length} transaksi.\nGunakan \`/hapus <id8>\` untuk menghapus atau \`/edit <id8> <jumlah> <deskripsi>\` untuk mengedit.`;
 
-  return `${header}\n\n${body}${footer}`;
+  return `${header}\n\n${body}\n\n${footer}`;
 }
 
 async function getHistoryPage(userId, page = 1, pageSize = 5) {
@@ -190,9 +190,9 @@ async function deleteTransaction(userId, transactionId) {
       `ID: \`${shortId}\``,
       'Status: Berhasil dihapus'
     ]);
-    const footer = `\nTransaksi telah dihapus dari catatan keuangan.`;
+    const footer = 'Transaksi telah dihapus dari catatan keuangan.';
     
-    return `${header}\n\n${body}${footer}`;
+    return `${header}\n\n${body}\n\n${footer}`;
   } catch (error) {
     console.error('Unexpected error in deleteTransaction:', error);
     const header = '> *ERROR SISTEM* ❌';
@@ -259,9 +259,9 @@ async function editTransaction(userId, transactionId, newAmount, newDescription)
       `Jumlah: ${formatRupiah(updated.amount)}`,
       `Deskripsi: ${updated.description}`
     ]);
-    const footer = `\nTransaksi berhasil diperbarui. Gunakan \`/riwayat\` untuk melihat perubahan.`;
+    const footer = 'Transaksi berhasil diperbarui. Gunakan \`/riwayat\` untuk melihat perubahan.';
     
-    return `${header}\n\n${body}${footer}`;
+    return `${header}\n\n${body}\n\n${footer}`;
   } catch (error) {
     console.error('Unexpected error in editTransaction:', error);
     const header = '> *ERROR SISTEM* ❌';
@@ -303,9 +303,9 @@ async function checkSaldo(userId) {
       `Saldo: ${formatRupiah(total)}`,
       `Status: ${total >= 0 ? 'Aman Bro!' : 'Hati-hati minus!'}`
     ]);
-    const footer = `\nGunakan \`/catat <jumlah> <deskripsi>\` untuk mencatat pengeluaran atau \`/pemasukan <jumlah> <deskripsi>\` untuk mencatat pemasukan.`;
+    const footer = 'Gunakan \`/catat <jumlah> <deskripsi>\` untuk mencatat pengeluaran atau \`/pemasukan <jumlah> <deskripsi>\` untuk mencatat pemasukan.';
     
-    return `${header}\n\n${body}${footer}`;
+    return `${header}\n\n${body}\n\n${footer}`;
   } catch (error) {
     console.error('Unexpected error in checkSaldo:', error);
     const header = '> *ERROR SISTEM* ❌';
@@ -352,9 +352,9 @@ async function addTransaction(userId, amount, type, description, platform) {
       `Deskripsi: ${description}`,
       `Platform: ${platform}`
     ]);
-    const footer = `\nTransaksi telah tercatat dengan baik. Gunakan \`/saldo\` untuk melihat saldo terkini.`;
+    const footer = 'Transaksi telah tercatat dengan baik. Gunakan \`/saldo\` untuk melihat saldo terkini.';
     
-    return `${header}\n\n${body}${footer}`;
+    return `${header}\n\n${body}\n\n${footer}`;
   } catch (error) {
     console.error('Unexpected error in addTransaction:', error);
     const header = '> *ERROR SISTEM* ❌';
@@ -427,8 +427,8 @@ async function getFinanceChart(userId) {
       'Pemasukan': formatRupiah(totalIn),
       'Pengeluaran': formatRupiah(totalOut)
     });
-    const footer = '\nTetap hemat dan bijak mengatur keuangan ya!';
-    const captionText = `${header}\n\n${body}${footer}`;
+    const footer = 'Tetap hemat dan bijak mengatur keuangan ya!';
+    const captionText = `${header}\n\n${body}\n\n${footer}`;
 
     return {
       type: 'image',

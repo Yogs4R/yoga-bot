@@ -182,7 +182,7 @@ function buildWhatsAppModelInfoMessage() {
   };
 
   return [
-    '> 🤖 DAFTAR MODEL AI YOGA BOT',
+    '> 🤖 DAFTAR MODEL AI FUENZER BOT',
     'Ketik /switch <alias> untuk mengganti "otak" AI.',
     '',
     '*DEFAULT MODEL (Bawaan)*',
@@ -218,7 +218,7 @@ function buildTelegramModelInfoMessage() {
   };
 
   return [
-    '<b>🤖 DAFTAR MODEL AI YOGA BOT</b>',
+    '<b>🤖 DAFTAR MODEL AI FUENZER BOT</b>',
     'Ketik <code>/switch &lt;alias&gt;</code> untuk mengganti "otak" AI.',
     '',
     '<b>DEFAULT MODEL (Bawaan)</b>',

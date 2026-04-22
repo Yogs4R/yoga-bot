@@ -5,11 +5,11 @@ const KOFI_URL = 'https://ko-fi.com/fuenzer';
 
 function buildDonateMessage(platform = 'whatsapp') {
     if (platform === 'telegram') {
-        return `<b>☕ DUKUNG YOGA BOT</b>
+    return `<b>☕ DUKUNG FUENZER BOT</b>
 
-Halo! Senang rasanya Yoga Bot bisa membantumu. 🤖✨
+Halo! Senang rasanya Fuenzer Bot bisa membantumu. 🤖✨
 
-Yoga Bot berjalan 24/7 di server cloud menggunakan model AI canggih yang membutuhkan biaya operasional bulanan. Jika kamu merasa terbantu, kamu bisa mendukung Fuenzer Studio melalui:
+Fuenzer Bot berjalan 24/7 di server cloud menggunakan model AI canggih yang membutuhkan biaya operasional bulanan. Jika kamu merasa terbantu, kamu bisa mendukung Fuenzer Studio melalui:
 
 🇮🇩 <b>Untuk Pengguna Indonesia (QRIS, GoPay, OVO, dll):</b>
 🔗 ${SAWERIA_URL}
@@ -20,11 +20,11 @@ Yoga Bot berjalan 24/7 di server cloud menggunakan model AI canggih yang membutu
 Dukunganmu menjaga bot ini tetap hidup. Terima kasih! ❤️`;
     }
 
-    return `> ☕ DUKUNG YOGA BOT
+    return `> ☕ DUKUNG FUENZER BOT
 
-Halo! Senang rasanya Yoga Bot bisa membantumu. 🤖✨
+Halo! Senang rasanya Fuenzer Bot bisa membantumu. 🤖✨
 
-Yoga Bot berjalan 24/7 di server cloud menggunakan model AI canggih yang membutuhkan biaya operasional bulanan. Jika kamu merasa terbantu, kamu bisa mendukung Fuenzer Studio melalui:
+Fuenzer Bot berjalan 24/7 di server cloud menggunakan model AI canggih yang membutuhkan biaya operasional bulanan. Jika kamu merasa terbantu, kamu bisa mendukung Fuenzer Studio melalui:
 
 🇮🇩 *Untuk Pengguna Indonesia (QRIS, GoPay, OVO, dll):*
 🔗 ${SAWERIA_URL}

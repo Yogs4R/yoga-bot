@@ -1,4 +1,4 @@
-name: Deploy Yoga Bot
+name: Deploy Fuenzer Bot
 
 on:
   push:
@@ -18,7 +18,7 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSH_KEY }}
           script: |
-            cd ~/yoga-bot
+            cd ~/fuenzer-bot
             
             # Get the latest code from the main branch
             git fetch origin
@@ -30,4 +30,4 @@ jobs:
             npm install
             
             # Restart bot
-            pm2 restart yogabot || pm2 start src/index.js --name yogabot
+            pm2 restart fuenzerbot || pm2 start src/index.js --name fuenzerbot
