@@ -11,23 +11,27 @@
     {
       "title": "Maintenance & Refactor",
       "labels": ["maintenance"]
+    },
+    {
+      "title": "Documentation",
+      "labels": ["documentation"]
     }
   ],
   "label_extractors": [
     {
-      "pattern": "^feat.*:",
+      "pattern": "(?i)^feat(?:\\([^)]*\\))?!?:\\s.*",
       "target": "feature"
     },
     {
-      "pattern": "^fix.*:",
+      "pattern": "(?i)^fix(?:\\([^)]*\\))?!?:\\s.*",
       "target": "bug"
     },
     {
-      "pattern": "^refactor.*:|^chore.*:",
+      "pattern": "(?i)^(?:refactor|chore)(?:\\([^)]*\\))?!?:\\s.*",
       "target": "maintenance"
     },
     {
-      "pattern": "^docs.*:|^Merge.*|Add files via upload",
+      "pattern": "(?i)^(?:docs(?:\\([^)]*\\))?!?:\\s.*|merge\\b.*|add files via upload.*)",
       "target": "documentation"
     }
   ],
