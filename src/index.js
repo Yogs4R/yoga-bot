@@ -71,6 +71,55 @@ function stopWhatsAppBot() {
 async function main() {
     // TODO: Initialize other clients, services, handlers, and jobs
     
+    // Start Webhook Server untuk Release GitHub Actions
+    const app = require('express')();
+    app.use(require('express').json());
+
+    app.post('/webhook-release', async (req, res) => {
+        const { version, changelog, secret } = req.body;
+
+        // Validasi keamanan
+        if (secret !== process.env.AUTO_BROADCAST_RELEASE) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        // Susun pesan broadcast
+        const messageText = `🚀 *NEW RELEASE: ${version || 'Unknown'}* 🚀\n\n*Changelog:*\n${changelog || '- No changelog provided'}`;
+        const broadcastArgs = messageText.split(' ');
+        const { handleAdminCommand } = require('./commands/admin/index');
+
+        // Broadcast ke WhatsApp (jika bot WA aktif)
+        if (waSocket) {
+            handleAdminCommand('/broadcast', broadcastArgs, 'system', 'whatsapp', {
+                notifyAdmin: async (msg) => console.log('[Webhook Broadcast WA] ' + msg),
+                sendToUser: async (targetId, text) => {
+                    const jid = targetId.includes('@s.whatsapp.net') ? targetId : `${targetId}@s.whatsapp.net`;
+                    await waSocket.sendMessage(jid, { text });
+                }
+            }).catch(err => console.error('[Webhook WA Error]', err));
+        }
+
+        // Broadcast ke Telegram (jika bot Tele aktif)
+        if (process.env.TELEGRAM_BOT_TOKEN && telegramBot) {
+            handleAdminCommand('/broadcast', broadcastArgs, 'system', 'telegram', {
+                notifyAdmin: async (msg) => console.log('[Webhook Broadcast Tele] ' + msg),
+                sendToUser: async (targetId, text) => {
+                    const chatId = Number(targetId);
+                    if (Number.isFinite(chatId)) {
+                        await telegramBot.telegram.sendMessage(chatId, String(text));
+                    }
+                }
+            }).catch(err => console.error('[Webhook Tele Error]', err));
+        }
+
+        res.status(200).json({ message: 'Broadcast triggered successfully' });
+    });
+
+    const PORT = process.env.PORT || 3000;
+    app.listen(PORT, () => {
+        console.log(`🚀 Webhook server is running on port ${PORT}`);
+    });
+
     // Start WhatsApp bot
     await startWhatsAppBot();
     
