@@ -49,7 +49,6 @@ Fuenzer Bot adalah asisten virtual mandiri yang berjalan secara paralel di Whats
   - [K. Rollback saat tag release salah](#k-rollback-saat-tag-release-salah)
 - [Skema Database Supabase](#skema-database-supabase)
 - [Cara Update Kode Lokal Tanpa Kehilangan Perubahan](#cara-update-kode-lokal-tanpa-kehilangan-perubahan)
-- [Mengatasi Loop Restart pada Nodemon](#mengatasi-loop-restart-pada-nodemon)
 
 ## Features
 
@@ -587,23 +586,3 @@ git pull origin main
 # 3. Kembalikan perubahan lokal yang disimpan
 git stash pop
 ```
-
----
-
-## Mengatasi Loop Restart pada Nodemon
-
-Jika Anda mengalami *looping restart* terus-menerus saat menjalankan bot via `npm run dev` (menggunakan `nodemon`), hal ini biasanya terjadi karena `nodemon` mendeteksi adanya perubahan file dari data yang digenerate oleh sistem di tengah-tengah runtime (seperti folder *session* bot, atau file log).
-
-Untuk mengatasinya, folder-folder tersebut harus di-ignore. Repositori ini sudah menyertakan file `nodemon.json` di root direktori untuk mengaturnya:
-
-```json
-{
-  "ignore": [
-    "auth/*",
-    "temp/*",
-    "*.log"
-  ]
-}
-```
-
-Jika Anda masih mengalami *looping*, pastikan file `nodemon.json` ini tidak terhapus secara tidak sengaja, atau penggunaannya tidak tertimpa oleh spesifikasi CLI yang Anda jalankan.

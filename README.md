@@ -49,7 +49,6 @@ Fuenzer Bot is a standalone virtual assistant that runs in parallel on WhatsApp 
   - [K. Rollback when release tag is wrong](#k-rollback-when-release-tag-is-wrong)
 - [Supabase Database Schema](#supabase-database-schema)
 - [Updating Local Code (Without Losing Changes)](#updating-local-code-without-losing-changes)
-- [Nodemon Auto-Restart Loop Fix](#nodemon-auto-restart-loop-fix)
 
 ## Features
 
@@ -587,23 +586,3 @@ git pull origin main
 # 3. Apply your stashed changes back
 git stash pop
 ```
-
----
-
-## Nodemon Auto-Restart Loop Fix
-
-If you experience an infinite restart loop when running the bot via `npm run dev` (using `nodemon`), it is usually because `nodemon` detects changes in runtime-generated files like session files or logs.
-
-To fix this, make sure `nodemon` ignores the directories where the bot saves session data and temporary files. This is already handled by `nodemon.json` at the root of the project:
-
-```json
-{
-  "ignore": [
-    "auth/*",
-    "temp/*",
-    "*.log"
-  ]
-}
-```
-
-If you still experience loops, ensure you haven't deleted this file or manually run `npm run dev` in a way that overrides the configuration.
