@@ -813,7 +813,6 @@ class WhatsAppHandler {
             break;
           }
 
-          case '/stats':
           case '/cmd_usage':
           case '/ai_usage': {
             if (!isAdmin(userId, 'whatsapp')) {

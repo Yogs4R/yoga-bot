@@ -37,7 +37,7 @@ const systemInstruction = `Kamu adalah Fuenzer Bot, asisten virtual pribadi mili
      - Converter PDF: /pdf_info, /topdf, /pdf
      - Sticker: /sticker_info, /tosticker
      - Donasi: /donate
-     - Admin: /admin, /monitor, /stats, /cmd_usage, /ai_usage, /broadcast
+     - Admin: /admin, /monitor, /cmd_usage, /ai_usage, /broadcast
   7. Beri tahu user bahwa command bot saat ini banyak menggunakan bahasa Indonesia.`;
 
 const generationConfig = {

@@ -1,5 +1,4 @@
 const { checkWebsites, formatMonitorMessage } = require('../../services/monitorService');
-const { getPlatformStats, formatStatsMessage } = require('../../services/statsService');
 const { getUniqueUsers } = require('../../services/broadcastService');
 const supabase = require('../../lib/supabaseClient');
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -127,7 +126,6 @@ async function handleAdminCommand(command, args, userId, platform, options = {})
           '📋 *FITUR ADMIN* 🛡️',
           '- \`/admin\` : Tampilkan menu command admin',
           '- \`/monitor\` : Cek status website',
-          '- \`/stats\` : Statistik platform kreator',
           '- \`/cmd_usage\` : Statistik penggunaan bot',
           '- \`/ai_usage\` : Statistik penggunaan token AI',
           '- \`/broadcast\` : Kirim pesan ke semua pengguna'
@@ -141,7 +139,6 @@ async function handleAdminCommand(command, args, userId, platform, options = {})
         '<b>FITUR ADMIN</b> 🛡️',
         '• /admin : Tampilkan menu command admin',
         '• /monitor : Cek status website',
-        '• /stats : Statistik platform kreator',
         '• /cmd_usage : Statistik penggunaan bot',
         '• /ai_usage : Statistik penggunaan token AI',
         '• /broadcast : Kirim pesan ke semua pengguna'
@@ -193,18 +190,6 @@ async function handleAdminCommand(command, args, userId, platform, options = {})
     case '/monitor': {
       const { results } = await checkWebsites();
       return formatMonitorMessage(results, null, platformName);
-    }
-
-    case '/stats': {
-      const statsResult = await getPlatformStats();
-
-      if (!statsResult.success) {
-        const errorHeader = isWhatsApp ? '> *ERROR STATISTIK* ❌' : '<b>ERROR STATISTIK</b> ❌';
-        const errorBody = `Gagal mengambil data statistik: ${statsResult.error}`;
-        return `${errorHeader}\n\n${errorBody}`;
-      }
-
-      return formatStatsMessage(statsResult.data, platformName);
     }
 
     case '/cmd_usage': {

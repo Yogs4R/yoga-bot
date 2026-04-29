@@ -292,7 +292,7 @@ function buildMainMenuKeyboard() {
 
 function buildAdminMenuKeyboard() {
     return Markup.inlineKeyboard([
-        [Markup.button.callback('📡 Monitor', 'admin:monitor'), Markup.button.callback('📊 Statistik', 'admin:stats')],
+        [Markup.button.callback('📡 Monitor', 'admin:monitor')],
            [Markup.button.callback('🧾 Cmd Usage', 'admin:cmd_usage'), Markup.button.callback('🤖 AI Usage', 'admin:ai_usage')],
            [Markup.button.callback('📣 Broadcast', 'admin:broadcast')]
     ]);
@@ -1193,7 +1193,6 @@ function setupTelegramBot() {
                     break;
                 }
 
-                case '/stats':
                 case '/cmd_usage':
                 case '/ai_usage': {
                     try {
@@ -1751,7 +1750,7 @@ function setupTelegramBot() {
                 return;
             }
 
-            if (data === 'admin:stats' || data === 'admin:cmd_usage' || data === 'admin:ai_usage') {
+            if (data === 'admin:cmd_usage' || data === 'admin:ai_usage') {
                 await ctx.answerCbQuery();
 
                 if (!isAdmin(userId, 'telegram')) {
@@ -1759,11 +1758,9 @@ function setupTelegramBot() {
                     return;
                 }
 
-                const adminCommand = data === 'admin:stats'
-                    ? '/stats'
-                    : data === 'admin:ai_usage'
-                        ? '/ai_usage'
-                        : '/cmd_usage';
+                const adminCommand = data === 'admin:ai_usage'
+                    ? '/ai_usage'
+                    : '/cmd_usage';
                 await logCommand(userId, 'telegram', adminCommand);
                 const replyText = await handleAdminCommand(adminCommand, [], userId, 'telegram');
                 await sendTelegramReply(ctx, replyText);
