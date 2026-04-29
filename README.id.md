@@ -36,15 +36,20 @@ Fuenzer Bot adalah asisten virtual mandiri yang berjalan secara paralel di Whats
 - [Configuration](#configuration)
 - [Tutorial Deploy di VM (Dari Nol Sampai PM2 Start)](#tutorial-deploy-di-vm-dari-nol-sampai-pm2-start)
 - [Tutorial CI/CD dan Auto Release (Step by Step)](#tutorial-cicd-dan-auto-release-step-by-step)
-- [A. Struktur file yang wajib ada](#a-struktur-file-yang-wajib-ada)
-- [B. Contoh changelog-config.json](#b-contoh-changelog-configjson)
-- [C. Contoh workflow auto-release.yml](#c-contoh-workflow-auto-releaseyml)
-- [D. Aturan format commit agar masuk changelog](#d-aturan-format-commit-agar-masuk-changelog)
-- [E. Cara trigger auto release](#e-cara-trigger-auto-release)
-- [F. Error umum dan solusinya](#f-error-umum-dan-solusinya)
-- [G. Checklist cepat setelah clone repo](#g-checklist-cepat-setelah-clone-repo)
-- [H. Smoke Test CI/CD (Copy-Paste untuk rilis pertama)](#h-smoke-test-cicd-copy-paste-untuk-rilis-pertama)
-- [I. Rollback saat tag release salah](#i-rollback-saat-tag-release-salah)
+  - [A. Setup Secrets Repo & Variables GitHub](#a-setup-secrets-repo--variables-github)
+  - [B. Setup Firewall untuk Auto Broadcast Webhook](#b-setup-firewall-untuk-auto-broadcast-webhook)
+  - [C. Struktur file yang wajib ada](#c-struktur-file-yang-wajib-ada)
+  - [D. Contoh changelog-config.json](#d-contoh-changelog-configjson)
+  - [E. Contoh workflow auto-release.yml](#e-contoh-workflow-auto-releaseyml)
+  - [F. Aturan format commit agar masuk changelog](#f-aturan-format-commit-agar-masuk-changelog)
+  - [G. Cara trigger auto release](#g-cara-trigger-auto-release)
+  - [H. Error umum dan solusinya](#h-error-umum-dan-solusinya)
+  - [I. Checklist cepat setelah clone repo](#i-checklist-cepat-setelah-clone-repo)
+  - [J. Smoke Test CI/CD (Copy-Paste untuk rilis pertama)](#j-smoke-test-cicd-copy-paste-untuk-rilis-pertama)
+  - [K. Rollback saat tag release salah](#k-rollback-saat-tag-release-salah)
+- [Skema Database Supabase](#skema-database-supabase)
+- [Cara Update Kode Lokal Tanpa Kehilangan Perubahan](#cara-update-kode-lokal-tanpa-kehilangan-perubahan)
+- [Mengatasi Loop Restart pada Nodemon](#mengatasi-loop-restart-pada-nodemon)
 
 ## Features
 
@@ -92,7 +97,7 @@ Infrastruktur backend yang andal dengan dukungan monitoring:
 - Pemantauan metrik perangkat keras (CPU, RAM, dan Uptime).
 - Pemantauan uptime website reguler.
 - Command Usage Tracker untuk melaporkan statistik top tier pengguna dan perintah terpopuler.
-- Pusat command admin untuk monitor, statistik penggunaan, dan broadcast.
+- Pusat command admin untuk monitor, statistik command/AI, dan broadcast.
 - Cron job monitor akan mengirim notifikasi hanya jika ada website yang down.
 
 ### 🛠️ Daily Utilities
@@ -140,7 +145,6 @@ Layanan pendamping yang bermanfaat:
 | /donate | Tampilkan link dukungan dan QR donasi | donateService | /donate |
 | /admin | Buka pusat command admin | auth util, modul admin | /admin |
 | /monitor | Jalankan cek status website manual | monitorService | /monitor |
-| /stats | Tampilkan statistik penggunaan platform | modul admin, stats service | /stats |
 | /cmd_usage | Tampilkan statistik command terpopuler | modul admin, log service | /cmd_usage |
 | /ai_usage | Tampilkan statistik penggunaan AI per model | modul admin, log service | /ai_usage |
 | /broadcast | Kirim broadcast admin ke pengguna | modul admin, WhatsApp/Telegram clients | /broadcast maintenance malam ini |
@@ -282,12 +286,31 @@ pm2 logs fuenzer-bot --lines 200
 
 Bagian ini penting untuk yang baru clone repo agar tidak bingung saat GitHub Actions gagal.
 
-### A. Struktur file yang wajib ada
+### A. Setup Secrets Repo & Variables GitHub
+Agar CI/CD dapat bekerja dan fitur auto broadcast release berjalan, buat repository secrets dan variables di GitHub repo Anda (`Settings > Secrets and variables > Actions > New repository secret`):
+- `HOST`: IP VM Anda (digunakan untuk auto-deploy SSH, opsional bila ada workflow deploy).
+- `USERNAME`: Username remote akses VM Anda (contoh: `my_vm`).
+- `SSH_KEY`: Private SSH Key untuk autentikasi deploy otomatis dari GitHub ke VM Anda.
+- `VM_IP`: Alamat IP VM Anda (digunakan sebagai alamat target hit webhook auto-broadcast).
+- `AUTO_BROADCAST_RELEASE`: Password secret webhook yang harus sama dengan yang Anda tulis di dalam `.env` VM Anda.
+
+### B. Setup Firewall untuk Auto Broadcast Webhook
+Pastikan server (VM) telah membuka port TCP `3000` (atau PORT env server Anda) agar Webhook otomatis GitHub Actions bisa berkomunikasi.
+
+1. Masuk ke terminal SSH VM Anda.
+2. Jalankan perintah di bawah untuk mengizinkan port `3000` via UFW:
+   ```bash
+   sudo ufw allow 3000/tcp
+   sudo ufw reload
+   sudo ufw status
+   ```
+
+### C. Struktur file yang wajib ada
 
 1. Workflow release di `.github/workflows/auto-release.yml`
 2. Konfigurasi changelog di `.github/changelog-config.json`
 
-### B. Contoh `changelog-config.json`
+### D. Contoh `changelog-config.json`
 
 Pastikan target di `label_extractors` sama persis dengan label di `categories`.
 
@@ -336,7 +359,7 @@ Pastikan target di `label_extractors` sama persis dengan label di `categories`.
 }
 ```
 
-### C. Contoh workflow `auto-release.yml`
+### E. Contoh workflow `auto-release.yml`
 
 ```yaml
 name: Auto Release
@@ -376,7 +399,7 @@ jobs:
           prerelease: false
 ```
 
-### D. Aturan format commit agar masuk changelog
+### F. Aturan format commit agar masuk changelog
 
 Gunakan awalan commit message berikut:
 - `feat: tambah command baru`
@@ -385,7 +408,7 @@ Gunakan awalan commit message berikut:
 - `refactor: rapikan handler`
 - `docs: update README` (akan di-ignore jika `documentation` ada di `ignore_labels`)
 
-### E. Cara trigger auto release
+### G. Cara trigger auto release
 
 1. Commit dan push ke branch utama
 ```bash
@@ -402,7 +425,7 @@ git push origin v1.0.6
 
 3. Cek tab Actions dan Releases di GitHub
 
-### F. Error umum dan solusinya
+### H. Error umum dan solusinya
 
 1. `CHANGELOG kosong`
 - Pastikan ada commit baru sejak tag sebelumnya.
@@ -423,13 +446,13 @@ git push origin v1.0.6
 5. Error karena file config tidak ditemukan
 - Pastikan path benar: `.github/changelog-config.json`
 
-### G. Checklist cepat setelah clone repo
+### I. Checklist cepat setelah clone repo
 
 1. Pastikan folder `.github/workflows` dan file `.github/changelog-config.json` ikut ter-clone.
 2. Pastikan commit message mengikuti pola yang didukung.
 3. Pastikan release dipicu lewat push tag `v*`.
 
-### H. Smoke Test CI/CD (Copy-Paste untuk rilis pertama)
+### J. Smoke Test CI/CD (Copy-Paste untuk rilis pertama)
 
 Jalankan dari root repository. Ganti `v1.0.6` jika versi tersebut sudah dipakai.
 
@@ -464,7 +487,7 @@ Verifikasi di GitHub setelah command di atas:
 2. Tab Releases: release baru dengan judul tag (mis. `v1.0.6`).
 3. Isi release notes tidak kosong dan memuat commit `feat: smoke test auto release pipeline`.
 
-### I. Rollback saat tag release salah
+### K. Rollback saat tag release salah
 
 Jika salah push tag (misalnya typo versi), hapus tag lokal dan remote lalu buat tag baru.
 
@@ -480,3 +503,107 @@ git push origin v1.0.7
 Catatan:
 1. Jika release `v1.0.6` sudah sempat terbentuk di tab Releases, hapus release tersebut juga dari GitHub UI agar rapi.
 2. Jangan re-use nama tag yang sama untuk commit berbeda.
+
+---
+
+## Skema Database Supabase
+
+Pastikan RLS (Row Level Security) menyala saat Anda membuat tabel-tabel di Supabase:
+
+```sql
+-- command_logs table:
+-- Menyimpan riwayat penggunaan command oleh user untuk keperluan statistik.
+CREATE TABLE command_logs (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    platform TEXT NOT NULL,
+    command TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- user_preferences table:
+-- Menyimpan preferensi pengguna, seperti model AI yang sedang aktif.
+CREATE TABLE user_preferences (
+    user_id TEXT PRIMARY KEY,
+    platform TEXT,
+    active_model TEXT DEFAULT 'openai/gpt-oss-120b',
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ai_logs table:
+-- Menyimpan log penggunaan AI, termasuk model yang dipakai dan jumlah token.
+CREATE TABLE ai_logs (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    platform TEXT NOT NULL,
+    model TEXT NOT NULL,
+    prompt TEXT,
+    input_tokens INT,
+    output_tokens INT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- api_quotas table:
+-- Mengatur limit dan melacak penggunaan kuota API pihak ketiga (removebg, cloudconvert, dll).
+CREATE TABLE public.api_quotas (
+  service text not null,
+  usage integer null default 0,
+  updated_at timestamp with time zone null default now(),
+  "limit" integer null default 50,
+  constraint api_quotas_pkey primary key (service)
+) TABLESPACE pg_default;
+
+-- Note: Untuk cloudconvert batas defaultnya diset berbeda
+UPDATE api_quotas SET "limit" = 10 WHERE service = 'cloudconvert';
+
+-- finance table:
+-- Menyimpan data catatan keuangan (pemasukan & pengeluaran) pengguna.
+CREATE TABLE public.finance (
+  id uuid not null default gen_random_uuid (),
+  user_id text null,
+  amount bigint null,
+  type text null,
+  description text null,
+  created_at timestamp with time zone null default now(),
+  platform text null,
+  updated_at timestamp with time zone null,
+  constraint finance_pkey primary key (id)
+) TABLESPACE pg_default;
+```
+
+---
+
+## Cara Update Kode Lokal Tanpa Kehilangan Perubahan
+
+Jika Anda (atau kolaborator) telah memodifikasi kode secara lokal dan ingin mengambil update terbaru dari repositori tanpa menghilangkan modifikasi tersebut, gunakan kombinasi perintah git berikut:
+
+```bash
+# 1. Simpan perubahan lokal Anda sementara
+git stash
+
+# 2. Ambil update terbaru dari repository
+git pull origin main
+
+# 3. Kembalikan perubahan lokal yang disimpan
+git stash pop
+```
+
+---
+
+## Mengatasi Loop Restart pada Nodemon
+
+Jika Anda mengalami *looping restart* terus-menerus saat menjalankan bot via `npm run dev` (menggunakan `nodemon`), hal ini biasanya terjadi karena `nodemon` mendeteksi adanya perubahan file dari data yang digenerate oleh sistem di tengah-tengah runtime (seperti folder *session* bot, atau file log).
+
+Untuk mengatasinya, folder-folder tersebut harus di-ignore. Repositori ini sudah menyertakan file `nodemon.json` di root direktori untuk mengaturnya:
+
+```json
+{
+  "ignore": [
+    "auth/*",
+    "temp/*",
+    "*.log"
+  ]
+}
+```
+
+Jika Anda masih mengalami *looping*, pastikan file `nodemon.json` ini tidak terhapus secara tidak sengaja, atau penggunaannya tidak tertimpa oleh spesifikasi CLI yang Anda jalankan.

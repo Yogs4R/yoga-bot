@@ -292,9 +292,8 @@ function buildMainMenuKeyboard() {
 
 function buildAdminMenuKeyboard() {
     return Markup.inlineKeyboard([
-        [Markup.button.callback('📡 Monitor', 'admin:monitor')],
-           [Markup.button.callback('🧾 Cmd Usage', 'admin:cmd_usage'), Markup.button.callback('🤖 AI Usage', 'admin:ai_usage')],
-           [Markup.button.callback('📣 Broadcast', 'admin:broadcast')]
+        [Markup.button.callback('📡 Monitor', 'admin:monitor'), Markup.button.callback('📣 Broadcast', 'admin:broadcast')],
+        [Markup.button.callback('🧾 Cmd Usage', 'admin:cmd_usage'), Markup.button.callback('🤖 AI Usage', 'admin:ai_usage')],
     ]);
 }
 

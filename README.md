@@ -36,15 +36,20 @@ Fuenzer Bot is a standalone virtual assistant that runs in parallel on WhatsApp 
 - [Configuration](#configuration)
 - [VM Deployment Tutorial (From Scratch to PM2 Start)](#vm-deployment-tutorial-from-scratch-to-pm2-start)
 - [CI/CD and Auto Release Tutorial (Step by Step)](#cicd-and-auto-release-tutorial-step-by-step)
-- [A. Required file structure](#a-required-file-structure)
-- [B. Example changelog-config.json](#b-example-changelog-configjson)
-- [C. Example auto-release.yml](#c-example-auto-releaseyml)
-- [D. Commit message format rules for changelog](#d-commit-message-format-rules-for-changelog)
-- [E. How to trigger auto release](#e-how-to-trigger-auto-release)
-- [F. Common errors and fixes](#f-common-errors-and-fixes)
-- [G. Quick checklist after cloning this repo](#g-quick-checklist-after-cloning-this-repo)
-- [H. CI/CD Smoke Test (Copy-Paste for first release)](#h-cicd-smoke-test-copy-paste-for-first-release)
-- [I. Rollback when release tag is wrong](#i-rollback-when-release-tag-is-wrong)
+  - [A. Setup Repository Secrets & Variables](#a-setup-repository-secrets--variables)
+  - [B. Setup Firewall for Auto Broadcast Webhook](#b-setup-firewall-for-auto-broadcast-webhook)
+  - [C. Required file structure](#c-required-file-structure)
+  - [D. Example changelog-config.json](#d-example-changelog-configjson)
+  - [E. Example auto-release.yml](#e-example-auto-releaseyml)
+  - [F. Commit message format rules for changelog](#f-commit-message-format-rules-for-changelog)
+  - [G. How to trigger auto release](#g-how-to-trigger-auto-release)
+  - [H. Common errors and fixes](#h-common-errors-and-fixes)
+  - [I. Quick checklist after cloning this repo](#i-quick-checklist-after-cloning-this-repo)
+  - [J. CI/CD Smoke Test (Copy-Paste for first release)](#j-cicd-smoke-test-copy-paste-for-first-release)
+  - [K. Rollback when release tag is wrong](#k-rollback-when-release-tag-is-wrong)
+- [Supabase Database Schema](#supabase-database-schema)
+- [Updating Local Code (Without Losing Changes)](#updating-local-code-without-losing-changes)
+- [Nodemon Auto-Restart Loop Fix](#nodemon-auto-restart-loop-fix)
 
 ## Features
 
@@ -92,7 +97,7 @@ Reliable backend infrastructure with monitoring support:
 - Hardware metrics monitoring (CPU, RAM, and Uptime).
 - Regular website uptime monitoring.
 - Command Usage Tracker to report top-tier user statistics and most popular commands.
-- Admin command center for monitor checks, usage stats, and broadcast tools.
+- Admin command center for monitor checks, usage tracker, and broadcast tools.
 - Monitor cron job sends notification only when any monitored website is down.
 
 ### 🛠️ Daily Utilities
@@ -140,7 +145,6 @@ Useful companion services:
 | /donate | Show support links and donation QR | donateService | /donate |
 | /admin | Open admin command center | auth util, admin command module | /admin |
 | /monitor | Run website status check manually | monitorService | /monitor |
-| /stats | Show platform usage statistics | admin module, stats service | /stats |
 | /cmd_usage | Show top command usage stats | admin module, log service | /cmd_usage |
 | /ai_usage | Show AI usage stats by model | admin module, log service | /ai_usage |
 | /broadcast | Send admin broadcast to users | admin module, WhatsApp/Telegram clients | /broadcast maintenance tonight |
@@ -282,12 +286,31 @@ pm2 logs fuenzer-bot --lines 200
 
 This section is important for people who clone this repository and wonder why GitHub Actions fails.
 
-### A. Required file structure
+### A. Setup Repository Secrets & Variables
+To enable CI/CD auto-deployment and the auto broadcast release feature, you need to configure Secrets in your GitHub Repository (`Settings > Secrets and variables > Actions > New repository secret`):
+- `HOST`: Your VM IP address (used for SSH deploy, optional but recommended).
+- `USERNAME`: Your VM SSH username (e.g., `my_vm`).
+- `SSH_KEY`: Your private SSH key for accessing the VM automatically.
+- `VM_IP`: Your VM IP (used as the webhook URL target).
+- `AUTO_BROADCAST_RELEASE`: The secret password you set in the `.env` file of your VM for the webhook endpoint security.
+
+### B. Setup Firewall for Auto Broadcast Webhook
+The auto-broadcast webhook endpoint runs on port `3000` by default. You must open this port in your VM internal firewall securely so GitHub Actions can reach it.
+
+1. SSH to your VM.
+2. Execute this command to allow port 3000 through the Ubuntu Uncomplicated Firewall (UFW):
+   ```bash
+   sudo ufw allow 3000/tcp
+   sudo ufw reload
+   sudo ufw status
+   ```
+
+### C. Required file structure
 
 1. Release workflow at `.github/workflows/auto-release.yml`
 2. Changelog config at `.github/changelog-config.json`
 
-### B. Example `changelog-config.json`
+### D. Example `changelog-config.json`
 
 Make sure `target` values in `label_extractors` exactly match labels in `categories`.
 
@@ -336,7 +359,7 @@ Make sure `target` values in `label_extractors` exactly match labels in `categor
 }
 ```
 
-### C. Example `auto-release.yml`
+### E. Example `auto-release.yml`
 
 ```yaml
 name: Auto Release
@@ -376,7 +399,7 @@ jobs:
           prerelease: false
 ```
 
-### D. Commit message format rules for changelog
+### F. Commit message format rules for changelog
 
 Use commit prefixes like:
 - `feat: add new command`
@@ -385,7 +408,7 @@ Use commit prefixes like:
 - `refactor: clean handler`
 - `docs: update README` (ignored if `documentation` is listed in `ignore_labels`)
 
-### E. How to trigger auto release
+### G. How to trigger auto release
 
 1. Commit and push to main branch
 ```bash
@@ -402,7 +425,7 @@ git push origin v1.0.6
 
 3. Check GitHub Actions and Releases tabs
 
-### F. Common errors and fixes
+### H. Common errors and fixes
 
 1. `Empty CHANGELOG`
 - Ensure there are new commits after the previous tag.
@@ -423,13 +446,13 @@ git push origin v1.0.6
 5. Config file not found error
 - Ensure path is correct: `.github/changelog-config.json`
 
-### G. Quick checklist after cloning this repo
+### I. Quick checklist after cloning this repo
 
 1. Ensure `.github/workflows` and `.github/changelog-config.json` are present after clone.
 2. Ensure commit messages follow supported patterns.
 3. Ensure release is triggered by pushing a `v*` tag.
 
-### H. CI/CD Smoke Test (Copy-Paste for first release)
+### J. CI/CD Smoke Test (Copy-Paste for first release)
 
 Run these commands from the repository root. Replace `v1.0.6` if that version already exists.
 
@@ -464,7 +487,7 @@ Verify in GitHub after running the commands above:
 2. Releases tab: new release appears with the tag title (for example `v1.0.6`).
 3. Release notes are not empty and include `feat: smoke test auto release pipeline`.
 
-### I. Rollback when release tag is wrong
+### K. Rollback when release tag is wrong
 
 If you pushed a wrong tag (for example version typo), delete local and remote tag, then create a new one.
 
@@ -480,3 +503,107 @@ git push origin v1.0.7
 Notes:
 1. If release `v1.0.6` was already created in the Releases tab, delete that release in GitHub UI too for cleanup.
 2. Do not reuse the same tag name for different commits.
+
+---
+
+## Supabase Database Schema
+
+Please make sure to have RLS (Row Level Security) enabled when creating these tables under your Supabase project.
+
+```sql
+-- command_logs table:
+-- Stores the command usage history by users for statistical purposes.
+CREATE TABLE command_logs (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    platform TEXT NOT NULL,
+    command TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- user_preferences table:
+-- Stores user preferences, such as their currently active AI model.
+CREATE TABLE user_preferences (
+    user_id TEXT PRIMARY KEY,
+    platform TEXT,
+    active_model TEXT DEFAULT 'openai/gpt-oss-120b',
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ai_logs table:
+-- Stores AI interaction logs, including the used model and token consumption.
+CREATE TABLE ai_logs (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    platform TEXT NOT NULL,
+    model TEXT NOT NULL,
+    prompt TEXT,
+    input_tokens INT,
+    output_tokens INT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- api_quotas table:
+-- Manages limits and tracks the usage of third-party API quotas (removebg, cloudconvert, etc.).
+CREATE TABLE public.api_quotas (
+  service text not null,
+  usage integer null default 0,
+  updated_at timestamp with time zone null default now(),
+  "limit" integer null default 50,
+  constraint api_quotas_pkey primary key (service)
+) TABLESPACE pg_default;
+
+-- Note: CloudConvert has a different limit
+UPDATE api_quotas SET "limit" = 10 WHERE service = 'cloudconvert';
+
+-- finance table:
+-- Stores users' financial records (income & expenses).
+CREATE TABLE public.finance (
+  id uuid not null default gen_random_uuid (),
+  user_id text null,
+  amount bigint null,
+  type text null,
+  description text null,
+  created_at timestamp with time zone null default now(),
+  platform text null,
+  updated_at timestamp with time zone null,
+  constraint finance_pkey primary key (id)
+) TABLESPACE pg_default;
+```
+
+---
+
+## Updating Local Code (Without Losing Changes)
+
+If you have modified the code locally and want to pull the latest updates from the repository without losing your changes, you can use the following git commands:
+
+```bash
+# 1. Stash your local changes
+git stash
+
+# 2. Pull the latest updates from the repository
+git pull origin main
+
+# 3. Apply your stashed changes back
+git stash pop
+```
+
+---
+
+## Nodemon Auto-Restart Loop Fix
+
+If you experience an infinite restart loop when running the bot via `npm run dev` (using `nodemon`), it is usually because `nodemon` detects changes in runtime-generated files like session files or logs.
+
+To fix this, make sure `nodemon` ignores the directories where the bot saves session data and temporary files. This is already handled by `nodemon.json` at the root of the project:
+
+```json
+{
+  "ignore": [
+    "auth/*",
+    "temp/*",
+    "*.log"
+  ]
+}
+```
+
+If you still experience loops, ensure you haven't deleted this file or manually run `npm run dev` in a way that overrides the configuration.
