@@ -101,6 +101,7 @@ Infrastruktur backend yang andal dengan dukungan monitoring:
 
 ### 🛠️ Daily Utilities
 Layanan pendamping yang bermanfaat:
+- Reminder & Cronjob (Pengingat harian/sekali jalan dengan opsi loop)
 - Pemeriksa jadwal sholat per kota
 - Pemeriksa kondisi cuaca per kota teraktual
 - Modul *About Me* portfolio kreator
@@ -125,6 +126,8 @@ Layanan pendamping yang bermanfaat:
 | /riwayat | Tampilkan riwayat transaksi berhalaman | financeService, Supabase | /riwayat 2 |
 | /edit | Ubah transaksi berdasarkan id dan field | financeService, Supabase | /edit 123e4567 nominal 30000 |
 | /hapus | Hapus transaksi dengan konfirmasi | financeService, Supabase | /hapus 123e4567 |
+| /remind_info | Panduan perintah reminder / pengingat | reminderService, node-cron | /remind_info |
+| /remind | Tambah teks pengingat, loop opsi, target waktu | reminderService, node-cron, Supabase | /remind "Meeting Tim" 10m loop |
 | /research_info | Panduan Lengkap pencarian Referensi, termasuk info bahwa /jurnal juga bisa mencari artikel | researchService, axios | /research_info |
 | /buku | Cari referensi buku | Open Library API, axios | /buku clean code |
 | /jurnal | Cari referensi jurnal dan artikel | Crossref API, axios | /jurnal machine learning |
@@ -182,11 +185,16 @@ npm start
 
 ## Configuration
 
-Beberapa variabel di `.env` yang digunakan untuk modul monitoring dan hak akses di antaranya:
+File `.env` berisi seluruh konfigurasi penting. Pastikan Anda menyalin `.env.example` menjadi `.env` dan mengisi nilainya dengan benar (tanpa kutip tambahan).
 
-- `ADMIN_WA_NUMBERS=6281234567890,6280987654321`
-- `ADMIN_TELE_IDS=123456789,987654321`
-- `MONITOR_URLS=https://example.com,https://example.com/health`
+**Penjelasan Konfigurasi Kunci:**
+- **WhatsApp**: `WA_SESSION_DIR` (Folder data auth), `WA_PHONE_NUMBER` (Nomor bot), `BOT_WA_LID` (ID LID khusus bot bila diperlukan).
+- **Telegram**: `TELEGRAM_BOT_TOKEN` dan `TELEGRAM_BOT_USERNAME` (Dari BotFather), serta `TELEGRAM_SESSION_DIR` (Folder session).
+- **Database (Supabase)**: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` (Role anon), `SUPABASE_SECRET_KEY` (Service role untuk bypass RLS bot admin).
+- **API AI**: `GEMINI_API_KEY` atau `OPENROUTER_API_KEY`.
+- **API Lainnya**: `OPENWEATHER_API_KEY` untuk info cuaca, `REMOVEBG_API_KEY`, `CLOUDCONVERT_API_KEY`, dan *HCTI* (ss web).
+- **Admin**: `ADMIN_WA_NUMBERS` dan `ADMIN_TELE_IDS` (Daftar ID yang dipisahkan koma untuk akses monitor & broadcast).
+- **Monitoring**: `MONITOR_URLS` (Web yang dicek oleh bot) dan `MONITOR_INTERVAL` (Jeda cek, misalnya 300000ms = 5 menit).
 
 *Catatan: Cron job laporan kesehatan server berjalan setiap pagi (06:00, zona waktu server) dan hanya mengirim pesan saat ada website monitor yang down. Jika semua website normal, pesan tidak akan dikirim.*
 
@@ -238,8 +246,8 @@ nano .env
 
 8. Isi variabel penting di `.env`
 - Telegram: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`
-- OpenRouter: `OPENROUTER_API_KEY`
-- Supabase: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+- OpenRouter/Gemini: `OPENROUTER_API_KEY`, `GEMINI_API_KEY`
+- Supabase: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`
 - CloudConvert: `CLOUDCONVERT_API_KEY`
 - RemoveBG: `REMOVEBG_API_KEY`
 - Cuaca: `OPENWEATHER_API_KEY`
@@ -309,94 +317,13 @@ Pastikan server (VM) telah membuka port TCP `3000` (atau PORT env server Anda) a
 1. Workflow release di `.github/workflows/auto-release.yml`
 2. Konfigurasi changelog di `.github/changelog-config.json`
 
-### D. Contoh `changelog-config.json`
+### D. Konfigurasi `changelog-config.json`
 
-Pastikan target di `label_extractors` sama persis dengan label di `categories`.
+File ini digunakan oleh *changelog builder* untuk mengkategorikan setiap commit (misal: `feat:`, `fix:`, atau `chore:`). Anda cukup memastikan tag pada commit diurutkan sesuai pola yang didaftarkan di dalam *label_extractors* sehingga hasil di GitHub Release lebih tertata per kategori.
 
-```json
-{
-  "categories": [
-    {
-      "title": "What's New",
-      "labels": ["feature"]
-    },
-    {
-      "title": "Bug Fixes",
-      "labels": ["bug"]
-    },
-    {
-      "title": "Maintenance & Refactor",
-      "labels": ["maintenance"]
-    },
-    {
-      "title": "Documentation",
-      "labels": ["documentation"]
-    }
-  ],
-  "label_extractors": [
-    {
-      "pattern": "(?i)^feat(?:\\([^)]*\\))?!?:\\s.*",
-      "target": "feature"
-    },
-    {
-      "pattern": "(?i)^fix(?:\\([^)]*\\))?!?:\\s.*",
-      "target": "bug"
-    },
-    {
-      "pattern": "(?i)^(?:refactor|chore)(?:\\([^)]*\\))?!?:\\s.*",
-      "target": "maintenance"
-    },
-    {
-      "pattern": "(?i)^(?:docs(?:\\([^)]*\\))?!?:\\s.*|merge\\b.*|add files via upload.*)",
-      "target": "documentation"
-    }
-  ],
-  "ignore_labels": [
-    "documentation"
-  ],
-  "template": "#{{CHANGELOG}}\\n\\n---\\n*Note: This changelog was automatically generated from commit messages.*"
-}
-```
+### E. Workflow `auto-release.yml`
 
-### E. Contoh workflow `auto-release.yml`
-
-```yaml
-name: Auto Release
-
-on:
-  push:
-    tags:
-      - 'v*'
-
-jobs:
-  build-and-release:
-    name: Create GitHub Release
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Build Changelog
-        id: build_changelog
-        uses: mikepenz/release-changelog-builder-action@v5
-        with:
-          configuration: ".github/changelog-config.json"
-          mode: "COMMIT"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
-        with:
-          body: ${{ steps.build_changelog.outputs.changelog }}
-          draft: false
-          prerelease: false
-```
+Workflow ini menggunakan `actions/checkout` untuk mengambil kode dan *changelog builder* Action. Pipeline akan dieksekusi setiap Anda melakukan **push tag dengan awalan "v"** (misalnya `v1.0.0`). Action kemudian secara otomatis merangkum pesan commit sejak versi sebelumnya menjadi draf Release dan memublikasikannya ke tab Releases di repository.
 
 ### F. Aturan format commit agar masuk changelog
 
@@ -568,6 +495,17 @@ CREATE TABLE public.finance (
   updated_at timestamp with time zone null,
   constraint finance_pkey primary key (id)
 ) TABLESPACE pg_default;
+
+-- reminders table:
+-- Menyimpan catatan pengingat dan loop dari fitur reminder.
+CREATE TABLE reminders (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  message TEXT NOT NULL,
+  trigger_time BIGINT NOT NULL,
+  is_loop BOOLEAN DEFAULT FALSE,
+  loop_interval BIGINT
+);
 ```
 
 ---
@@ -577,12 +515,16 @@ CREATE TABLE public.finance (
 Jika Anda (atau kolaborator) telah memodifikasi kode secara lokal dan ingin mengambil update terbaru dari repositori tanpa menghilangkan modifikasi tersebut, gunakan kombinasi perintah git berikut:
 
 ```bash
+# Opsi 1: Menggunakan Git Stash
 # 1. Simpan perubahan lokal Anda sementara
 git stash
-
 # 2. Ambil update terbaru dari repository
 git pull origin main
-
 # 3. Kembalikan perubahan lokal yang disimpan
 git stash pop
+
+# Opsi 2: Menggunakan Git Rebase Autostash (Satu baris)
+# Perintah ini secara otomatis menyimpan sementara (stash) perubahan Anda,
+# melakukan rebase terhadap commit terbaru, lalu mengembalikan (pop) modifikasi tersebut.
+git pull --rebase --autostash
 ```

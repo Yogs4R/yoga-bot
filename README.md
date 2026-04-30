@@ -101,6 +101,7 @@ Reliable backend infrastructure with monitoring support:
 
 ### 🛠️ Daily Utilities
 Useful companion services:
+- Reminder & Cronjob (Daily/One-time reminder with loop options)
 - Prayer times checker per city
 - Real-time weather condition checker per city
 - *About Me* creator portfolio module
@@ -125,6 +126,8 @@ Useful companion services:
 | /riwayat | Show paginated transaction history | financeService, Supabase | /riwayat 2 |
 | /edit | Edit transaction by id and field | financeService, Supabase | /edit 123e4567 nominal 30000 |
 | /hapus | Delete transaction with confirmation | financeService, Supabase | /hapus 123e4567 |
+| /remind_info | Full reminder command guide | reminderService, node-cron | /remind_info |
+| /remind | Add reminder message, loop option, target time | reminderService, node-cron, Supabase | /remind "Team Meeting" 10m loop |
 | /research_info | Full reference search guide, including note that /jurnal can also search article references | researchService, axios | /research_info |
 | /buku | Search book references | Open Library API, axios | /buku clean code |
 | /jurnal | Search journal and article references | Crossref API, axios | /jurnal machine learning |
@@ -182,11 +185,16 @@ npm start
 
 ## Configuration
 
-Some variables in `.env` used for monitoring modules and access rights include:
+The `.env` file contains all essential configuration strings. Copy `.env.example` to `.env` and fill the variables completely (without any extra quotes).
 
-- `ADMIN_WA_NUMBERS=6281234567890,6280987654321`
-- `ADMIN_TELE_IDS=123456789,987654321`
-- `MONITOR_URLS=https://example.com,https://example.com/health`
+**Key Configuration Explanations:**
+- **WhatsApp**: `WA_SESSION_DIR` (Auth data folder), `WA_PHONE_NUMBER` (Bot's phone number), `BOT_WA_LID` (Specific bot WhatsApp LID if needed).
+- **Telegram**: `TELEGRAM_BOT_TOKEN` and `TELEGRAM_BOT_USERNAME` (From BotFather), and `TELEGRAM_SESSION_DIR` (Session folder).
+- **Database (Supabase)**: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` (Anon public key), `SUPABASE_SECRET_KEY` (Service role to bypass RLS for admin).
+- **AI APIs**: `GEMINI_API_KEY` or `OPENROUTER_API_KEY`.
+- **Other APIs**: `OPENWEATHER_API_KEY` for weather features, `REMOVEBG_API_KEY`, `CLOUDCONVERT_API_KEY`, and *HCTI* (web screenshots).
+- **Admin**: `ADMIN_WA_NUMBERS` and `ADMIN_TELE_IDS` (Comma-separated IDs for monitor & broadcast accesses).
+- **Monitoring**: `MONITOR_URLS` (Websites monitored by the bot) and `MONITOR_INTERVAL` (Interval gap, e.g. 300000ms = 5 minutes).
 
 *Note: The cron job for server health reports runs every morning (06:00, server time) and sends a message only when one or more monitored websites are down. If all websites are healthy, no alert message is sent.*
 
@@ -238,8 +246,8 @@ nano .env
 
 8. Fill required variables in `.env`
 - Telegram: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`
-- OpenRouter: `OPENROUTER_API_KEY`
-- Supabase: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+- OpenRouter/Gemini: `OPENROUTER_API_KEY`, `GEMINI_API_KEY`
+- Supabase: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`
 - CloudConvert: `CLOUDCONVERT_API_KEY`
 - RemoveBG: `REMOVEBG_API_KEY`
 - Weather: `OPENWEATHER_API_KEY`
@@ -309,94 +317,13 @@ The auto-broadcast webhook endpoint runs on port `3000` by default. You must ope
 1. Release workflow at `.github/workflows/auto-release.yml`
 2. Changelog config at `.github/changelog-config.json`
 
-### D. Example `changelog-config.json`
+### D. Configure `changelog-config.json`
 
-Make sure `target` values in `label_extractors` exactly match labels in `categories`.
+This file is used by the *changelog builder* to group and categorize specific commits (e.g. `feat:`, `fix:`, or `chore:`). Ensure you commit messages correctly matching the patterns configured in its `label_extractors` rules so the result mapped in GitHub Release remains grouped well.
 
-```json
-{
-  "categories": [
-    {
-      "title": "What's New",
-      "labels": ["feature"]
-    },
-    {
-      "title": "Bug Fixes",
-      "labels": ["bug"]
-    },
-    {
-      "title": "Maintenance & Refactor",
-      "labels": ["maintenance"]
-    },
-    {
-      "title": "Documentation",
-      "labels": ["documentation"]
-    }
-  ],
-  "label_extractors": [
-    {
-      "pattern": "(?i)^feat(?:\\([^)]*\\))?!?:\\s.*",
-      "target": "feature"
-    },
-    {
-      "pattern": "(?i)^fix(?:\\([^)]*\\))?!?:\\s.*",
-      "target": "bug"
-    },
-    {
-      "pattern": "(?i)^(?:refactor|chore)(?:\\([^)]*\\))?!?:\\s.*",
-      "target": "maintenance"
-    },
-    {
-      "pattern": "(?i)^(?:docs(?:\\([^)]*\\))?!?:\\s.*|merge\\b.*|add files via upload.*)",
-      "target": "documentation"
-    }
-  ],
-  "ignore_labels": [
-    "documentation"
-  ],
-  "template": "#{{CHANGELOG}}\\n\\n---\\n*Note: This changelog was automatically generated from commit messages.*"
-}
-```
+### E. Workflow `auto-release.yml`
 
-### E. Example `auto-release.yml`
-
-```yaml
-name: Auto Release
-
-on:
-  push:
-    tags:
-      - 'v*'
-
-jobs:
-  build-and-release:
-    name: Create GitHub Release
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Build Changelog
-        id: build_changelog
-        uses: mikepenz/release-changelog-builder-action@v5
-        with:
-          configuration: ".github/changelog-config.json"
-          mode: "COMMIT"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
-        with:
-          body: ${{ steps.build_changelog.outputs.changelog }}
-          draft: false
-          prerelease: false
-```
+This workflow utilizes `actions/checkout` and an open-source *changelog builder* action. It triggers the job each time you run a **push tag starting with "v"** (e.g., `v1.0.0`). The action summarizes the commits between versions to automatically create a release draft and publishes it natively on the Releases page of your GitHub project.
 
 ### F. Commit message format rules for changelog
 
@@ -568,6 +495,17 @@ CREATE TABLE public.finance (
   updated_at timestamp with time zone null,
   constraint finance_pkey primary key (id)
 ) TABLESPACE pg_default;
+
+-- reminders table:
+-- Stores reminders and loops for the reminder feature
+CREATE TABLE reminders (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  message TEXT NOT NULL,
+  trigger_time BIGINT NOT NULL,
+  is_loop BOOLEAN DEFAULT FALSE,
+  loop_interval BIGINT
+);
 ```
 
 ---
@@ -577,12 +515,16 @@ CREATE TABLE public.finance (
 If you have modified the code locally and want to pull the latest updates from the repository without losing your changes, you can use the following git commands:
 
 ```bash
+# Option 1: Using Git Stash
 # 1. Stash your local changes
 git stash
-
 # 2. Pull the latest updates from the repository
 git pull origin main
-
 # 3. Apply your stashed changes back
 git stash pop
+
+# Option 2: Using Auto-Stash on Rebase (One liner)
+# Automatically stashes unsaved changes, rebases against the latest main, 
+# and pops the changes back seamlessly.
+git pull --rebase --autostash
 ```
