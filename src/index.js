@@ -16,6 +16,7 @@ const WhatsAppHandler = require('./handlers/waHandler');
 const { setupTelegramBot } = require('./handlers/teleHandler');
 const telegramBot = require('./lib/telegramClient');
 const { startCronJobs } = require('./jobs/serverMonitor');
+const { startReminderCron } = require('./jobs/reminderCron');
 
 console.log(`Starting ${settings.app.name} v${settings.app.version} in ${settings.app.env} mode`);
 
@@ -134,6 +135,9 @@ async function main() {
 
     monitorCronTask = startCronJobs(telegramBot, () => waSocket);
     
+    // Start Reminder Cron
+    startReminderCron(() => waSocket, telegramBot);
+
     console.log('Semua layanan berjalan!');
 }
 

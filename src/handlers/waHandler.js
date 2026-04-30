@@ -10,6 +10,7 @@ const { isAdmin } = require('../utils/auth');
 const { checkWebsites, formatMonitorMessage } = require('../services/monitorService');
 const { AI_MODELS, buildModelInfoMessage, setActiveModel } = require('../services/aiPreferenceService');
 const { handleImgCommand } = require('../commands/converter/index');
+const { handleReminderCommand } = require('../commands/reminder/index');
 const { createSticker, isFfmpegMissingError } = require('../services/stickerService');
 const { getQuotaStatus } = require('../services/quotaService');
 const { logCommand } = require('../services/logService');
@@ -629,9 +630,26 @@ class WhatsAppHandler {
             break;
           }
 
+          case '/remind': {
+            const remindReply = await handleReminderCommand(args, realId, 'whatsapp');
+            await this.sock.sendMessage(
+              msg.key.remoteJid,
+              { text: formatWhatsAppReply(remindReply) },
+              { quoted: msg }
+            );
+            return;
+          }
+
           case '/finance_info': {
             const header = '> *FINANCE TOOLS* 💰';
             const body = `Panduan lengkap fitur keuangan Fuenzer Bot.\n\n*COMMAND INTI:*\n- /saldo : Lihat ringkasan saldo terbaru\n- /catat <nominal> <keterangan> : Catat pengeluaran\n- /pemasukan <nominal> <keterangan> : Catat pemasukan\n- /laporan_chart : Tampilkan grafik laporan\n- /riwayat [halaman] : Riwayat transaksi (paging 5 data)\n- /edit <id> <field> <nilai> : Ubah transaksi\n- /hapus <id> : Hapus transaksi (dengan konfirmasi)\n\n*CONTOH CEPAT:*\n- /catat 25000 makan siang\n- /pemasukan 150000 freelance logo\n- /riwayat 2\n- /edit 123e4567 nominal 30000\n- /hapus 123e4567\n\n*TIPS:*\n- Gunakan /riwayat untuk ambil ID transaksi sebelum /edit atau /hapus\n- Tulisan nominal tanpa titik/koma agar lebih aman diproses`;
+            replyText = `${header}\n\n${body}`;
+            break;
+          }
+
+          case '/remind_info': {
+            const header = '> *REMINDER TOOLS* ⏰';
+            const body = `Panduan lengkap fitur pengingat (Reminder) Fuenzer Bot.\n\n*COMMAND INTI:*\n- /remind add <waktu> <pesan> : Buat pengingat sekali jalan\n- /remind loop <waktu> <pesan> : Buat pengingat berulang\n- /remind list : Tampilkan semua pengingat yang aktif\n- /remind hapus <id> : Hapus pengingat berdasarkan ID\n- /remind edit <id> <waktu> <pesan> : Edit pengingat\n\n*FORMAT WAKTU (Support Ms):*\n- Detik: \`5s\`, \`30s\`, \`60s\`\n- Menit: \`1m\`, \`15m\`, \`30m\`\n- Jam: \`1h\`, \`2h\`, \`12h\`\n- Hari: \`1d\`, \`2d\`, \`7d\`\n\n*CONTOH CEPAT:*\n- /remind add 15m angkat jemuran\n- /remind loop 1d minum vitamin pagi\n- /remind edit A1B2C 2h minum vitamin siang\n- /remind hapus A1B2C\n\n*TIPS:*\n- Gunakan \`/remind list\` untuk melihat ID unik dari pengingat Anda. ID ini digunakan saat Anda ingin mengedit atau menghapus pengingat.\n- Pengingat berulang (loop) akan selalu berjalan dengan interval yang telah ditentukan kecuali dihapus.`;
             replyText = `${header}\n\n${body}`;
             break;
           }
@@ -991,7 +1009,7 @@ class WhatsAppHandler {
 
           case '/info': {
             const header = '> *INFORMASI FUENZER BOT* 🤖';
-            const body = `Saya adalah asisten virtual pribadi milik Ridwan Yoga Suryantara.\n\n☕ *DUKUNGAN BOT*\n- \`/donate\`         : Link dukungan + QR donasi\n\n📋 *FITUR KEUANGAN* 💰\n- \`/finance_info\`   : Panduan Lengkap command keuangan\n\n📋 *FITUR SISTEM* ⚙️\n- \`/ping\`           : Cek status bot\n- \`/info\`           : Menampilkan pesan ini\n- \`/start\`          : Memulai bot\n\n💡 *FITUR AI* 🧠\nKirimkan pesan biasa (tanpa awalan '/') untuk ngobrol,\nbertanya seputar coding, teknologi, atau sekadar bertukar pikiran!\n- \`/model_info\`     : Daftar model AI yang tersedia\n- \`/switch\`         : Ganti model AI aktif\n\n🛠️ *FITUR UTILITAS*\n- \`/short\`          : Pendekkan URL dengan is.gd\n- \`/research_info\`  : Panduan Lengkap Referensi (buku/jurnal/artikel)\n- \`/downloader\`     : Panduan Lengkap download (/download & /audio)\n- \`/cuaca\`          : Info cuaca hari ini\n- \`/sholat\`         : Jadwal sholat hari ini\n- \`/me\`             : Tentang pembuat bot\n\n🖼️ *FITUR CONVERTER* 📄\n- \`/img_info\`       : Panduan Lengkap image tools\n- \`/pdf_info\`       : Panduan Lengkap PDF tools\n\n🧩 *FITUR STICKER*\n- \`/sticker_info\`   : Panduan Lengkap sticker tools\n\n🛡️ *FITUR ADMIN*\n- \`/admin\`          : Menu command admin`;
+            const body = `Saya adalah asisten virtual pribadi milik Ridwan Yoga Suryantara.\n\n☕ *DUKUNGAN BOT*\n- \`/donate\`         : Link dukungan + QR donasi\n\n📋 *FITUR KEUANGAN* 💰\n- \`/finance_info\`   : Panduan Lengkap command keuangan\n\n📋 *FITUR SISTEM* ⚙️\n- \`/ping\`           : Cek status bot\n- \`/info\`           : Menampilkan pesan ini\n- \`/start\`          : Memulai bot\n\n💡 *FITUR AI* 🧠\nKirimkan pesan biasa (tanpa awalan '/') untuk ngobrol,\nbertanya seputar coding, teknologi, atau sekadar bertukar pikiran!\n- \`/model_info\`     : Daftar model AI yang tersedia\n- \`/switch\`         : Ganti model AI aktif\n\n🛠️ *FITUR UTILITAS*\n- \`/short\`          : Pendekkan URL dengan is.gd\n- \`/research_info\`  : Panduan Lengkap Referensi (buku/jurnal/artikel)\n- \`/downloader\`     : Panduan Lengkap download (/download & /audio)\n- \`/remind_info\`    : Panduan Lengkap fitur Reminder pengingat\n- \`/cuaca\`          : Info cuaca hari ini\n- \`/sholat\`         : Jadwal sholat hari ini\n- \`/me\`             : Tentang pembuat bot\n\n🖼️ *FITUR CONVERTER* 📄\n- \`/img_info\`       : Panduan Lengkap image tools\n- \`/pdf_info\`       : Panduan Lengkap PDF tools\n\n🧩 *FITUR STICKER*\n- \`/sticker_info\`   : Panduan Lengkap sticker tools\n\n🛡️ *FITUR ADMIN*\n- \`/admin\`          : Menu command admin`;
             replyText = appendFooter(`${header}\n\n${body}`, buildSystemStatsFooter());
             break;
           }

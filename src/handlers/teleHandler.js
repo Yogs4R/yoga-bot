@@ -14,6 +14,7 @@ const { isAdmin } = require('../utils/auth');
 const { checkWebsites, formatMonitorMessage, getMonitorWebsiteLinks } = require('../services/monitorService');
 const { AI_MODELS, buildModelInfoMessage, setActiveModel } = require('../services/aiPreferenceService');
 const { handleImgCommand } = require('../commands/converter/index');
+const { handleReminderCommand } = require('../commands/reminder/index');
 const { createSticker, isFfmpegMissingError } = require('../services/stickerService');
 const { getQuotaStatus } = require('../services/quotaService');
 const { logCommand } = require('../services/logService');
@@ -286,7 +287,8 @@ function buildMainMenuKeyboard() {
         [Markup.button.callback('👨‍💻 About Me', 'cmd:me'), Markup.button.callback('🏓 Ping', 'cmd:ping')],
         [Markup.button.callback('🖼️ Image Tools', 'cmd:img_info'), Markup.button.callback('📄 PDF Tools', 'cmd:pdf_info')],
         [Markup.button.callback('🤖 Model AI', 'cmd:model_info'), Markup.button.callback('🧩 Sticker Tools', 'cmd:sticker_info')],
-        [Markup.button.callback('🔎 Research', 'cmd:research_info'), Markup.button.callback('⬇️ Downloader', 'cmd:downloader')]
+        [Markup.button.callback('🔎 Research', 'cmd:research_info'), Markup.button.callback('⬇️ Downloader', 'cmd:downloader')],
+        [Markup.button.callback('⏰ Reminder Info', 'cmd:remind_info')]
     ]);
 }
 
@@ -861,7 +863,7 @@ async function processMenuCommand(ctx, command, userId) {
         }
         case '/info': {
             const header = '<b>INFORMASI FUENZER BOT</b> 🤖';
-            const body = `Saya adalah asisten virtual pribadi milik <b>Ridwan Yoga Suryantara</b>.\n\n<b>DUKUNGAN BOT</b> ☕\n• /donate : Link dukungan + QR donasi\n\n<b>FITUR KEUANGAN</b> 💰\n• /finance_info : Panduan Lengkap command keuangan\n\n<b>FITUR SISTEM</b> ⚙️\n• /ping : Cek status bot\n• /info : Menampilkan pesan ini\n• /start : Memulai bot\n\n<b>FITUR AI</b> 🧠\nKirim pesan biasa (tanpa awalan /) untuk ngobrol, tanya coding, atau diskusi teknologi.\n• /model_info : Daftar model AI yang tersedia\n• /switch : Ganti model AI aktif\n\n<b>FITUR UTILITAS</b> 🛠️\n• /short : Pendekkan URL dengan is.gd\n• /research_info : Panduan Lengkap Referensi (buku/jurnal/artikel)\n• /downloader : Panduan Lengkap download (/download & /audio)\n• /cuaca : Info cuaca hari ini\n• /sholat : Jadwal sholat hari ini\n• /me : Tentang pembuat bot\n\n<b>FITUR CONVERTER</b> 🖼️\n• /img_info : Panduan Lengkap image tools\n• /pdf_info : Panduan Lengkap PDF tools\n\n<b>FITUR STICKER</b> 🧩\n• /sticker_info : Panduan Lengkap sticker tools\n\n<b>FITUR ADMIN</b> 🛡️\n• /admin : Menu command admin`;
+            const body = `Saya adalah asisten virtual pribadi milik <b>Ridwan Yoga Suryantara</b>.\n\n<b>DUKUNGAN BOT</b> ☕\n• /donate : Link dukungan + QR donasi\n\n<b>FITUR KEUANGAN</b> 💰\n• /finance_info : Panduan Lengkap command keuangan\n\n<b>FITUR SISTEM</b> ⚙️\n• /ping : Cek status bot\n• /info : Menampilkan pesan ini\n• /start : Memulai bot\n\n<b>FITUR AI</b> 🧠\nKirim pesan biasa (tanpa awalan /) untuk ngobrol, tanya coding, atau diskusi teknologi.\n• /model_info : Daftar model AI yang tersedia\n• /switch : Ganti model AI aktif\n\n<b>FITUR UTILITAS</b> 🛠️\n• /short : Pendekkan URL dengan is.gd\n• /research_info : Panduan Lengkap Referensi (buku/jurnal/artikel)\n• /downloader : Panduan Lengkap download (/download & /audio)\n• /remind_info : Panduan Lengkap fitur Reminder pengingat\n• /cuaca : Info cuaca hari ini\n• /sholat : Jadwal sholat hari ini\n• /me : Tentang pembuat bot\n\n<b>FITUR CONVERTER</b> 🖼️\n• /img_info : Panduan Lengkap image tools\n• /pdf_info : Panduan Lengkap PDF tools\n\n<b>FITUR STICKER</b> 🧩\n• /sticker_info : Panduan Lengkap sticker tools\n\n<b>FITUR ADMIN</b> 🛡️\n• /admin : Menu command admin`;
             const message = `${header}\n\n${body}\n\n${buildSystemStatsFooter()}`;
             await ctx.reply(message, {
                 parse_mode: 'HTML',
@@ -878,6 +880,12 @@ async function processMenuCommand(ctx, command, userId) {
         case '/downloader': {
             const header = '<b>DOWNLOADER TOOLS</b> ⬇️';
             const body = `Panduan Lengkap untuk download media dan audio.\n\n<b>COMMAND DOWNLOAD:</b>\n• /download &lt;url&gt; : Download media sosial (video/foto)\n• /audio &lt;url&gt; : Download audio dari YouTube/YouTube Music\n\n<b>CONTOH CEPAT:</b>\n• <code>/download https://www.instagram.com/reel/xxxx</code>\n• <code>/audio https://www.youtube.com/watch?v=xxxx</code>\n\n<b>SUPPORT PLATFORM:</b>\n• /download hanya support: Instagram, Twitter/X, YouTube, dan TikTok\n• /audio hanya support: YouTube dan YouTube Music\n\n<b>CATATAN:</b>\n• Jika media terlalu besar atau sumber menolak koneksi, coba ulang beberapa saat lagi`;
+            await ctx.reply(`${header}\n\n${body}`, { parse_mode: 'HTML' });
+            return;
+        }
+        case '/remind_info': {
+            const header = '<b>REMINDER TOOLS</b> ⏰';
+            const body = `Panduan lengkap fitur pengingat (Reminder) Fuenzer Bot.\n\n<b>COMMAND INTI:</b>\n• /remind add &lt;waktu&gt; &lt;pesan&gt; : Buat pengingat sekali jalan\n• /remind loop &lt;waktu&gt; &lt;pesan&gt; : Buat pengingat berulang\n• /remind list : Tampilkan semua pengingat yang aktif\n• /remind hapus &lt;id&gt; : Hapus pengingat berdasarkan ID\n• /remind edit &lt;id&gt; &lt;waktu&gt; &lt;pesan&gt; : Edit pengingat\n\n<b>FORMAT WAKTU (Support Ms):</b>\n• Detik: <code>5s</code>, <code>30s</code>, <code>60s</code>\n• Menit: <code>1m</code>, <code>15m</code>, <code>30m</code>\n• Jam: <code>1h</code>, <code>2h</code>, <code>12h</code>\n• Hari: <code>1d</code>, <code>2d</code>, <code>7d</code>\n\n<b>CONTOH CEPAT:</b>\n• <code>/remind add 15m angkat jemuran</code>\n• <code>/remind loop 1d minum vitamin pagi</code>\n• <code>/remind edit A1B2C 2h minum vitamin siang</code>\n• <code>/remind hapus A1B2C</code>\n\n<b>TIPS:</b>\n• Gunakan <code>/remind list</code> untuk melihat ID unik dari pengingat.\n• Pengingat berulang akan selalu berjalan dengan interval yang telah ditentukan kecuali dihapus.`;
             await ctx.reply(`${header}\n\n${body}`, { parse_mode: 'HTML' });
             return;
         }
@@ -1074,6 +1082,19 @@ function setupTelegramBot() {
 
                 case '/downloader':
                     await processMenuCommand(ctx, '/downloader', userId);
+                    break;
+                    
+                case '/remind_info':
+                    await processMenuCommand(ctx, '/remind_info', userId);
+                    break;
+                    
+                case '/remind':
+                    try {
+                        const remindReply = await handleReminderCommand(args, userId, 'telegram');
+                        await sendTelegramReply(ctx, remindReply);
+                    } catch (error) {
+                        await ctx.reply(`<b>ERROR</b> ❌\n\n${escapeHtml(error.message)}`, { parse_mode: 'HTML' });
+                    }
                     break;
                     
                 case '/saldo':
@@ -1695,6 +1716,7 @@ function setupTelegramBot() {
                     finance_info: '/finance_info',
                     research_info: '/research_info',
                     downloader: '/downloader',
+                    remind_info: '/remind_info',
                     cuaca: '/cuaca',
                     sholat: '/sholat',
                     me: '/me',
