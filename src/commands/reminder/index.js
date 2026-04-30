@@ -1,4 +1,4 @@
-const { addReminder, listReminders, deleteReminder, updateReminder } = require('../services/reminderService');
+const { addReminder, listReminders, deleteReminder, updateReminder } = require('../../services/reminderService');
 
 async function handleReminderCommand(args, userId, platform = 'whatsapp') {
     if (args.length === 0) {
