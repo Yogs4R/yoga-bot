@@ -325,6 +325,8 @@ File ini digunakan oleh *changelog builder* untuk mengkategorikan setiap commit 
 
 Workflow ini menggunakan `actions/checkout` untuk mengambil kode dan *changelog builder* Action. Pipeline akan dieksekusi setiap Anda melakukan **push tag dengan awalan "v"** (misalnya `v1.0.0`). Action kemudian secara otomatis merangkum pesan commit sejak versi sebelumnya menjadi draf Release dan memublikasikannya ke tab Releases di repository.
 
+Selain itu, workflow ini telah diintegrasikan dengan langkah **Webhook Broadcast**. Segera setelah GitHub Release berhasil dipublikasikan, ia akan menggunakan `jq` untuk memformat versi dan catatan pembaruan ke dalam payload JSON, lalu mengirim request HTTP POST secara otomatis menuju backend bot Anda (`http://${VM_IP}:3000/webhook-release`). Ini akan memberikan sinyal kepada bot agar segera menyiarkan pemberitahuan update "What's New" kepada seluruh pengguna WhatsApp maupun Telegram secara real-time.
+
 ### F. Aturan format commit agar masuk changelog
 
 Gunakan awalan commit message berikut:

@@ -35,3 +35,19 @@ jobs:
           body: ${{ steps.build_changelog.outputs.changelog }}
           draft: false
           prerelease: false
+      
+      - name: Send Broadcast via Webhook
+        # Use the generated changelog and version to send a POST request to your VM's webhook endpoint
+        env:
+          VERSION: ${{ github.ref_name }}
+          CHANGELOG: ${{ steps.build_changelog.outputs.changelog }}
+          SECRET: ${{ secrets.AUTO_BROADCAST_RELEASE }}
+        run: |
+          # Make sure to have jq installed to create the JSON payload
+          jq -n --arg version "$VERSION" --arg changelog "$CHANGELOG" --arg secret "$SECRET" \
+            '{version: $version, changelog: $changelog, secret: $secret}' > payload.json
+          
+          # Send the POST request to the VM's webhook endpoint
+          curl -X POST http://${{ secrets.VM_IP }}:3000/webhook-release \
+            -H "Content-Type: application/json" \
+            -d @payload.json

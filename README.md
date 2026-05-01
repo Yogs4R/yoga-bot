@@ -325,6 +325,8 @@ This file is used by the *changelog builder* to group and categorize specific co
 
 This workflow utilizes `actions/checkout` and an open-source *changelog builder* action. It triggers the job each time you run a **push tag starting with "v"** (e.g., `v1.0.0`). The action summarizes the commits between versions to automatically create a release draft and publishes it natively on the Releases page of your GitHub project.
 
+Additionally, this workflow includes a **Webhook Broadcast** step. Once the GitHub Release is created, it formats the exact changelog notes along with the version tag into a JSON payload using `jq`, and sends an HTTP POST request to your bot's live server (`http://${VM_IP}:3000/webhook-release`). This triggers the bot to automatically broadcast the *What's New* release notes to all of your WhatsApp and Telegram users in real-time.
+
 ### F. Commit message format rules for changelog
 
 Use commit prefixes like:
