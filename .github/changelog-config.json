@@ -19,20 +19,24 @@
   ],
   "label_extractors": [
     {
-      "pattern": "(?i)^feat(?:\\([^)]*\\))?!?:\\s.*",
-      "target": "feature"
+      "pattern": "^feat(?:\\([^)]*\\))?!?:\\s.*",
+      "target": "feature",
+      "flags": "i"
     },
     {
-      "pattern": "(?i)^fix(?:\\([^)]*\\))?!?:\\s.*",
-      "target": "bug"
+      "pattern": "^fix(?:\\([^)]*\\))?!?:\\s.*",
+      "target": "bug",
+      "flags": "i"
     },
     {
-      "pattern": "(?i)^(?:refactor|chore)(?:\\([^)]*\\))?!?:\\s.*",
-      "target": "maintenance"
+      "pattern": "^(?:refactor|chore)(?:\\([^)]*\\))?!?:\\s.*",
+      "target": "maintenance",
+      "flags": "i"
     },
     {
-      "pattern": "(?i)^(?:docs(?:\\([^)]*\\))?!?:\\s.*|merge\\b.*|add files via upload.*)",
-      "target": "documentation"
+      "pattern": "^(?:docs(?:\\([^)]*\\))?!?:\\s.*|merge\\b.*|add files via upload.*)",
+      "target": "documentation",
+      "flags": "i"
     }
   ],
   "ignore_labels": [
