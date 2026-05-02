@@ -17,7 +17,7 @@
       "labels": ["documentation"]
     }
   ],
-  "label_extractors": [
+  "label_extractor": [
     {
       "pattern": "^feat(?:\\([^)]*\\))?!?:\\s.*",
       "target": "feature",
@@ -43,9 +43,7 @@
       "flags": "i"
     }
   ],
-  "ignore_labels": [
-    "documentation"
-  ],
-  "commit_template": "- #{{TITLE}} (#{{COMMIT_SHA}})",
+  "ignore_labels": [],
+  "commit_template": "- #{{TITLE}}",
   "template": "#{{CHANGELOG}}\n\n### ❓ Other Changes\n#{{UNCATEGORIZED}}\n\n---\n*Note: This changelog was automatically generated from commit messages.*"
 }
