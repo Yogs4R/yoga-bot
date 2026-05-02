@@ -30,10 +30,12 @@ jobs:
       # Prepare a stable step output for downstream steps (avoids context access issues)
       - name: Prepare Changelog Output
         id: prep_changelog
+        env:
+          CHANGELOG: ${{ steps.build_changelog.outputs.changelog }}
         run: |
           {
             echo 'changelog<<EOF'
-            echo '${{ steps.build_changelog.outputs.changelog }}'
+            printf '%s\n' "$CHANGELOG"
             echo 'EOF'
           } >> "$GITHUB_OUTPUT"
 
