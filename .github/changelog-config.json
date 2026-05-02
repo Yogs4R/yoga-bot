@@ -21,21 +21,25 @@
     {
       "pattern": "^feat(?:\\([^)]*\\))?!?:\\s.*",
       "target": "feature",
+      "on_property": "title",
       "flags": "i"
     },
     {
       "pattern": "^fix(?:\\([^)]*\\))?!?:\\s.*",
       "target": "bug",
+      "on_property": "title",
       "flags": "i"
     },
     {
       "pattern": "^(?:refactor|chore)(?:\\([^)]*\\))?!?:\\s.*",
       "target": "maintenance",
+      "on_property": "title",
       "flags": "i"
     },
     {
       "pattern": "^(?:docs(?:\\([^)]*\\))?!?:\\s.*|merge\\b.*|add files via upload.*)",
       "target": "documentation",
+      "on_property": "title",
       "flags": "i"
     }
   ],
