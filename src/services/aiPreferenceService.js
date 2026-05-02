@@ -93,7 +93,7 @@ const AI_MODELS = {
     context: '262k',
     maxOut: '65k'
   },
-  'mistral': {
+  'mistral-nemo': {
     id: 'mistralai/mistral-nemo',
     name: 'Mistral Nemo',
     type: 'premium',
@@ -132,6 +132,16 @@ const AI_MODELS = {
     outputPrice: '$0.05/M',
     context: '131k',
     maxOut: '131k'
+  },
+  'mistral-voxtral': {
+    id: 'mistralai/voxtral-small-24b-2507',
+    name: 'Mistral Voxtral',
+    type: 'premium',
+    description: 'Spesialis dalam transkripsi cepat, alih bahasa, & analisis audio. Input audio dihargai $100/juta detik.',
+    inputPrice: '$0.10/M',
+    outputPrice: '$0.30/M',
+    context: '32k',
+    maxOut: '32k'
   }
 };
 

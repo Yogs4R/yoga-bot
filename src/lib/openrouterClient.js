@@ -133,7 +133,7 @@ async function askGeminiDetailed(message, userId, platform, logUserId) {
       model: modelId,
       messages: [
         { role: 'system', content: systemInstruction },
-        { role: 'user', content: String(message || '') }
+        { role: 'user', content: Array.isArray(message) ? message : String(message || '') }
       ],
       ...generationConfig
     });
@@ -156,11 +156,15 @@ async function askGeminiDetailed(message, userId, platform, logUserId) {
 
     const aiLogUserId = typeof logUserId === 'string' ? logUserId : userId;
 
+    const loggedMessage = Array.isArray(message) 
+      ? message.find(m => m.type === 'text')?.text || '[Multimodal Message]' 
+      : String(message || '');
+
     await logAIUsage(
       aiLogUserId,
       platform,
       modelId,
-      String(message || ''),
+      loggedMessage,
       usage.promptTokenCount,
       usage.candidatesTokenCount
     );
@@ -180,8 +184,13 @@ async function askGeminiDetailed(message, userId, platform, logUserId) {
 
     console.error('Error saat memanggil OpenRouter API:', statusCode || '-', errorMessage);
     
-    // Pesan Error
-    if (statusCode === 429 || lowerErrorMessage.includes('rate limit')) {
+    if (statusCode === 400 && lowerErrorMessage.includes('image')) {
+      throw new Error('400 Bad Request: ⛔ Model AI yang kamu gunakan belum mendukung pembacaan gambar atau gambar terlalu besar. Silakan ganti model AI (misal ke Gemini Gemma 4).');
+    } else if (statusCode === 400 && lowerErrorMessage.includes('audio')) {
+      throw new Error('400 Bad Request: ⛔ Model AI yang kamu gunakan belum mendukung pesan suara / pembacaan audio. Silakan ganti model AI (misal ke Mistral Voxtral).');
+    } else if (statusCode === 400) {
+      throw new Error(`400 Bad Request: ${errorMessage}`);
+    } else if (statusCode === 429 || lowerErrorMessage.includes('rate limit')) {
       throw new Error('429 Rate Limit dari OpenRouter. Batas request tercapai, coba lagi sebentar.');
     } else if (statusCode === 401 || lowerErrorMessage.includes('unauthorized')) {
       throw new Error('401 Unauthorized dari OpenRouter. Periksa OPENROUTER_API_KEY Anda.');
@@ -207,4 +216,31 @@ async function askAiDetailed(message, userId, platform, logUserId) {
   return askGeminiDetailed(message, userId, platform, logUserId);
 }
 
-module.exports = { askGemini, askGeminiDetailed, askAi, askAiDetailed, modelName };
+/**
+ * Fungsi untuk menerjemahkan teks menggunakan OpenRouter
+ * @param {string} lang - Kode atau nama bahasa tujuan
+ * @param {string} text - Teks yang akan diterjemahkan
+ * @returns {Promise<string>} - Hasil terjemahan
+ */
+async function translateText(lang, text) {
+  if (!apiKey) throw new Error('API key OpenRouter tidak ditemukan.');
+
+  const translateInstruction = `You are a professional native translator. Translate the given text into ${lang} language. ONLY output the translated text. Do not add any explanations, notes, or quotes.`;
+
+  const response = await openai.chat.completions.create({
+    model: AI_MODELS['gpt-oss'].id, // Model default yang cepat
+    messages: [
+      { role: 'system', content: translateInstruction },
+      { role: 'user', content: text }
+    ],
+    temperature: 0.3, // Lebih rendah agar hasil terjemahan presisi
+    max_tokens: 1024,
+  });
+
+  const content = response?.choices?.[0]?.message?.content;
+  return Array.isArray(content)
+      ? content.map((part) => part?.text || '').join('\n').trim()
+      : String(content || '').trim();
+}
+
+module.exports = { askGemini, askGeminiDetailed, askAi, askAiDetailed, translateText, modelName };

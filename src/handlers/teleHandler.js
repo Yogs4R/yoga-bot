@@ -6,7 +6,7 @@ const path = require('path');
 const axios = require('axios');
 const bot = require('../lib/telegramClient');
 const { Markup } = require('telegraf');
-const { askAiDetailed } = require('../lib/aiClient');
+const { askAiDetailed, translateText } = require('../lib/aiClient');
 const handleFinanceCommand = require('../commands/finance/index');
 const { handleAdminCommand } = require('../commands/admin/index');
 const { getHistoryPage } = require('../services/financeService');
@@ -288,7 +288,7 @@ function buildMainMenuKeyboard() {
         [Markup.button.callback('🖼️ Image Tools', 'cmd:img_info'), Markup.button.callback('📄 PDF Tools', 'cmd:pdf_info')],
         [Markup.button.callback('🤖 Model AI', 'cmd:model_info'), Markup.button.callback('🧩 Sticker Tools', 'cmd:sticker_info')],
         [Markup.button.callback('🔎 Research', 'cmd:research_info'), Markup.button.callback('⬇️ Downloader', 'cmd:downloader')],
-        [Markup.button.callback('⏰ Reminder Info', 'cmd:remind_info')]
+        [Markup.button.callback('🌍 Translate Info', 'cmd:translate_info'), Markup.button.callback('⏰ Reminder Info', 'cmd:remind_info')]
     ]);
 }
 
@@ -863,7 +863,7 @@ async function processMenuCommand(ctx, command, userId) {
         }
         case '/info': {
             const header = '<b>INFORMASI FUENZER BOT</b> 🤖';
-            const body = `Saya adalah asisten virtual pribadi milik <b>Ridwan Yoga Suryantara</b>.\n\n<b>DUKUNGAN BOT</b> ☕\n• /donate : Link dukungan + QR donasi\n\n<b>FITUR KEUANGAN</b> 💰\n• /finance_info : Panduan Lengkap command keuangan\n\n<b>FITUR SISTEM</b> ⚙️\n• /ping : Cek status bot\n• /info : Menampilkan pesan ini\n• /start : Memulai bot\n\n<b>FITUR AI</b> 🧠\nKirim pesan biasa (tanpa awalan /) untuk ngobrol, tanya coding, atau diskusi teknologi.\n• /model_info : Daftar model AI yang tersedia\n• /switch : Ganti model AI aktif\n\n<b>FITUR UTILITAS</b> 🛠️\n• /short : Pendekkan URL dengan is.gd\n• /research_info : Panduan Lengkap Referensi (buku/jurnal/artikel)\n• /downloader : Panduan Lengkap download (/download & /audio)\n• /remind_info : Panduan Lengkap fitur Reminder pengingat\n• /cuaca : Info cuaca hari ini\n• /sholat : Jadwal sholat hari ini\n• /me : Tentang pembuat bot\n\n<b>FITUR CONVERTER</b> 🖼️\n• /img_info : Panduan Lengkap image tools\n• /pdf_info : Panduan Lengkap PDF tools\n\n<b>FITUR STICKER</b> 🧩\n• /sticker_info : Panduan Lengkap sticker tools\n\n<b>FITUR ADMIN</b> 🛡️\n• /admin : Menu command admin`;
+            const body = `Saya adalah asisten virtual pribadi milik <b>Ridwan Yoga Suryantara</b>.\n\n<b>DUKUNGAN BOT</b> ☕\n• /donate : Link dukungan + QR donasi\n\n<b>FITUR KEUANGAN</b> 💰\n• /finance_info : Panduan Lengkap command keuangan\n\n<b>FITUR SISTEM</b> ⚙️\n• /ping : Cek status bot\n• /info : Menampilkan pesan ini\n• /start : Memulai bot\n\n<b>FITUR AI</b> 🧠\nKirim pesan biasa (tanpa awalan /) untuk ngobrol, tanya coding, atau diskusi teknologi.\n<i>(Support deteksi file: Gambar / Audio VN / Dokumen Teks)</i>\n• /model_info : Daftar model AI yang tersedia\n• /switch : Ganti model AI aktif\n\n<b>FITUR TRANSLATE</b> 🌍\n• /translate_info : Panduan Lengkap terjemah kata/kalimat\n\n<b>FITUR UTILITAS</b> 🛠️\n• /short : Pendekkan URL dengan is.gd\n• /research_info : Panduan Lengkap Referensi (buku/jurnal/artikel)\n• /downloader : Panduan Lengkap download (/download & /audio)\n• /remind_info : Panduan Lengkap fitur Reminder pengingat\n• /cuaca : Info cuaca hari ini\n• /sholat : Jadwal sholat hari ini\n• /me : Tentang pembuat bot\n\n<b>FITUR CONVERTER</b> 🖼️\n• /img_info : Panduan Lengkap image tools\n• /pdf_info : Panduan Lengkap PDF tools\n\n<b>FITUR STICKER</b> 🧩\n• /sticker_info : Panduan Lengkap sticker tools\n\n<b>FITUR ADMIN</b> 🛡️\n• /admin : Menu command admin`;
             const message = `${header}\n\n${body}\n\n${buildSystemStatsFooter()}`;
             await ctx.reply(message, {
                 parse_mode: 'HTML',
@@ -871,6 +871,14 @@ async function processMenuCommand(ctx, command, userId) {
             });
             return;
         }
+
+        case '/translate_info': {
+            const header = '<b>TRANSLATE TOOLS</b> 🌍';
+            const body = `Panduan menggunakan fitur terjemahan AI.\n\n<b>COMMAND INTI:</b>\n• <code>/translate &lt;kode_bahasa&gt; &lt;teks&gt;</code>\n• Atau <b>reply</b> pesan yang ingin diterjemahkan dengan <code>/translate &lt;kode_bahasa&gt;</code>\n\n<b>DAFTAR KODE BAHASA (Ketikkan 2 huruf ini):</b>\n• <code>en</code> : English (Inggris)\n• <code>id</code> : Indonesia\n• <code>jv</code> : Javanese (Jawa)\n• <code>su</code> : Sundanese (Sunda)\n• <code>ms</code> : Malay (Melayu)\n• <code>ar</code> : Arabic (Arab)\n• <code>ja</code> : Japanese (Jepang)\n• <code>ko</code> : Korean (Korea)\n• <code>zh</code> : Chinese (Mandarin)\n• <code>hi</code> : Hindi (India)\n• <code>ru</code> : Russian (Rusia)\n• <code>es</code> : Spanish (Spanyol)\n• <code>fr</code> : French (Perancis)\n• <code>de</code> : German (Jerman)\n• <code>it</code> : Italian (Italia)\n• <code>nl</code> : Dutch (Belanda)\n• <code>pt</code> : Portuguese (Portugis)\n• <code>th</code> : Thai (Thailand)\n• <code>vi</code> : Vietnamese (Vietnam)\n\n<b>CONTOH CEPAT:</b>\n• <code>/translate en Halo dunia, apa kabar?</code>\n• <code>/translate ar Selamat pagi</code>\n\n<b>TIPS:</b>\n• AI otomatis mendeteksi bahasa asli dari teks yang Anda berikan, Anda hanya perlu menentukan bahasa tujuannya.`;
+            await ctx.reply(`${header}\n\n${body}`, { parse_mode: 'HTML' });
+            return;
+        }
+
         case '/research_info': {
             const header = '<b>RESEARCH TOOLS</b> 📚';
             const body = `Panduan Lengkap fitur riset Referensi buku, jurnal, dan artikel ilmiah.\n\n<b>COMMAND INTI:</b>\n• /buku &lt;keyword&gt; : Cari rekomendasi buku dari Open Library\n• /jurnal &lt;keyword&gt; : Cari referensi jurnal/artikel ilmiah dari Crossref\n• /artikel &lt;keyword&gt; : Cari artikel ilmiah dari OpenAlex\n\n<b>CONTOH CEPAT:</b>\n• <code>/buku atomic habits</code>\n• <code>/jurnal machine learning</code>\n• <code>/artikel deep learning healthcare</code>\n\n<b>OUTPUT /buku:</b>\n• Judul buku\n• Nama penulis\n• Tahun terbit pertama\n• Link Open Library\n\n<b>OUTPUT /jurnal:</b>\n• Judul artikel/jurnal\n• Nama penulis\n• Nama jurnal\n• Tahun terbit\n• Link DOI\n\n<b>OUTPUT /artikel:</b>\n• Judul artikel\n• Penulis (maks. 3 nama)\n• Tahun\n• Link PDF open access (jika tersedia) atau halaman artikel\n\n<b>TIPS:</b>\n• /jurnal bisa dipakai juga untuk cari artikel ilmiah berbasis kata kunci\n• Pakai kata kunci spesifik agar hasil lebih relevan\n• Jika hasil kurang pas, coba variasi bahasa Inggris/Indonesia`;
@@ -1097,6 +1105,43 @@ function setupTelegramBot() {
                     }
                     break;
                     
+                case '/translate':
+                    const lang = args[0];
+                    const optionalText = args.slice(1).join(' ');
+                    let targetText = optionalText;
+
+                    if (ctx.message.reply_to_message) {
+                        const replyMsg = ctx.message.reply_to_message;
+                        targetText = replyMsg.text || replyMsg.caption || targetText;
+                    }
+
+                    if (!lang || !targetText || !targetText.trim()) {
+                        await ctx.reply(`<b>FORMAT SALAH</b> ❌\n\nGunakan: <code>/translate [kode_bahasa] [teks]</code>\nAtau reply pesan dengan <code>/translate [kode_bahasa]</code>.\n\nContoh: <code>/translate en Halo dunia</code>`, { parse_mode: 'HTML' });
+                        break;
+                    }
+
+                    const translatingMsg = await ctx.reply('⏳ Sedang menerjemahkan, mohon tunggu...');
+
+                    try {
+                        const translatedText = await translateText(lang, targetText);
+                        await ctx.telegram.editMessageText(
+                            ctx.chat.id,
+                            translatingMsg.message_id,
+                            null,
+                            `Terjemahan ke ${lang}:\n${translatedText}`
+                        );
+                    } catch (err) {
+                        console.error('Error in /translate:', err);
+                        await ctx.telegram.editMessageText(
+                            ctx.chat.id,
+                            translatingMsg.message_id,
+                            null,
+                            `<b>GAGAL MENERJEMAHKAN</b> ❌\n\nMaaf, terjadi kesalahan: ${escapeHtml(err.message)}`,
+                            { parse_mode: 'HTML' }
+                        );
+                    }
+                    break;
+
                 case '/saldo':
                 case '/catat':
                 case '/pemasukan':
@@ -1723,7 +1768,8 @@ function setupTelegramBot() {
                     img_info: '/img_info',
                     pdf_info: '/pdf_info',
                     model_info: '/model_info',
-                    sticker_info: '/sticker_info'
+                    sticker_info: '/sticker_info',
+                    translate_info: '/translate_info'
                 };
 
                 const mapped = commandMap[key];

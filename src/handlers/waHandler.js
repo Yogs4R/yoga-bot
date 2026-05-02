@@ -3,7 +3,7 @@ const fs = require('fs/promises');
 const fsSync = require('fs');
 const path = require('path');
 const { downloadMediaMessage } = require('@whiskeysockets/baileys');
-const { askAiDetailed } = require('../lib/aiClient');
+const { askAiDetailed, translateText } = require('../lib/aiClient');
 const handleFinanceCommand = require('../commands/finance/index');
 const { handleAdminCommand } = require('../commands/admin/index');
 const { isAdmin } = require('../utils/auth');
@@ -640,6 +640,34 @@ class WhatsAppHandler {
             return;
           }
 
+          case '/translate': {
+            const lang = args[0];
+            const optionalText = args.slice(1).join(' ');
+            let targetText = optionalText;
+
+            const quotedMsg = msg.message?.extendedTextMessage?.contextInfo?.quotedMessage;
+            if (quotedMsg) {
+              targetText = quotedMsg.conversation ||
+                           quotedMsg.extendedTextMessage?.text ||
+                           quotedMsg.imageMessage?.caption ||
+                           quotedMsg.videoMessage?.caption ||
+                           targetText;
+            }
+
+            if (!lang || !targetText || !targetText.trim()) {
+              replyText = '> *FORMAT SALAH* ❌\n\nGunakan: `/translate [kode_bahasa] [teks]`\nAtau reply pesan dengan `/translate [kode_bahasa]`.\n\nContoh: `/translate en Halo dunia`';
+            } else {
+              try {
+                const translatedText = await translateText(lang, targetText);
+                replyText = `Terjemahan ke ${lang}:\n${translatedText}`;
+              } catch (err) {
+                console.error('Error in /translate:', err);
+                replyText = `> *GAGAL MENERJEMAHKAN* ❌\n\nMaaf, terjadi kesalahan: ${err.message}`;
+              }
+            }
+            break;
+          }
+
           case '/finance_info': {
             const header = '> *FINANCE TOOLS* 💰';
             const body = `Panduan lengkap fitur keuangan Fuenzer Bot.\n\n*COMMAND INTI:*\n- /saldo : Lihat ringkasan saldo terbaru\n- /catat <nominal> <keterangan> : Catat pengeluaran\n- /pemasukan <nominal> <keterangan> : Catat pemasukan\n- /laporan_chart : Tampilkan grafik laporan\n- /riwayat [halaman] : Riwayat transaksi (paging 5 data)\n- /edit <id> <field> <nilai> : Ubah transaksi\n- /hapus <id> : Hapus transaksi (dengan konfirmasi)\n\n*CONTOH CEPAT:*\n- /catat 25000 makan siang\n- /pemasukan 150000 freelance logo\n- /riwayat 2\n- /edit 123e4567 nominal 30000\n- /hapus 123e4567\n\n*TIPS:*\n- Gunakan /riwayat untuk ambil ID transaksi sebelum /edit atau /hapus\n- Tulisan nominal tanpa titik/koma agar lebih aman diproses`;
@@ -650,6 +678,13 @@ class WhatsAppHandler {
           case '/remind_info': {
             const header = '> *REMINDER TOOLS* ⏰';
             const body = `Panduan lengkap fitur pengingat (Reminder) Fuenzer Bot.\n\n*COMMAND INTI:*\n- /remind add <waktu> <pesan> : Buat pengingat sekali jalan\n- /remind loop <waktu> <pesan> : Buat pengingat berulang\n- /remind list : Tampilkan semua pengingat yang aktif\n- /remind hapus <id> : Hapus pengingat berdasarkan ID\n- /remind edit <id> <waktu> <pesan> : Edit pengingat\n\n*FORMAT WAKTU (Support Ms):*\n- Detik: \`5s\`, \`30s\`, \`60s\`\n- Menit: \`1m\`, \`15m\`, \`30m\`\n- Jam: \`1h\`, \`2h\`, \`12h\`\n- Hari: \`1d\`, \`2d\`, \`7d\`\n\n*CONTOH CEPAT:*\n- /remind add 15m angkat jemuran\n- /remind loop 1d minum vitamin pagi\n- /remind edit A1B2C 2h minum vitamin siang\n- /remind hapus A1B2C\n\n*TIPS:*\n- Gunakan \`/remind list\` untuk melihat ID unik dari pengingat Anda. ID ini digunakan saat Anda ingin mengedit atau menghapus pengingat.\n- Pengingat berulang (loop) akan selalu berjalan dengan interval yang telah ditentukan kecuali dihapus.`;
+            replyText = `${header}\n\n${body}`;
+            break;
+          }
+
+          case '/translate_info': {
+            const header = '> *TRANSLATE TOOLS* 🌍';
+            const body = `Panduan menggunakan fitur terjemahan AI.\n\n*COMMAND INTI:*\n- \`/translate <kode_bahasa> <teks>\`\n- Atau *reply* pesan yang ingin diterjemahkan dengan \`/translate <kode_bahasa>\`\n\n*DAFTAR KODE BAHASA (Ketikkan 2 huruf ini):*\n- \`en\` : English (Inggris)\n- \`id\` : Indonesia\n- \`jv\` : Javanese (Jawa)\n- \`su\` : Sundanese (Sunda)\n- \`ms\` : Sundanese (Sunda)\n- \`ar\` : Arabic (Arab)\n- \`ja\` : Japanese (Jepang)\n- \`ko\` : Korean (Korea)\n- \`zh\` : Chinese (Mandarin)\n- \`hi\` : Hindi (India)\n- \`ru\` : Russian (Rusia)\n- \`es\` : Spanish (Spanyol)\n- \`fr\` : French (Perancis)\n- \`de\` : German (Jerman)\n- \`it\` : Italian (Italia)\n- \`nl\` : Dutch (Belanda)\n- \`pt\` : Portuguese (Portugis)\n- \`th\` : Thai (Thailand)\n- \`vi\` : Vietnamese (Vietnam)\n\n*CONTOH CEPAT:*\n- \`/translate en Halo dunia, apa kabar?\`\n- \`/translate ar Selamat pagi\`\n\n*TIPS:*\n- AI otomatis mendeteksi bahasa asli dari teks yang Anda berikan, Anda hanya perlu menentukan bahasa tujuannya.`;
             replyText = `${header}\n\n${body}`;
             break;
           }
@@ -1009,7 +1044,7 @@ class WhatsAppHandler {
 
           case '/info': {
             const header = '> *INFORMASI FUENZER BOT* 🤖';
-            const body = `Saya adalah asisten virtual pribadi milik Ridwan Yoga Suryantara.\n\n☕ *DUKUNGAN BOT*\n- \`/donate\`         : Link dukungan + QR donasi\n\n📋 *FITUR KEUANGAN* 💰\n- \`/finance_info\`   : Panduan Lengkap command keuangan\n\n📋 *FITUR SISTEM* ⚙️\n- \`/ping\`           : Cek status bot\n- \`/info\`           : Menampilkan pesan ini\n- \`/start\`          : Memulai bot\n\n💡 *FITUR AI* 🧠\nKirimkan pesan biasa (tanpa awalan '/') untuk ngobrol,\nbertanya seputar coding, teknologi, atau sekadar bertukar pikiran!\n- \`/model_info\`     : Daftar model AI yang tersedia\n- \`/switch\`         : Ganti model AI aktif\n\n🛠️ *FITUR UTILITAS*\n- \`/short\`          : Pendekkan URL dengan is.gd\n- \`/research_info\`  : Panduan Lengkap Referensi (buku/jurnal/artikel)\n- \`/downloader\`     : Panduan Lengkap download (/download & /audio)\n- \`/remind_info\`    : Panduan Lengkap fitur Reminder pengingat\n- \`/cuaca\`          : Info cuaca hari ini\n- \`/sholat\`         : Jadwal sholat hari ini\n- \`/me\`             : Tentang pembuat bot\n\n🖼️ *FITUR CONVERTER* 📄\n- \`/img_info\`       : Panduan Lengkap image tools\n- \`/pdf_info\`       : Panduan Lengkap PDF tools\n\n🧩 *FITUR STICKER*\n- \`/sticker_info\`   : Panduan Lengkap sticker tools\n\n🛡️ *FITUR ADMIN*\n- \`/admin\`          : Menu command admin`;
+            const body = `Saya adalah asisten virtual pribadi milik Ridwan Yoga Suryantara.\n\n☕ *DUKUNGAN BOT*\n- \`/donate\`         : Link dukungan + QR donasi\n\n📋 *FITUR KEUANGAN* 💰\n- \`/finance_info\`   : Panduan Lengkap command keuangan\n\n📋 *FITUR SISTEM* ⚙️\n- \`/ping\`           : Cek status bot\n- \`/info\`           : Menampilkan pesan ini\n- \`/start\`          : Memulai bot\n\n💡 *FITUR AI* 🧠\nKirimkan pesan biasa (tanpa awalan '/') untuk ngobrol, bertanya seputar coding, teknologi, atau sekadar bertukar pikiran!\n*(Support deteksi file: Gambar / Audio VN / Dokumen Teks)*\n- \`/model_info\`     : Daftar model AI yang tersedia\n- \`/switch\`         : Ganti model AI aktif\n\n🌍 *FITUR TRANSLATE*\n- \`/translate_info\` : Panduan Lengkap terjemah kata/kalimat\n\n🛠️ *FITUR UTILITAS*\n- \`/short\`          : Pendekkan URL dengan is.gd\n- \`/research_info\`  : Panduan Lengkap Referensi (buku/jurnal/artikel)\n- \`/downloader\`     : Panduan Lengkap download (/download & /audio)\n- \`/remind_info\`    : Panduan Lengkap fitur Reminder pengingat\n- \`/cuaca\`          : Info cuaca hari ini\n- \`/sholat\`         : Jadwal sholat hari ini\n- \`/me\`             : Tentang pembuat bot\n\n🖼️ *FITUR CONVERTER* 📄\n- \`/img_info\`       : Panduan Lengkap image tools\n- \`/pdf_info\`       : Panduan Lengkap PDF tools\n\n🧩 *FITUR STICKER*\n- \`/sticker_info\`   : Panduan Lengkap sticker tools\n\n🛡️ *FITUR ADMIN*\n- \`/admin\`          : Menu command admin`;
             replyText = appendFooter(`${header}\n\n${body}`, buildSystemStatsFooter());
             break;
           }
@@ -1559,14 +1594,78 @@ class WhatsAppHandler {
           }
         }
       } else {
-        if (cleanText.length <= 2) {
+        const isImage = !!msg.message?.imageMessage;
+        const isAudio = !!msg.message?.audioMessage;
+        const isDoc = !!msg.message?.documentMessage;
+        const hasMedia = isImage || isAudio || isDoc;
+
+        if (cleanText.length <= 2 && !hasMedia) {
           const shortHeader = '> *PESAN TERLALU PENDEK* 📏';
           const shortBody = 'Maaf, pesan terlalu pendek atau kurang jelas.\nKetik \`/info\` untuk melihat daftar kemampuanku ya!';
           replyText = `${shortHeader}\n\n${shortBody}`;
         } else {
           try {
             const realId = resolveWhatsAppSenderJid(msg, userId);
-            const aiResult = await askAiDetailed(cleanText, userId, 'whatsapp', realId);
+            let aiPayload = cleanText;
+
+            if (hasMedia) {
+              const fileLength = msg.message?.imageMessage?.fileLength || 
+                                 msg.message?.audioMessage?.fileLength || 
+                                 msg.message?.documentMessage?.fileLength;
+              const fileSizeBytes = Number(fileLength) || 0;
+
+              if (isImage) {
+                if (fileSizeBytes > 5 * 1024 * 1024) {
+                   throw new Error('⛔ Ukuran gambar terlalu besar! Maksimal 5 MB.');
+                }
+                const buffer = await downloadMediaMessage(msg, 'buffer', {}, { reuploadRequest: this.sock.updateMediaMessage });
+                const base64Data = buffer.toString('base64');
+                const promptUser = cleanText || "Tolong jelaskan gambar ini.";
+                const mimeType = msg.message.imageMessage.mimetype || 'image/jpeg';
+                aiPayload = [
+                  { type: "text", text: promptUser },
+                  { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64Data}` } }
+                ];
+              } else if (isAudio) {
+                if (fileSizeBytes > 10 * 1024 * 1024) {
+                   throw new Error('⛔ Durasi atau ukuran pesan suara terlalu besar! Maksimal 10 MB.');
+                }
+                const buffer = await downloadMediaMessage(msg, 'buffer', {}, { reuploadRequest: this.sock.updateMediaMessage });
+                const base64Data = buffer.toString('base64');
+                const promptUser = cleanText || "Tolong transkripsikan atau tanggapi pesan suara ini.";
+                // We can extract extension from mimetype,e.g., audio/ogg; codecs=opus -> ogg
+                let formatExt = "ogg";
+                if (msg.message.audioMessage.mimetype) {
+                   if (msg.message.audioMessage.mimetype.includes('mp3')) formatExt = 'mp3';
+                   else if (msg.message.audioMessage.mimetype.includes('mp4')) formatExt = 'mp4';
+                   else if (msg.message.audioMessage.mimetype.includes('wav')) formatExt = 'wav';
+                }
+                aiPayload = [
+                  { type: "text", text: promptUser },
+                  { type: "input_audio", input_audio: { data: base64Data, format: formatExt } }
+                ];
+              } else if (isDoc) {
+                if (fileSizeBytes > 10 * 1024 * 1024) {
+                   throw new Error('⛔ Ukuran dokumen terlalu besar! Maksimal 10 MB.');
+                }
+                const docMsg = msg.message.documentMessage;
+                const mimetype = docMsg.mimetype || '';
+                const fileName = docMsg.fileName || '';
+                
+                const isText = mimetype.includes('text') || mimetype.includes('json') || mimetype.includes('csv');
+                const isTextExt = fileName.endsWith('.js') || fileName.endsWith('.md') || fileName.endsWith('.txt') || fileName.endsWith('.csv') || fileName.endsWith('.json');
+                
+                if (isText || isTextExt) {
+                  const buffer = await downloadMediaMessage(msg, 'buffer', {}, { reuploadRequest: this.sock.updateMediaMessage });
+                  const fileContent = buffer.toString('utf-8');
+                  aiPayload = `[Isi File Terlampir:\n${fileContent}\n]\n\n${cleanText}`;
+                } else {
+                  throw new Error('⛔ Mohon maaf, untuk saat ini Fuenzer Bot lebih optimal membaca file berbentuk gambar atau teks (.txt).');
+                }
+              }
+            }
+
+            const aiResult = await askAiDetailed(aiPayload, userId, 'whatsapp', realId);
             replyText = appendFooter(aiResult.text, buildAiStatsFooter(aiResult));
           } catch (error) {
             console.error('Error dari OpenRouter AI:', error);
@@ -1574,30 +1673,34 @@ class WhatsAppHandler {
             let errorHeader;
             let errorBody;
             const message = String(error?.message || '');
-            if (message.includes('429 Rate Limit')) {
-              errorHeader = '> *RATE LIMIT AI* ⏳';
-              errorBody = 'Maaf, request AI sedang padat (429 Rate Limit).\nSilakan coba lagi beberapa saat.';
-            } else if (message.includes('401 Unauthorized') || message.includes('403 Forbidden')) {
-              errorHeader = '> *AKSES AI DITOLAK* 🔒';
-              errorBody = 'Maaf, akses AI ditolak (401/403).\nAdmin perlu memeriksa API key OpenRouter.';
-            } else if (message.includes('tidak ditemukan di OpenRouter')) {
-              errorHeader = '> *MODEL AI TIDAK DITEMUKAN* 🔍';
-              errorBody = 'Maaf, model AI yang dipakai sedang tidak tersedia.\nCoba lagi nanti.';
-            } else if (message.includes('API key OpenRouter')) {
-              errorHeader = '> *API KEY AI TIDAK VALID* 🔑';
-              errorBody = 'Maaf, konfigurasi OpenRouter belum lengkap atau tidak valid.\nAdmin telah diberitahu.';
-            } else if (message.includes('Server OpenRouter sedang gangguan')) {
-              errorHeader = '> *SERVER AI GANGGUAN* 🛠️';
-              errorBody = 'Maaf, server AI sedang gangguan.\nSilakan coba lagi nanti.';
+            if (message.startsWith('⛔') || message.includes('400 Bad Request: ⛔')) {
+              replyText = message.includes('400 Bad Request:') ? message.split('400 Bad Request: ')[1].trim() : message;
             } else {
-              errorHeader = '> *ERROR AI* 🤯';
-              errorBody = 'Maaf, otak AI sedang gangguan.\nCoba lagi nanti atau gunakan perintah sistem (/ping, /saldo).';
-            }
+              if (message.includes('429 Rate Limit')) {
+                errorHeader = '> *RATE LIMIT AI* ⏳';
+                errorBody = 'Maaf, request AI sedang padat (429 Rate Limit).\nSilakan coba lagi beberapa saat.';
+              } else if (message.includes('401 Unauthorized') || message.includes('403 Forbidden')) {
+                errorHeader = '> *AKSES AI DITOLAK* 🔒';
+                errorBody = 'Maaf, akses AI ditolak (401/403).\nAdmin perlu memeriksa API key OpenRouter.';
+              } else if (message.includes('tidak ditemukan di OpenRouter')) {
+                errorHeader = '> *MODEL AI TIDAK DITEMUKAN* 🔍';
+                errorBody = 'Maaf, model AI yang dipakai sedang tidak tersedia.\nCoba lagi nanti.';
+              } else if (message.includes('API key OpenRouter')) {
+                errorHeader = '> *API KEY AI TIDAK VALID* 🔑';
+                errorBody = 'Maaf, konfigurasi OpenRouter belum lengkap atau tidak valid.\nAdmin telah diberitahu.';
+              } else if (message.includes('Server OpenRouter sedang gangguan')) {
+                errorHeader = '> *SERVER AI GANGGUAN* 🛠️';
+                errorBody = 'Maaf, server AI sedang gangguan.\nSilakan coba lagi nanti.';
+              } else {
+                errorHeader = '> *ERROR AI* 🤯';
+                errorBody = 'Maaf, otak AI sedang gangguan.\nCoba lagi nanti atau gunakan perintah sistem (/ping, /saldo).';
+              }
 
-            replyText = appendFooter(
-              `${errorHeader}\n\n${errorBody}`,
-              buildAiStatsFooter({ model: '-', usage: { promptTokenCount: 0, candidatesTokenCount: 0 }, rpm: { label: '-' } })
-            );
+              replyText = appendFooter(
+                `${errorHeader}\n\n${errorBody}`,
+                buildAiStatsFooter({ model: '-', usage: { promptTokenCount: 0, candidatesTokenCount: 0 }, rpm: { label: '-' } })
+              );
+            }
           }
         }
       }
