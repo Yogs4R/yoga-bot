@@ -31,9 +31,11 @@ jobs:
       - name: Prepare Changelog Output
         id: prep_changelog
         run: |
-          echo "changelog<<EOF" >> $GITHUB_OUTPUT
-          printf "%s" "${{ steps.build_changelog.outputs.changelog }}" >> $GITHUB_OUTPUT
-          echo "\nEOF" >> $GITHUB_OUTPUT
+          {
+            echo 'changelog<<EOF'
+            echo '${{ steps.build_changelog.outputs.changelog }}'
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
 
       # Creating a GitHub release with the generated changelog as the release notes
       - name: Create Release
