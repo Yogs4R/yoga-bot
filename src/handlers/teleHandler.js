@@ -1331,7 +1331,9 @@ function setupTelegramBot() {
                                     throw new Error('Invalid Telegram target');
                                 }
 
-                                await ctx.telegram.sendMessage(chatId, String(textToSend || ''));
+                                await ctx.telegram.sendMessage(chatId, String(textToSend || ''), {
+                                    parse_mode: 'HTML'
+                                });
                             }
                         });
 

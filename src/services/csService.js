@@ -20,13 +20,10 @@ async function sendToSheet(type, userId, message) {
             }
         });
 
-        // 🚨 TAMBAHKAN BARIS INI UNTUK MENANGKAP BASAH BALASAN GAS
-        console.log('🔎 Laporan dari GAS:', res.data);
-
         return true;
     } catch (error) {
         if (error.response) {
-            console.error('❌ Ditolak oleh GAS:', error.response.data); 
+            console.error('❌ Response GAS:', error.response.data); 
         } else {
             console.error('❌ Error internal Node.js:', error.message); 
         }

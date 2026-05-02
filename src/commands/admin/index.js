@@ -13,6 +13,15 @@ function formatPercent(value) {
   return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
 }
 
+function escapeHtml(text) {
+  return String(text || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 async function getCommandUsageStats() {
   const { count: totalExecution, error: totalError } = await supabase
     .from('command_logs')
@@ -174,7 +183,7 @@ async function handleAdminCommand(command, args, userId, platform, options = {})
       try {
         const payload = isWhatsApp
           ? `👨‍💻 *BALASAN ADMIN FUENZER:*\n\n${jawaban}`
-          : `👨‍💻 <b>BALASAN ADMIN FUENZER:</b>\n\n${jawaban}`;
+          : `👨‍💻 <b>BALASAN ADMIN FUENZER:</b>\n\n${escapeHtml(jawaban)}`;
           
         await sendToUser(targetUserId, payload);
         return `✅ Jawaban berhasil dikirim ke ${targetUserId}.`;
