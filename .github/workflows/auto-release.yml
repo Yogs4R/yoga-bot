@@ -25,14 +25,21 @@ jobs:
         with:
           configuration: ".github/changelog-config.json"
           mode: "COMMIT" # Generate changelog based on commit messages
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Prepare a stable step output for downstream steps (avoids context access issues)
+      - name: Prepare Changelog Output
+        id: prep_changelog
+        run: |
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          printf "%s" "${{ steps.build_changelog.outputs.changelog }}" >> $GITHUB_OUTPUT
+          echo "\nEOF" >> $GITHUB_OUTPUT
 
       # Creating a GitHub release with the generated changelog as the release notes
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          body: ${{ steps.build_changelog.outputs.changelog }}
+          body: ${{ steps.prep_changelog.outputs.changelog }}
           draft: false
           prerelease: false
       
@@ -40,7 +47,7 @@ jobs:
         # Use the generated changelog and version to send a POST request to your VM's webhook endpoint
         env:
           VERSION: ${{ github.ref_name }}
-          CHANGELOG: ${{ steps.build_changelog.outputs.changelog }}
+          CHANGELOG: ${{ steps.prep_changelog.outputs.changelog }}
           SECRET: ${{ secrets.AUTO_BROADCAST_RELEASE }}
         run: |
           # Make sure to have jq installed to create the JSON payload
