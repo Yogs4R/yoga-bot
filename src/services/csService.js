@@ -14,7 +14,7 @@ async function sendToSheet(type, userId, message) {
             message: message
         });
 
-        await axios.post(gasUrl, payload, {
+        const res = await axios.post(gasUrl, payload, {
             headers: {
                 'Content-Type': 'text/plain'
             }
@@ -25,7 +25,11 @@ async function sendToSheet(type, userId, message) {
 
         return true;
     } catch (error) {
-        console.error('Error sending data to Google Sheet:', error.message);
+        if (error.response) {
+            console.error('❌ Ditolak oleh GAS:', error.response.data); 
+        } else {
+            console.error('❌ Error internal Node.js:', error.message); 
+        }
         return false;
     }
 }
