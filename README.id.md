@@ -31,6 +31,7 @@ Fuenzer Bot adalah asisten virtual mandiri yang berjalan secara paralel di Whats
 
 - [Features](#features)
 - [Tabel Referensi Command](#tabel-referensi-command)
+  - [Tabel Command Admin](#tabel-command-admin)
 - [Preview](#preview)
 - [Installation](#installation)
 - [Configuration](#configuration)
@@ -49,6 +50,7 @@ Fuenzer Bot adalah asisten virtual mandiri yang berjalan secara paralel di Whats
   - [K. Rollback saat tag release salah](#k-rollback-saat-tag-release-salah)
 - [Skema Database Supabase](#skema-database-supabase)
 - [Cara Update Kode Lokal Tanpa Kehilangan Perubahan](#cara-update-kode-lokal-tanpa-kehilangan-perubahan)
+- [Tutorial Integrasi Google Sheets (Customer Service)](#tutorial-integrasi-google-sheets-customer-service)
 
 ## Features
 
@@ -109,6 +111,12 @@ Layanan pendamping yang bermanfaat:
 - Modul *About Me* portfolio kreator
 - Modul donasi dengan pengiriman QR Ko-fi dan Saweria di chat.
 
+### 🆘 Customer Service & Feedback
+Sistem tiket sederhana untuk menerima pertanyaan dan masukan pengguna:
+- Meneruskan pertanyaan (`/ask`) dan masukan (`/feedback`) langsung ke Google Sheets.
+- Analisis sentimen otomatis di Spreadsheet (Positif, Negatif, Netral).
+- Balas pertanyaan user langsung dari bot menggunakan command `/answer` (khusus Admin).
+
 ---
 
 ## Tabel Referensi Command
@@ -149,11 +157,20 @@ Layanan pendamping yang bermanfaat:
 | /pdf | Kompres, konversi, rotate, extract, merge PDF | converterService, CloudConvert, PDF tools | /pdf compress |
 | /sticker_info | Panduan Lengkap sticker tools | stickerService | /sticker_info |
 | /donate | Tampilkan link dukungan dan QR donasi | donateService | /donate |
+| /help | Tampilkan pusat bantuan dan menu CS | csService | /help |
+| /feedback | Kirim saran/masukan (tersimpan ke Google Sheets) | csService, GAS | /feedback botnya bagus |
+| /ask | Kirim pertanyaan ke admin via CS | csService, GAS | /ask cara donasi? |
+
+### Tabel Command Admin
+
+| Command | Deskripsi | Library yang digunakan | Contoh penggunaan |
+|---|---|---|---|
 | /admin | Buka pusat command admin | auth util, modul admin | /admin |
 | /monitor | Jalankan cek status website manual | monitorService | /monitor |
 | /cmd_usage | Tampilkan statistik command terpopuler | modul admin, log service | /cmd_usage |
 | /ai_usage | Tampilkan statistik penggunaan AI per model | modul admin, log service | /ai_usage |
 | /broadcast | Kirim broadcast admin ke pengguna | modul admin, WhatsApp/Telegram clients | /broadcast maintenance malam ini |
+| /answer | Balas pertanyaan user khusus admin | csService, admin modul | /answer 628123xxx pesan admin |
 
 ---
 
@@ -196,7 +213,7 @@ File `.env` berisi seluruh konfigurasi penting. Pastikan Anda menyalin `.env.exa
 - **Telegram**: `TELEGRAM_BOT_TOKEN` dan `TELEGRAM_BOT_USERNAME` (Dari BotFather), serta `TELEGRAM_SESSION_DIR` (Folder session).
 - **Database (Supabase)**: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` (Role anon), `SUPABASE_SECRET_KEY` (Service role untuk bypass RLS bot admin).
 - **API AI**: `GEMINI_API_KEY` atau `OPENROUTER_API_KEY`.
-- **API Lainnya**: `OPENWEATHER_API_KEY` untuk info cuaca, `REMOVEBG_API_KEY`, `CLOUDCONVERT_API_KEY`, dan *HCTI* (ss web).
+- **API Lainnya**: `OPENWEATHER_API_KEY` untuk info cuaca, `REMOVEBG_API_KEY`, `CLOUDCONVERT_API_KEY`, *HCTI* (ss web), dan `GAS_WEBAPP_URL` untuk layanan Google Sheets feedback.
 - **Admin**: `ADMIN_WA_NUMBERS` dan `ADMIN_TELE_IDS` (Daftar ID yang dipisahkan koma untuk akses monitor & broadcast).
 - **Monitoring**: `MONITOR_URLS` (Web yang dicek oleh bot) dan `MONITOR_INTERVAL` (Jeda cek, misalnya 300000ms = 5 menit).
 
@@ -535,3 +552,51 @@ git stash pop
 # melakukan rebase terhadap commit terbaru, lalu mengembalikan (pop) modifikasi tersebut.
 git pull --rebase --autostash
 ```
+
+---
+
+## Tutorial Integrasi Google Sheets (Customer Service)
+
+Fitur `/ask` dan `/feedback` membutuhkan URL Web App dari Google Apps Script (GAS) untuk menyimpan data ke spreadsheet secara langsung.
+
+1. Buat Spreadsheet baru di [Google Sheets](https://sheets.google.com).
+2. Buat header pada baris pertama (A1 - F1):
+   `Timestamp` | `Type` | `User_ID` | `Message` | `Status` | `Customer Sentiment`
+3. Pada sel **F2** (Customer Sentiment), masukkan formula analisis otomatis berikut dan drag/tarik ke baris-baris bawahnya:
+   ```excel
+   =IF(ISBLANK(D2), "", IF(REGEXMATCH(LOWER(D2), "good|great|excellent|awesome|love|thanks|thank you|happy|bagus|keren|mantap|terima kasih|suka|puas"), "Positive", IF(REGEXMATCH(LOWER(D2), "bad|terrible|awful|hate|issue|problem|error|fail|angry|upset|worst|poor|jelek|buruk|masalah|rusak|gagal|kecewa"), "Negative", "Netral")))
+   ```
+4. Klik menu **Ekstensi > Apps Script**.
+5. Hapus kode bawaan yang ada, lalu paste kode berikut:
+   ```javascript
+   function doPost(e) {
+     try {
+       const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+       const data = JSON.parse(e.postData.contents);
+       
+       // Siapkan data untuk dimasukkan ke baris baru
+       const rowData = [
+         new Date(), 
+         data.type,       // 'FEEDBACK' atau 'ASK'
+         data.userId,     // Nomor WA/Tele pengguna
+         data.message,    // Isi pesan
+         'UNANSWERED'     // Status default
+       ];
+       
+       sheet.appendRow(rowData);
+       
+       return ContentService.createTextOutput(JSON.stringify({"status": "success"}))
+         .setMimeType(ContentService.MimeType.JSON);
+     } catch (error) {
+       return ContentService.createTextOutput(JSON.stringify({"status": "error", "message": error.toString()}))
+         .setMimeType(ContentService.MimeType.JSON);
+     }
+   }
+   ```
+6. Klik **Terapkan (Deploy) > Deployment baru**.
+7. Pilih jenis **Aplikasi Web (Web App)**. Set "Akses" ke **Siapa saja (Anyone)**.
+8. Salin URL Web App yang dihasilkan (berakhiran `/exec`).
+9. Buka file `.env` dan tambahkan variabel environment berikut lalu restart bot:
+   ```env
+   GAS_WEBAPP_URL="URL_WEBAPP_ANDA_DISINI"
+   ```

@@ -31,6 +31,7 @@ Fuenzer Bot is a standalone virtual assistant that runs in parallel on WhatsApp 
 
 - [Features](#features)
 - [Command Reference Table](#command-reference-table)
+  - [Admin Commands Table](#admin-commands-table)
 - [Preview](#preview)
 - [Installation](#installation)
 - [Configuration](#configuration)
@@ -49,6 +50,7 @@ Fuenzer Bot is a standalone virtual assistant that runs in parallel on WhatsApp 
   - [K. Rollback when release tag is wrong](#k-rollback-when-release-tag-is-wrong)
 - [Supabase Database Schema](#supabase-database-schema)
 - [Updating Local Code (Without Losing Changes)](#updating-local-code-without-losing-changes)
+- [Google Sheets Integration Tutorial (Customer Service)](#google-sheets-integration-tutorial-customer-service)
 
 ## Features
 
@@ -109,6 +111,12 @@ Useful companion services:
 - *About Me* creator portfolio module
 - Donation module with Ko-fi and Saweria QR delivery in chat.
 
+### 🆘 Customer Service & Feedback
+Simple ticketing system to receive user questions and feedback:
+- Forwards questions (`/ask`) and feedback (`/feedback`) directly to Google Sheets using Google Apps Script.
+- Automated sentiment analysis directly inside the Spreadsheet (Positive, Negative, Neutral).
+- Reply to user questions straight from the bot using the `/answer` command (Admin only).
+
 ---
 
 ## Command Reference Table
@@ -149,11 +157,20 @@ Useful companion services:
 | /pdf | Compress, convert, rotate, extract, merge PDF | converterService, CloudConvert, PDF tools | /pdf compress |
 | /sticker_info | Full sticker tools guide | stickerService | /sticker_info |
 | /donate | Show support links and donation QR | donateService | /donate |
+| /help | Show help center and Customer Service menu | csService | /help |
+| /feedback | Send feedback (saved to Google Sheets) | csService, GAS | /feedback great bot |
+| /ask | Send question to admin via CS | csService, GAS | /ask how to donate? |
+
+### Admin Commands Table
+
+| Command | Description | Library Used | Example Usage |
+|---|---|---|---|
 | /admin | Open admin command center | auth util, admin command module | /admin |
 | /monitor | Run website status check manually | monitorService | /monitor |
 | /cmd_usage | Show top command usage stats | admin module, log service | /cmd_usage |
 | /ai_usage | Show AI usage stats by model | admin module, log service | /ai_usage |
 | /broadcast | Send admin broadcast to users | admin module, WhatsApp/Telegram clients | /broadcast maintenance tonight |
+| /answer | Reply to user question (admin only) | csService, admin module | /answer 628123xxx admin message |
 
 ---
 
@@ -196,7 +213,7 @@ The `.env` file contains all essential configuration strings. Copy `.env.example
 - **Telegram**: `TELEGRAM_BOT_TOKEN` and `TELEGRAM_BOT_USERNAME` (From BotFather), and `TELEGRAM_SESSION_DIR` (Session folder).
 - **Database (Supabase)**: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` (Anon public key), `SUPABASE_SECRET_KEY` (Service role to bypass RLS for admin).
 - **AI APIs**: `GEMINI_API_KEY` or `OPENROUTER_API_KEY`.
-- **Other APIs**: `OPENWEATHER_API_KEY` for weather features, `REMOVEBG_API_KEY`, `CLOUDCONVERT_API_KEY`, and *HCTI* (web screenshots).
+- **Other APIs**: `OPENWEATHER_API_KEY` for weather features, `REMOVEBG_API_KEY`, `CLOUDCONVERT_API_KEY`, *HCTI* (web screenshots), and `GAS_WEBAPP_URL` for Google Sheets feedback service.
 - **Admin**: `ADMIN_WA_NUMBERS` and `ADMIN_TELE_IDS` (Comma-separated IDs for monitor & broadcast accesses).
 - **Monitoring**: `MONITOR_URLS` (Websites monitored by the bot) and `MONITOR_INTERVAL` (Interval gap, e.g. 300000ms = 5 minutes).
 
@@ -535,3 +552,51 @@ git stash pop
 # and pops the changes back seamlessly.
 git pull --rebase --autostash
 ```
+
+---
+
+## Google Sheets Integration Tutorial (Customer Service)
+
+The `/ask` and `/feedback` features require a Web App URL from Google Apps Script (GAS) to save incoming queries straight into a spreadsheet.
+
+1. Create a new blank spreadsheet in [Google Sheets](https://sheets.google.com).
+2. Set up headers on the first row (A1 - F1):
+   `Timestamp` | `Type` | `User_ID` | `Message` | `Status` | `Customer Sentiment`
+3. In cell **F2** (Customer Sentiment), insert the following automated sentiment formula and drag it down to the subsequent rows:
+   ```excel
+   =IF(ISBLANK(D2), "", IF(REGEXMATCH(LOWER(D2), "good|great|excellent|awesome|love|thanks|thank you|happy|bagus|keren|mantap|terima kasih|suka|puas"), "Positive", IF(REGEXMATCH(LOWER(D2), "bad|terrible|awful|hate|issue|problem|error|fail|angry|upset|worst|poor|jelek|buruk|masalah|rusak|gagal|kecewa"), "Negative", "Netral")))
+   ```
+4. Click **Extensions > Apps Script** from the top menu.
+5. Clear any existing code and paste the following snippet:
+   ```javascript
+   function doPost(e) {
+     try {
+       const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+       const data = JSON.parse(e.postData.contents);
+       
+       // Prepare new row data
+       const rowData = [
+         new Date(), 
+         data.type,       // 'FEEDBACK' or 'ASK'
+         data.userId,     // User's WA/Tele ID
+         data.message,    // Message content
+         'UNANSWERED'     // Default status
+       ];
+       
+       sheet.appendRow(rowData);
+       
+       return ContentService.createTextOutput(JSON.stringify({"status": "success"}))
+         .setMimeType(ContentService.MimeType.JSON);
+     } catch (error) {
+       return ContentService.createTextOutput(JSON.stringify({"status": "error", "message": error.toString()}))
+         .setMimeType(ContentService.MimeType.JSON);
+     }
+   }
+   ```
+6. Click **Deploy > New deployment**.
+7. Select **Web app** as the deployment type. Set "Who has access" to **Anyone**.
+8. Once successfully deployed, copy the generated Web App URL (ends with `/exec`).
+9. Open your server's `.env` file and append the following environment variable then restart the bot:
+   ```env
+   GAS_WEBAPP_URL="YOUR_WEBAPP_URL_HERE"
+   ```
