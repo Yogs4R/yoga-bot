@@ -84,14 +84,33 @@ async function main() {
             return res.status(401).json({ error: 'Unauthorized' });
         }
 
-        // Susun pesan broadcast
-        const messageText = `🚀 *NEW RELEASE: ${version || 'Unknown'}* 🚀\n\n*Changelog:*\n${changelog || '- No changelog provided'}`;
-        const broadcastArgs = messageText.split(' ');
         const { handleAdminCommand } = require('./commands/admin/index');
+        const rawChangelog = changelog || '- No changelog provided';
+
+        // Format for WhatsApp (converting Markdown GitHub to WhatsApp Format)
+        const waChangelog = rawChangelog
+            .replace(/\*\*(.*?)\*\*/g, '*$1*')          // Bold
+            .replace(/__(.*?)__/g, '_$1_')              // Italic
+            .replace(/\[(.*?)\]\((.*?)\)/g, '$1: $2')   // Links -> text: url
+            .replace(/^#{1,6}\s+(.*)$/gm, '*$1*');      // Headers -> *Header*
+
+        const waMessageText = `🚀 *NEW RELEASE: ${version || 'Unknown'}* 🚀\n\n*Changelog:*\n${waChangelog}`;
+
+        // Format for Telegram (converting Markdown GitHub to HTML)
+        const teleChangelog = rawChangelog
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')     // Bold
+            .replace(/__(.*?)__/g, '<i>$1</i>')         // Italic
+            .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2">$1</a>') // Links
+            .replace(/^#{1,6}\s+(.*)$/gm, '<b>$1</b>'); // Headers -> <b>Header</b>
+
+        const teleMessageText = `🚀 <b>NEW RELEASE: ${version || 'Unknown'}</b> 🚀\n\n<b>Changelog:</b>\n${teleChangelog}`;
 
         // Broadcast ke WhatsApp (jika bot WA aktif)
         if (waSocket) {
-            handleAdminCommand('/broadcast', broadcastArgs, 'system', 'whatsapp', {
+            handleAdminCommand('/broadcast', [waMessageText], 'system', 'whatsapp', {
                 notifyAdmin: async (msg) => console.log('[Webhook Broadcast WA] ' + msg),
                 sendToUser: async (targetId, text) => {
                     const jid = targetId.includes('@s.whatsapp.net') ? targetId : `${targetId}@s.whatsapp.net`;
@@ -102,12 +121,12 @@ async function main() {
 
         // Broadcast ke Telegram (jika bot Tele aktif)
         if (process.env.TELEGRAM_BOT_TOKEN && telegramBot) {
-            handleAdminCommand('/broadcast', broadcastArgs, 'system', 'telegram', {
+            handleAdminCommand('/broadcast', [teleMessageText], 'system', 'telegram', {
                 notifyAdmin: async (msg) => console.log('[Webhook Broadcast Tele] ' + msg),
                 sendToUser: async (targetId, text) => {
                     const chatId = Number(targetId);
                     if (Number.isFinite(chatId)) {
-                        await telegramBot.telegram.sendMessage(chatId, String(text));
+                        await telegramBot.telegram.sendMessage(chatId, String(text), { parse_mode: 'HTML' });
                     }
                 }
             }).catch(err => console.error('[Webhook Tele Error]', err));

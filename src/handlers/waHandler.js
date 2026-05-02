@@ -1045,7 +1045,7 @@ class WhatsAppHandler {
           }
 
           case '/help': {
-            replyText = `*PusAT BANTUAN & FEEDBACK* 🆘\n\nJika kamu menemukan bug atau punya pertanyaan seputar fitur bot, gunakan fitur CS ini:\n\n1. \`/feedback [pesan]\` : Berikan saran, kritik, atau laporan bug ke tim Fuenzer.\n2. \`/ask [pesan]\` : Tanyakan apa saja ke Admin terkait operasional bot.\n\nContoh:\n\`/feedback Fitur translate error saat menerjemahkan ke bahasa Korea\`\n\`/ask Bagaimana cara upgrade kuota premium?\``;
+            replyText = `*PUSAT BANTUAN & FEEDBACK* 🆘\n\nJika kamu menemukan bug atau punya pertanyaan seputar fitur bot, gunakan fitur CS ini:\n\n1. \`/feedback [pesan]\` : Berikan saran, kritik, atau laporan bug ke tim Fuenzer.\n2. \`/ask [pesan]\` : Tanyakan apa saja ke Admin terkait operasional bot.\n\nContoh:\n\`/feedback Fitur translate error saat menerjemahkan ke bahasa Korea\`\n\`/ask Bagaimana cara upgrade kuota premium?\``;
             break;
           }
 

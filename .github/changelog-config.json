@@ -21,31 +21,31 @@
     {
       "pattern": "^feat(?:\\([^)]*\\))?!?:\\s.*",
       "target": "feature",
-      "on_property": "message",
+      "on_property": "title",
       "flags": "i"
     },
     {
       "pattern": "^fix(?:\\([^)]*\\))?!?:\\s.*",
       "target": "bug",
-      "on_property": "message",
+      "on_property": "title",
       "flags": "i"
     },
     {
       "pattern": "^(?:refactor|chore)(?:\\([^)]*\\))?!?:\\s.*",
       "target": "maintenance",
-      "on_property": "message",
+      "on_property": "title",
       "flags": "i"
     },
     {
       "pattern": "^(?:docs(?:\\([^)]*\\))?!?:\\s.*|merge\\b.*|add files via upload.*)",
       "target": "documentation",
-      "on_property": "message",
+      "on_property": "title",
       "flags": "i"
     }
   ],
   "ignore_labels": [
     "documentation"
   ],
-  "commit_template": "- #{{TITLE}} (#{{HASH}})",
+  "commit_template": "- #{{TITLE}} (#{{COMMIT_SHA}})",
   "template": "#{{CHANGELOG}}\n\n### ❓ Other Changes\n#{{UNCATEGORIZED}}\n\n---\n*Note: This changelog was automatically generated from commit messages.*"
 }
