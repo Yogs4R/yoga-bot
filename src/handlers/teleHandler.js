@@ -288,7 +288,8 @@ function buildMainMenuKeyboard() {
         [Markup.button.callback('🖼️ Image Tools', 'cmd:img_info'), Markup.button.callback('📄 PDF Tools', 'cmd:pdf_info')],
         [Markup.button.callback('🤖 Model AI', 'cmd:model_info'), Markup.button.callback('🧩 Sticker Tools', 'cmd:sticker_info')],
         [Markup.button.callback('🔎 Research', 'cmd:research_info'), Markup.button.callback('⬇️ Downloader', 'cmd:downloader')],
-        [Markup.button.callback('🌍 Translate Info', 'cmd:translate_info'), Markup.button.callback('⏰ Reminder Info', 'cmd:remind_info')]
+        [Markup.button.callback('🌍 Translate Info', 'cmd:translate_info'), Markup.button.callback('⏰ Reminder Info', 'cmd:remind_info')],
+        [Markup.button.callback('🆘 Help & CS', 'cmd:help')]
     ]);
 }
 
@@ -863,12 +864,19 @@ async function processMenuCommand(ctx, command, userId) {
         }
         case '/info': {
             const header = '<b>INFORMASI FUENZER BOT</b> 🤖';
-            const body = `Saya adalah asisten virtual pribadi milik <b>Ridwan Yoga Suryantara</b>.\n\n<b>DUKUNGAN BOT</b> ☕\n• /donate : Link dukungan + QR donasi\n\n<b>FITUR KEUANGAN</b> 💰\n• /finance_info : Panduan Lengkap command keuangan\n\n<b>FITUR SISTEM</b> ⚙️\n• /ping : Cek status bot\n• /info : Menampilkan pesan ini\n• /start : Memulai bot\n\n<b>FITUR AI</b> 🧠\nKirim pesan biasa (tanpa awalan /) untuk ngobrol, tanya coding, atau diskusi teknologi.\n<i>(Support deteksi file: Gambar / Audio VN / Dokumen Teks)</i>\n• /model_info : Daftar model AI yang tersedia\n• /switch : Ganti model AI aktif\n\n<b>FITUR TRANSLATE</b> 🌍\n• /translate_info : Panduan Lengkap terjemah kata/kalimat\n\n<b>FITUR UTILITAS</b> 🛠️\n• /short : Pendekkan URL dengan is.gd\n• /research_info : Panduan Lengkap Referensi (buku/jurnal/artikel)\n• /downloader : Panduan Lengkap download (/download & /audio)\n• /remind_info : Panduan Lengkap fitur Reminder pengingat\n• /cuaca : Info cuaca hari ini\n• /sholat : Jadwal sholat hari ini\n• /me : Tentang pembuat bot\n\n<b>FITUR CONVERTER</b> 🖼️\n• /img_info : Panduan Lengkap image tools\n• /pdf_info : Panduan Lengkap PDF tools\n\n<b>FITUR STICKER</b> 🧩\n• /sticker_info : Panduan Lengkap sticker tools\n\n<b>FITUR ADMIN</b> 🛡️\n• /admin : Menu command admin`;
+            const body = `Saya adalah asisten virtual pribadi milik <b>Ridwan Yoga Suryantara</b>.\n\n<b>LAYANAN CS & FEEDBACK</b> 🆘\n• /help : Pusat Bantuan & Feedback\n\n<b>DUKUNGAN BOT</b> ☕\n• /donate : Link dukungan + QR donasi\n\n<b>FITUR KEUANGAN</b> 💰\n• /finance_info : Panduan Lengkap command keuangan\n\n<b>FITUR SISTEM</b> ⚙️\n• /ping : Cek status bot\n• /info : Menampilkan pesan ini\n• /start : Memulai bot\n\n<b>FITUR AI</b> 🧠\nKirim pesan biasa (tanpa awalan /) untuk ngobrol, tanya coding, atau diskusi teknologi.\n<i>(Support deteksi file: Gambar / Audio VN / Dokumen Teks)</i>\n• /model_info : Daftar model AI yang tersedia\n• /switch : Ganti model AI aktif\n\n<b>FITUR TRANSLATE</b> 🌍\n• /translate_info : Panduan Lengkap terjemah kata/kalimat\n\n<b>FITUR UTILITAS</b> 🛠️\n• /short : Pendekkan URL dengan is.gd\n• /research_info : Panduan Lengkap Referensi (buku/jurnal/artikel)\n• /downloader : Panduan Lengkap download (/download & /audio)\n• /remind_info : Panduan Lengkap fitur Reminder pengingat\n• /cuaca : Info cuaca hari ini\n• /sholat : Jadwal sholat hari ini\n• /me : Tentang pembuat bot\n\n<b>FITUR CONVERTER</b> 🖼️\n• /img_info : Panduan Lengkap image tools\n• /pdf_info : Panduan Lengkap PDF tools\n\n<b>FITUR STICKER</b> 🧩\n• /sticker_info : Panduan Lengkap sticker tools\n\n<b>FITUR ADMIN</b> 🛡️\n• /admin : Menu command admin`;
             const message = `${header}\n\n${body}\n\n${buildSystemStatsFooter()}`;
             await ctx.reply(message, {
                 parse_mode: 'HTML',
                 ...buildMainMenuKeyboard()
             });
+            return;
+        }
+
+        case '/help': {
+            const header = '<b>Pusat Bantuan & Feedback</b> 🆘';
+            const body = `Jika kamu menemukan bug atau punya pertanyaan seputar fitur bot, gunakan fitur CS ini:\n\n1. <code>/feedback [pesan]</code> : Berikan saran, kritik, atau laporan bug ke tim Fuenzer.\n2. <code>/ask [pesan]</code> : Tanyakan apa saja ke Admin terkait operasional bot.\n\nContoh:\n<code>/feedback Fitur translate error saat menerjemahkan ke bahasa Korea</code>\n<code>/ask Bagaimana cara upgrade kuota premium?</code>`;
+            await ctx.reply(`${header}\n\n${body}`, { parse_mode: 'HTML' });
             return;
         }
 
@@ -1238,6 +1246,34 @@ function setupTelegramBot() {
                     break;
                 }
 
+                case '/help':
+                    await processMenuCommand(ctx, '/help', userId);
+                    break;
+
+                case '/feedback': {
+                    const pesan = args.join(' ').trim();
+                    if (!pesan) {
+                        await ctx.reply('Silakan tuliskan pesan feedback setelah command.\nContoh: <code>/feedback bot ini sangat membantu!</code>', { parse_mode: 'HTML' });
+                        break;
+                    }
+                    const { sendToSheet } = require('../services/csService');
+                    await sendToSheet('FEEDBACK', userId, pesan);
+                    await ctx.reply('✅ Terima kasih! Feedback kamu telah masuk ke sistem Fuenzer Studio.', { parse_mode: 'HTML' });
+                    break;
+                }
+
+                case '/ask': {
+                    const pesan = args.join(' ').trim();
+                    if (!pesan) {
+                        await ctx.reply('Silakan tuliskan pertanyaan setelah command.\nContoh: <code>/ask kapan fitur baru rilis?</code>', { parse_mode: 'HTML' });
+                        break;
+                    }
+                    const { sendToSheet } = require('../services/csService');
+                    await sendToSheet('ASK', userId, pesan);
+                    await ctx.reply('✅ Pertanyaan kamu telah dikirim ke Admin. Harap tunggu balasannya ya!', { parse_mode: 'HTML' });
+                    break;
+                }
+
                 case '/monitor': {
                     try {
                         if (!isAdmin(userId, 'telegram')) {
@@ -1277,6 +1313,7 @@ function setupTelegramBot() {
                     break;
                 }
 
+                case '/answer':
                 case '/broadcast': {
                     try {
                         if (!isAdmin(userId, 'telegram')) {

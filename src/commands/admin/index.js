@@ -128,7 +128,11 @@ async function handleAdminCommand(command, args, userId, platform, options = {})
           '- \`/monitor\` : Cek status website',
           '- \`/cmd_usage\` : Statistik penggunaan bot',
           '- \`/ai_usage\` : Statistik penggunaan token AI',
-          '- \`/broadcast\` : Kirim pesan ke semua pengguna'
+          '- \`/broadcast\` : Kirim pesan ke semua pengguna',
+          '- \`/answer [id] [pesan]\` : Balas pertanyaan user',
+          '',
+          '📊 *Data CS (Spreadsheet)*',
+          'Link: https://docs.google.com/spreadsheets/d/1VYp05FrcpSFMXxUrHLN2mXnC-t9r-XsPh7wl0zBUbrk/edit?usp=sharing'
         ].join('\n');
         const footer = ['—'.repeat(19), 'Gunakan command di atas untuk mengakses fitur admin.'].join('\n');
         return `${header}\n\n${body}\n\n${footer}`;
@@ -141,9 +145,42 @@ async function handleAdminCommand(command, args, userId, platform, options = {})
         '• /monitor : Cek status website',
         '• /cmd_usage : Statistik penggunaan bot',
         '• /ai_usage : Statistik penggunaan token AI',
-        '• /broadcast : Kirim pesan ke semua pengguna'
+        '• /broadcast : Kirim pesan ke semua pengguna',
+        '• /answer [id] [pesan] : Balas pertanyaan user',
+        '',
+        '📊 <b>Data CS (Spreadsheet)</b>',
+        '<a href="https://docs.google.com/spreadsheets/d/1VYp05FrcpSFMXxUrHLN2mXnC-t9r-XsPh7wl0zBUbrk/edit?usp=sharing">Buka Spreadsheet</a>'
       ].join('\n');
       return `${header}\n\n${body}`;
+    }
+
+    case '/answer': {
+      const targetUserId = args[0];
+      const jawaban = args.slice(1).join(' ').trim();
+
+      if (!targetUserId || !jawaban) {
+        return isWhatsApp 
+          ? 'Format salah. Gunakan: `/answer [user_id] [pesan_jawaban]`' 
+          : 'Format salah. Gunakan: <code>/answer [user_id] [pesan_jawaban]</code>';
+      }
+
+      const sendToUser = options.sendToUser;
+      if (typeof sendToUser !== 'function') {
+        return isWhatsApp
+          ? '> *ERROR ANSWER* ❌\n\nFungsi sendToUser belum dikonfigurasi.'
+          : '<b>ERROR ANSWER</b> ❌\n\nFungsi sendToUser belum dikonfigurasi.';
+      }
+
+      try {
+        const payload = isWhatsApp
+          ? `👨‍💻 *BALASAN ADMIN FUENZER:*\n\n${jawaban}`
+          : `👨‍💻 <b>BALASAN ADMIN FUENZER:</b>\n\n${jawaban}`;
+          
+        await sendToUser(targetUserId, payload);
+        return `✅ Jawaban berhasil dikirim ke ${targetUserId}.`;
+      } catch (err) {
+        return `❌ Gagal mengirim pesan. Pastikan ID target valid.\nError: ${err.message}`;
+      }
     }
 
     case '/broadcast': {

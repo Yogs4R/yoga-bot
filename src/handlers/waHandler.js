@@ -13,6 +13,7 @@ const { handleImgCommand } = require('../commands/converter/index');
 const { handleReminderCommand } = require('../commands/reminder/index');
 const { createSticker, isFfmpegMissingError } = require('../services/stickerService');
 const { getQuotaStatus } = require('../services/quotaService');
+const { sendToSheet } = require('../services/csService');
 const { logCommand } = require('../services/logService');
 const { shortenUrl } = require('../services/shortenerService');
 const { getDownloadUrl, getAudioUrl, getMediaBuffer, getAudioBuffer } = require('../services/downloaderService');
@@ -878,6 +879,7 @@ class WhatsAppHandler {
             break;
           }
 
+          case '/answer':
           case '/broadcast': {
             if (!isAdmin(userId, 'whatsapp')) {
               replyText = '> *AKSES DITOLAK* ❌\n\nCommand ini khusus admin.';
@@ -1042,9 +1044,36 @@ class WhatsAppHandler {
             break;
           }
 
+          case '/help': {
+            replyText = `*PusAT BANTUAN & FEEDBACK* 🆘\n\nJika kamu menemukan bug atau punya pertanyaan seputar fitur bot, gunakan fitur CS ini:\n\n1. \`/feedback [pesan]\` : Berikan saran, kritik, atau laporan bug ke tim Fuenzer.\n2. \`/ask [pesan]\` : Tanyakan apa saja ke Admin terkait operasional bot.\n\nContoh:\n\`/feedback Fitur translate error saat menerjemahkan ke bahasa Korea\`\n\`/ask Bagaimana cara upgrade kuota premium?\``;
+            break;
+          }
+
+          case '/feedback': {
+            const pesan = args.join(' ').trim();
+            if (!pesan) {
+              replyText = 'Silakan tuliskan pesan feedback setelah command.\nContoh: `/feedback bot ini sangat membantu!`';
+              break;
+            }
+            await sendToSheet('FEEDBACK', realId, pesan);
+            replyText = '✅ Terima kasih! Feedback kamu telah masuk ke sistem Fuenzer Studio.';
+            break;
+          }
+
+          case '/ask': {
+            const pesan = args.join(' ').trim();
+            if (!pesan) {
+              replyText = 'Silakan tuliskan pertanyaan setelah command.\nContoh: `/ask kapan fitur baru rilis?`';
+              break;
+            }
+            await sendToSheet('ASK', realId, pesan);
+            replyText = '✅ Pertanyaan kamu telah dikirim ke Admin. Harap tunggu balasannya ya!';
+            break;
+          }
+
           case '/info': {
             const header = '> *INFORMASI FUENZER BOT* 🤖';
-            const body = `Saya adalah asisten virtual pribadi milik Ridwan Yoga Suryantara.\n\n☕ *DUKUNGAN BOT*\n- \`/donate\`         : Link dukungan + QR donasi\n\n📋 *FITUR KEUANGAN* 💰\n- \`/finance_info\`   : Panduan Lengkap command keuangan\n\n📋 *FITUR SISTEM* ⚙️\n- \`/ping\`           : Cek status bot\n- \`/info\`           : Menampilkan pesan ini\n- \`/start\`          : Memulai bot\n\n💡 *FITUR AI* 🧠\nKirimkan pesan biasa (tanpa awalan '/') untuk ngobrol, bertanya seputar coding, teknologi, atau sekadar bertukar pikiran!\n*(Support deteksi file: Gambar / Audio VN / Dokumen Teks)*\n- \`/model_info\`     : Daftar model AI yang tersedia\n- \`/switch\`         : Ganti model AI aktif\n\n🌍 *FITUR TRANSLATE*\n- \`/translate_info\` : Panduan Lengkap terjemah kata/kalimat\n\n🛠️ *FITUR UTILITAS*\n- \`/short\`          : Pendekkan URL dengan is.gd\n- \`/research_info\`  : Panduan Lengkap Referensi (buku/jurnal/artikel)\n- \`/downloader\`     : Panduan Lengkap download (/download & /audio)\n- \`/remind_info\`    : Panduan Lengkap fitur Reminder pengingat\n- \`/cuaca\`          : Info cuaca hari ini\n- \`/sholat\`         : Jadwal sholat hari ini\n- \`/me\`             : Tentang pembuat bot\n\n🖼️ *FITUR CONVERTER* 📄\n- \`/img_info\`       : Panduan Lengkap image tools\n- \`/pdf_info\`       : Panduan Lengkap PDF tools\n\n🧩 *FITUR STICKER*\n- \`/sticker_info\`   : Panduan Lengkap sticker tools\n\n🛡️ *FITUR ADMIN*\n- \`/admin\`          : Menu command admin`;
+            const body = `Saya adalah asisten virtual pribadi milik Ridwan Yoga Suryantara.\n\n🆘 *LAYANAN CS & FEEDBACK*\n- \`/help\`           : Pusat Bantuan & Feedback\n\n☕ *DUKUNGAN BOT*\n- \`/donate\`         : Link dukungan + QR donasi\n\n📋 *FITUR KEUANGAN* 💰\n- \`/finance_info\`   : Panduan Lengkap command keuangan\n\n📋 *FITUR SISTEM* ⚙️\n- \`/ping\`           : Cek status bot\n- \`/info\`           : Menampilkan pesan ini\n- \`/start\`          : Memulai bot\n\n💡 *FITUR AI* 🧠\nKirimkan pesan biasa (tanpa awalan '/') untuk ngobrol, bertanya seputar coding, teknologi, atau sekadar bertukar pikiran!\n*(Support deteksi file: Gambar / Audio VN / Dokumen Teks)*\n- \`/model_info\`     : Daftar model AI yang tersedia\n- \`/switch\`         : Ganti model AI aktif\n\n🌍 *FITUR TRANSLATE*\n- \`/translate_info\` : Panduan Lengkap terjemah kata/kalimat\n\n🛠️ *FITUR UTILITAS*\n- \`/short\`          : Pendekkan URL dengan is.gd\n- \`/research_info\`  : Panduan Lengkap Referensi (buku/jurnal/artikel)\n- \`/downloader\`     : Panduan Lengkap download (/download & /audio)\n- \`/remind_info\`    : Panduan Lengkap fitur Reminder pengingat\n- \`/cuaca\`          : Info cuaca hari ini\n- \`/sholat\`         : Jadwal sholat hari ini\n- \`/me\`             : Tentang pembuat bot\n\n🖼️ *FITUR CONVERTER* 📄\n- \`/img_info\`       : Panduan Lengkap image tools\n- \`/pdf_info\`       : Panduan Lengkap PDF tools\n\n🧩 *FITUR STICKER*\n- \`/sticker_info\`   : Panduan Lengkap sticker tools\n\n🛡️ *FITUR ADMIN*\n- \`/admin\`          : Menu command admin`;
             replyText = appendFooter(`${header}\n\n${body}`, buildSystemStatsFooter());
             break;
           }
