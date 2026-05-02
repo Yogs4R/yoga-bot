@@ -8,13 +8,15 @@ async function sendToSheet(type, userId, message) {
             return false;
         }
 
-        await axios.post(gasUrl, {
+        const payload = JSON.stringify({
             type: type,
             userId: userId,
             message: message
-        }, {
+        });
+
+        await axios.post(gasUrl, payload, {
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'text/plain'
             }
         });
 
