@@ -20,6 +20,9 @@ async function sendToSheet(type, userId, message) {
             }
         });
 
+        // 🚨 TAMBAHKAN BARIS INI UNTUK MENANGKAP BASAH BALASAN GAS
+        console.log('🔎 Laporan dari GAS:', res.data);
+
         return true;
     } catch (error) {
         console.error('Error sending data to Google Sheet:', error.message);
