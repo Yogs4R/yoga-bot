@@ -2,43 +2,43 @@
   "categories": [
     {
       "title": "## 🚀 What's New",
-      "labels": ["feature"]
+      "labels": ["feat"]
     },
     {
       "title": "## 🐛 Bug Fixes",
-      "labels": ["bug"]
+      "labels": ["fix"]
     },
     {
       "title": "## 🛠 Maintenance & Refactor",
-      "labels": ["maintenance"]
+      "labels": ["refactor", "chore"]
     },
     {
       "title": "## 📚 Documentation",
-      "labels": ["documentation"]
+      "labels": ["docs"]
     }
   ],
   "label_extractor": [
     {
-      "pattern": "^feat(?:\\([^)]*\\))?!?:\\s.*",
-      "target": "feature",
+      "pattern": "^(feat)(?:\\([^)]*\\))?!?:\\s.*",
+      "target": "$1",
       "on_property": "title",
       "flags": "i"
     },
     {
-      "pattern": "^fix(?:\\([^)]*\\))?!?:\\s.*",
-      "target": "bug",
+      "pattern": "^(fix)(?:\\([^)]*\\))?!?:\\s.*",
+      "target": "$1",
       "on_property": "title",
       "flags": "i"
     },
     {
-      "pattern": "^(?:refactor|chore)(?:\\([^)]*\\))?!?:\\s.*",
-      "target": "maintenance",
+      "pattern": "^(refactor|chore)(?:\\([^)]*\\))?!?:\\s.*",
+      "target": "$1",
       "on_property": "title",
       "flags": "i"
     },
     {
-      "pattern": "^(?:docs(?:\\([^)]*\\))?!?:\\s.*|merge\\b.*|add files via upload.*)",
-      "target": "documentation",
+      "pattern": "^(docs)(?:\\([^)]*\\))?!?:\\s.*",
+      "target": "$1",
       "on_property": "title",
       "flags": "i"
     }
