@@ -562,16 +562,19 @@ Fitur `/ask` dan `/feedback` membutuhkan URL Web App dari Google Apps Script (GA
 1. Buat Spreadsheet baru di [Google Sheets](https://sheets.google.com).
 2. Buat header pada baris pertama (A1 - F1):
    `Timestamp` | `Type` | `User_ID` | `Message` | `Status` | `Customer Sentiment`
-3. Pada sel **F2** (Customer Sentiment), masukkan formula analisis otomatis berikut dan drag/tarik ke baris-baris bawahnya:
+3. Buat tabel dan berikan nama "User Questions" atau apapun yang anda sukai.
+4. Pada sel **F2** (Customer Sentiment), masukkan formula analisis otomatis berikut dan drag/tarik ke baris-baris bawahnya:
    ```excel
    =IF(ISBLANK(D2), "", IF(REGEXMATCH(LOWER(D2), "good|great|excellent|awesome|love|thanks|thank you|happy|bagus|keren|mantap|terima kasih|suka|puas"), "Positive", IF(REGEXMATCH(LOWER(D2), "bad|terrible|awful|hate|issue|problem|error|fail|angry|upset|worst|poor|jelek|buruk|masalah|rusak|gagal|kecewa"), "Negative", "Netral")))
    ```
-4. Klik menu **Ekstensi > Apps Script**.
-5. Hapus kode bawaan yang ada, lalu paste kode berikut:
+5. Klik menu **Ekstensi > Apps Script**.
+6. Hapus kode bawaan yang ada, lalu paste kode berikut:
    ```javascript
    function doPost(e) {
      try {
-       const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+       const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("User Questions");
+    
+       if (!sheet) throw new Error("Tab 'User Questions' tidak ditemukan!");
        const data = JSON.parse(e.postData.contents);
        
        // Siapkan data untuk dimasukkan ke baris baru
@@ -593,10 +596,10 @@ Fitur `/ask` dan `/feedback` membutuhkan URL Web App dari Google Apps Script (GA
      }
    }
    ```
-6. Klik **Terapkan (Deploy) > Deployment baru**.
-7. Pilih jenis **Aplikasi Web (Web App)**. Set "Akses" ke **Siapa saja (Anyone)**.
-8. Salin URL Web App yang dihasilkan (berakhiran `/exec`).
-9. Buka file `.env` dan tambahkan variabel environment berikut lalu restart bot:
+7. Klik **Terapkan (Deploy) > Deployment baru**.
+8. Pilih jenis **Aplikasi Web (Web App)**. Set "Akses" ke **Siapa saja (Anyone)**.
+9. Salin URL Web App yang dihasilkan (berakhiran `/exec`).
+10. Buka file `.env` dan tambahkan variabel environment berikut lalu restart bot:
    ```env
    GAS_WEBAPP_URL="URL_WEBAPP_ANDA_DISINI"
    ```

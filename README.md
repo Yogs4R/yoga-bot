@@ -562,16 +562,19 @@ The `/ask` and `/feedback` features require a Web App URL from Google Apps Scrip
 1. Create a new blank spreadsheet in [Google Sheets](https://sheets.google.com).
 2. Set up headers on the first row (A1 - F1):
    `Timestamp` | `Type` | `User_ID` | `Message` | `Status` | `Customer Sentiment`
-3. In cell **F2** (Customer Sentiment), insert the following automated sentiment formula and drag it down to the subsequent rows:
+3. Create a table and name it "User Questions" or with anything you like.
+4. In cell **F2** (Customer Sentiment), insert the following automated sentiment formula and drag it down to the subsequent rows:
    ```excel
    =IF(ISBLANK(D2), "", IF(REGEXMATCH(LOWER(D2), "good|great|excellent|awesome|love|thanks|thank you|happy|bagus|keren|mantap|terima kasih|suka|puas"), "Positive", IF(REGEXMATCH(LOWER(D2), "bad|terrible|awful|hate|issue|problem|error|fail|angry|upset|worst|poor|jelek|buruk|masalah|rusak|gagal|kecewa"), "Negative", "Netral")))
    ```
-4. Click **Extensions > Apps Script** from the top menu.
-5. Clear any existing code and paste the following snippet:
+5. Click **Extensions > Apps Script** from the top menu.
+6. Clear any existing code and paste the following snippet:
    ```javascript
    function doPost(e) {
      try {
-       const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+       const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("User Questions");
+    
+       if (!sheet) throw new Error("Tab 'User Questions' not found!");
        const data = JSON.parse(e.postData.contents);
        
        // Prepare new row data
@@ -593,10 +596,10 @@ The `/ask` and `/feedback` features require a Web App URL from Google Apps Scrip
      }
    }
    ```
-6. Click **Deploy > New deployment**.
-7. Select **Web app** as the deployment type. Set "Who has access" to **Anyone**.
-8. Once successfully deployed, copy the generated Web App URL (ends with `/exec`).
-9. Open your server's `.env` file and append the following environment variable then restart the bot:
+7. Click **Deploy > New deployment**.
+8. Select **Web app** as the deployment type. Set "Who has access" to **Anyone**.
+9. Once successfully deployed, copy the generated Web App URL (ends with `/exec`).
+10. Open your server's `.env` file and append the following environment variable then restart the bot:
    ```env
    GAS_WEBAPP_URL="YOUR_WEBAPP_URL_HERE"
    ```
