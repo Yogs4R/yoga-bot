@@ -59,6 +59,8 @@ Berjalan ganda secara independen namun terintegrasi penuh:
 
 ### 🤖 AI Assistant
 Asisten cerdas tingkat lanjut yang ditenagai oleh model bahasa besar (LLM) melalui integrasi OpenRouter API. Siap menjawab pertanyaan teknis, diskusi, dan coding.
+- Dukungan **Multimodal** (mampu membaca file Gambar, pesan suara/Audio, dan mengekstrak isi Dokumen teks).
+- Fitur **Penerjemah Bahasa** cepat menggunakan command `/translate`.
 - Dukungan multi-model dengan command pergantian model per pengguna.
 - Metadata penggunaan model di balasan (token usage dan label RPM).
 - Mendukung jawaban multi-bahasa dengan menyesuaikan bahasa input pengguna.
@@ -118,6 +120,8 @@ Layanan pendamping yang bermanfaat:
 | /ping | Cek status online bot dan footer sistem | Node.js os module | /ping |
 | /model_info | Tampilkan model AI dan alias yang tersedia | OpenRouter, aiPreferenceService | /model_info |
 | /switch | Ganti model AI aktif per pengguna | OpenRouter, aiPreferenceService | /switch elephant |
+| /translate_info | Panduan panduan lengkap penggunaan fitur terjemahan | aiClient, OpenRouter | /translate_info |
+| /translate | Terjemahkan teks atau reply pesan ke bahasa tertentu | aiClient, OpenRouter | /translate en Halo dunia |
 | /finance_info | Panduan Lengkap command keuangan | financeService, Supabase | /finance_info |
 | /saldo | Tampilkan ringkasan saldo terbaru | financeService, Supabase | /saldo |
 | /catat | Catat transaksi pengeluaran | financeService, Supabase | /catat 25000 makan siang |
@@ -302,11 +306,12 @@ Agar CI/CD dapat bekerja dan fitur auto broadcast release berjalan, buat reposit
 - `AUTO_BROADCAST_RELEASE`: Password secret webhook yang harus sama dengan yang Anda tulis di dalam `.env` VM Anda.
 
 ### B. Setup Firewall untuk Auto Broadcast Webhook
-Pastikan server (VM) telah membuka port TCP `3000` (atau PORT env server Anda) agar Webhook otomatis GitHub Actions bisa berkomunikasi.
+Pastikan server (VM) telah membuka port TCP `3000` (atau PORT env server Anda) agar Webhook otomatis GitHub Actions bisa berkomunikasi. Pastikan juga akses SSH (`22`) tidak ditutup agar Anda tidak kehilangan akses.
 
 1. Masuk ke terminal SSH VM Anda.
-2. Jalankan perintah di bawah untuk mengizinkan port `3000` via UFW:
+2. Jalankan perintah di bawah untuk mengizinkan koneksi SSH dan port `3000` via UFW:
    ```bash
+   sudo ufw allow ssh
    sudo ufw allow 3000/tcp
    sudo ufw reload
    sudo ufw status

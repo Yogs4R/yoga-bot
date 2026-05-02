@@ -59,6 +59,8 @@ Runs simultaneously, independently but fully integrated:
 
 ### 🤖 AI Assistant
 Advanced smart assistant powered by large language models (LLM) via OpenRouter API integration. Ready to answer technical questions, discussions, and coding.
+- **Multimodal** support (capable of reading Images, Audio/Voice Notes, and extracting Text Documents).
+- **Fast Translator** command using `/translate`.
 - Multi-model support with user-level model switching command.
 - Built-in model usage metadata in replies (token usage and RPM label).
 - Supports multilingual answers by following the user's input language.
@@ -118,6 +120,8 @@ Useful companion services:
 | /ping | Check bot online status and system footer | Node.js os module | /ping |
 | /model_info | Show available AI models and aliases | OpenRouter, aiPreferenceService | /model_info |
 | /switch | Switch active AI model per user | OpenRouter, aiPreferenceService | /switch elephant |
+| /translate_info | Show full guide for translation system | aiClient, OpenRouter | /translate_info |
+| /translate | Translate text or replied message to a specific language | aiClient, OpenRouter | /translate en Hello world |
 | /finance_info | Full finance command guide | financeService, Supabase | /finance_info |
 | /saldo | Show latest balance summary | financeService, Supabase | /saldo |
 | /catat | Record expense transaction | financeService, Supabase | /catat 25000 lunch |
@@ -302,11 +306,12 @@ To enable CI/CD auto-deployment and the auto broadcast release feature, you need
 - `AUTO_BROADCAST_RELEASE`: The secret password you set in the `.env` file of your VM for the webhook endpoint security.
 
 ### B. Setup Firewall for Auto Broadcast Webhook
-The auto-broadcast webhook endpoint runs on port `3000` by default. You must open this port in your VM internal firewall securely so GitHub Actions can reach it.
+The auto-broadcast webhook endpoint runs on port `3000` by default. You must open this port in your VM internal firewall securely so GitHub Actions can reach it. Make sure not to block your SSH access (`22`).
 
 1. SSH to your VM.
-2. Execute this command to allow port 3000 through the Ubuntu Uncomplicated Firewall (UFW):
+2. Execute this command to allow SSH and port 3000 through the Ubuntu Uncomplicated Firewall (UFW):
    ```bash
+   sudo ufw allow ssh
    sudo ufw allow 3000/tcp
    sudo ufw reload
    sudo ufw status
